@@ -16,6 +16,14 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "resolveJsonModule": true,
+    "paths": {
+      "@app/*" : ["src/app/*"],
+      "@libs/*" : ["src/libs/*"],
+      "@config/*" : ["src/config/*"],
+      "@/helpers/*" : ["src/helpers/*"],
+      "@/resources/*" : ["src/resources/*"]
+    }
   }
 }
