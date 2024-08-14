@@ -1,0 +1,18 @@
+extends ../../baseEmail
+
+block content
+  p Hello there!
+  p Welcome to #{payload.appInfo.name}! We are excited to have you join our community.
+  p We're all a big family here! To get started, please verify your account by using the verification token provided below:
+
+  b
+    h2 #{payload.user.token}
+
+  p It's an important step that helps us maintain a safe and inclusive environment for our community members.
+  p If you have any questions or encounter any issues during the verification process, please don't hesitate to reach out to our support team at [#{payload.appInfo.email} or #{payload.appInfo.phone}]. We are here to assist you!
+  hr
+
+  small Thank you for joining #{payload.appInfo.name}! We look forward to seeing you actively participate in our platform and making valuable connections within the community.
+  br
+  small
+    b - #{payload.appInfo.email}, #{payload.appInfo.name}

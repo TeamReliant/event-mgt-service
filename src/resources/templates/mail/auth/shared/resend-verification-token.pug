@@ -1,0 +1,17 @@
+extends ../../baseEmail
+
+block content
+  p Hi,
+  p We have received a request to resend the verification token for your #{payload.appInfo.name} account. We understand that this token is essential for completing the activation process, and we apologize for any inconvenience caused.
+  p To proceed with verifying your account, please use the new verification token provided below:
+
+  b
+    h2 #{payload.user.token}
+
+  p If you did not request the resend of the verification token or if you have any concerns, please disregard this email. Your account will remain inactive.
+  p If you encounter any difficulties during the verification process or if you have any questions, please contact our support team at [#{payload.appInfo.email} or #{payload.appInfo.phone}]. We are here to assist you in any way we can.
+
+  small Thank you for joining #{payload.appInfo.name}! We look forward to seeing you actively participate in our platform and making valuable connections within the community.
+  br
+  small
+    b - #{payload.appInfo.email}, #{payload.appInfo.name}

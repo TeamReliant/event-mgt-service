@@ -1,0 +1,12 @@
+extends ../../baseEmail
+
+block content
+  p Hi,
+  p Congratulations! Your #{payload.appInfo.name} account has been Fully setup, you can proceed to creating your events and teams. We are delighted to welcome you to our vibrant community.
+
+  p Thank you for choosing #{payload.appInfo.name} as your platform.
+
+  small Thank you for joining #{payload.appInfo.name}! We look forward to seeing you actively participate in our platform and making valuable connections within the community.
+  br
+  small
+    b - #{payload.appInfo.email}, #{payload.appInfo.name}

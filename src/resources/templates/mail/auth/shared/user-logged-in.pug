@@ -1,0 +1,14 @@
+extends ../../baseEmail
+
+block content
+  p #{(payload.user.lastname)? `Hello ${payload.user.lastname}  ${payload.user.lastname} `: 'Hello'},
+  p
+    small You have successfully logged in to your #{payload.appInfo.name} App on: #{payload.dateTime}.
+
+  p If you did not initiate this log in, please change your password and call our 24/7 contact centre immediately on #{payload.appInfo.phone}. Alternatively, send an email to #{payload.appInfo.email}.
+
+
+  small Thank you for choosing #{payload.appInfo.name}!.
+  br
+  small
+    b - #{payload.appInfo.email}, #{payload.appInfo.name}

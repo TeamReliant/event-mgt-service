@@ -1,0 +1,15 @@
+extends ../../baseEmail
+
+block content
+  p Hi,
+  p Congratulations! Your #{payload.appInfo.name} account has been successfully verified. We are delighted to welcome you to our vibrant community.
+  p With your account now verified, you can fully explore and engage with all the features and benefits #{payload.appInfo.name} offers.
+
+  p We are committed to providing a safe and inclusive environment for all our community members. If you ever need assistance or have any questions, feel free to reach out to our support team at [#{payload.appInfo.email} or #{payload.appInfo.phone}]. We are here to help you make the most of your #{payload.appInfo.name} experience.
+
+  p Thank you for choosing #{payload.appInfo.name} as your platform.
+
+  small Thank you for joining #{payload.appInfo.name}! We look forward to seeing you actively participate in our platform and making valuable connections within the community.
+  br
+  small
+    b - #{payload.appInfo.email}, #{payload.appInfo.name}

@@ -1,0 +1,17 @@
+extends ../baseEmail
+
+block content
+  p Hi,
+  p Thank you for updating your email address with us! To complete the process, please verify your new email by following the steps below:
+  p 1. Check your inbox: This email should contain a verification token from us.
+  p 2. Enter the token: Copy the token from this email and paste it in the verification form on our website.
+
+  b
+    h2 #{payload.user.token}
+
+  p If you did not request this change, please contact our support team immediately.
+  hr
+  small Thank you for being a valued member of our community!
+  br
+  small
+    b - #{payload.appInfo.email}, #{payload.appInfo.name}
