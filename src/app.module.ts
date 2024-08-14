@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppConfig, DatabaseConfig } from '@config/index';
 import { MulterModule } from '@nestjs/platform-express';
@@ -40,7 +38,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     EventsListenerModule,
     UsersModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  providers: [],
 })
 export class AppModule {}
