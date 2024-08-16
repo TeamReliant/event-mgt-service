@@ -1,5 +1,7 @@
+import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
 import { AbstractEntity } from '@libs/database/abstract.entity';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
+import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -46,13 +48,13 @@ export class User extends AbstractEntity<User> {
   refreshToken?: string;
 
   // teams where the user is an admin
-  // @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
-  // teamMembers?: TeamMember[];
-  //
-  // @OneToMany(() => TeamInvitation, (invitation) => invitation.user, {
-  //   cascade: true,
-  // })
-  // invitations?: TeamInvitation[];
+  @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
+  teamMembers?: TeamMember[];
+
+  @OneToMany(() => TeamInvitation, (invitation) => invitation.user, {
+    cascade: true,
+  })
+  invitations?: TeamInvitation[];
 
   // many-to-many relation with brands
   // @ManyToMany(() => Workspace, (workspace) => workspace.users)
