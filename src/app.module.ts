@@ -9,10 +9,8 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TeamMembersModule } from '@app/rest/team-resources/team-members/team-members.module';
 import { TeamInvitationsModule } from '@app/rest/team-resources/team-invitations/team-invitations.module';
-import { TeamPermissionsModule } from '@app/rest/team-resources/team-permissions/team-permissions.module';
-import { TeamRolePermissionsModule } from '@app/rest/team-resources/team-role-permissions/team-role-permissions.module';
-import { TeamRolesModule } from '@app/rest/team-resources/team-roles/team-roles.module';
 import { TeamsModule } from '@app/rest/team-resources/teams/teams.module';
+import { PermissionsModule } from '@app/rest/team-resources/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -45,10 +43,8 @@ import { TeamsModule } from '@app/rest/team-resources/teams/teams.module';
     UsersModule,
     TeamMembersModule,
     TeamInvitationsModule,
-    TeamPermissionsModule,
-    TeamRolePermissionsModule,
-    TeamRolesModule,
     TeamsModule,
+    PermissionsModule,
   ],
   providers: [],
 })

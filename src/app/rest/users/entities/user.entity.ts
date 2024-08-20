@@ -55,13 +55,4 @@ export class User extends AbstractEntity<User> {
     cascade: true,
   })
   invitations?: TeamInvitation[];
-
-  // many-to-many relation with brands
-  // @ManyToMany(() => Workspace, (workspace) => workspace.users)
-  // @JoinTable({
-  //   name: 'users_workspaces',
-  //   joinColumn: { name: 'userId', referencedColumnName: 'id' },
-  //   inverseJoinColumn: { name: 'workspaceId', referencedColumnName: 'id' },
-  // })
-  // workspaces?: Workspace[];
 }

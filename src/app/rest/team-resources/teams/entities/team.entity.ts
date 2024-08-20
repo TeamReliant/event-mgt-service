@@ -1,7 +1,6 @@
 import { AbstractEntity } from '@libs/database/abstract.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
-import { TeamRole } from '@app/rest/team-resources/team-roles/entities/team-role.entity';
 import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
 
 @Entity({ name: 'teams' })
@@ -12,6 +11,13 @@ export class Team extends AbstractEntity<Team> {
     nullable: false,
   })
   name: string;
+
+  @Column({
+    name: 'color',
+    type: 'varchar',
+    nullable: true,
+  })
+  color: string;
 
   @Column({
     name: 'bio',
@@ -30,9 +36,6 @@ export class Team extends AbstractEntity<Team> {
   // one-to-many relation with team members
   @OneToMany(() => TeamMember, (members) => members.team, { cascade: true })
   members: TeamMember[];
-
-  @OneToMany(() => TeamRole, (roles) => roles.team, { cascade: true })
-  roles: TeamRole[];
 
   @OneToMany(() => TeamInvitation, (invitations) => invitations.team, {
     cascade: true,
