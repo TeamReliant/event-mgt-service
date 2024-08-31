@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AppConfig, DatabaseConfig } from '@config/index';
+import { AppConfig } from '@config/index';
 import { MulterModule } from '@nestjs/platform-express';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { EventsListenerModule } from '@libs/listeners/events-listener/events-listener.module';
@@ -11,6 +11,8 @@ import { TeamMembersModule } from '@app/rest/team-resources/team-members/team-me
 import { TeamInvitationsModule } from '@app/rest/team-resources/team-invitations/team-invitations.module';
 import { TeamsModule } from '@app/rest/team-resources/teams/teams.module';
 import { PermissionsModule } from '@app/rest/team-resources/permissions/permissions.module';
+import DatabaseConfig from '@libs/database/config/database.config';
+import { JwtStrategy } from '@libs/strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -46,6 +48,6 @@ import { PermissionsModule } from '@app/rest/team-resources/permissions/permissi
     TeamsModule,
     PermissionsModule,
   ],
-  providers: [],
+  providers: [JwtStrategy],
 })
 export class AppModule {}

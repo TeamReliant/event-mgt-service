@@ -4,11 +4,16 @@ import { TeamsController } from './teams.controller';
 import { UsersModule } from '@app/rest/users/users.module';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TeamInvitationsModule } from '../team-invitations/team-invitations.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Team]), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Team]),
+    UsersModule,
+    TeamInvitationsModule,
+  ],
   controllers: [TeamsController],
   providers: [TeamsService],
-  exports: [TeamsService]
+  exports: [TeamsService],
 })
 export class TeamsModule {}

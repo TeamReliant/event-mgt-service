@@ -1,8 +1,15 @@
 import { User } from '@app/rest/users/entities/user.entity';
-import { AbstractEntity } from '@libs/database/abstract.entity';
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from 'typeorm';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
+import { AbstractEntity } from '@libs/database';
 
 @Entity({ name: 'team_members' })
 export class TeamMember extends AbstractEntity<TeamMember> {
@@ -19,7 +26,14 @@ export class TeamMember extends AbstractEntity<TeamMember> {
     type: 'boolean',
     default: false,
   })
-  idAdmin?: boolean;
+  isAdmin?: boolean;
+
+  @Column({
+    name: 'status',
+    type: 'varchar',
+    default: 'active',
+  })
+  status?: string; // active, inactive, or exited
 
   @ManyToMany(() => Permission, (permission) => permission.teamMembers)
   @JoinTable({
