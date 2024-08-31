@@ -18,3 +18,4 @@ export class UpdateTeamInvitationDto {
   @FormatValidationException()
   token: string;
 }
+

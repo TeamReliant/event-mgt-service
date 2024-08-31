@@ -3,6 +3,7 @@ import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { User } from '@app/rest/users/entities/user.entity';
 import { AbstractEntity } from '@libs/database';
 
+
 @Entity({ name: 'team_invitations' })
 export class TeamInvitation extends AbstractEntity<TeamInvitation> {
   @ManyToOne(() => Team, (team) => team.invitations)

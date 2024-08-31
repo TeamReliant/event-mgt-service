@@ -14,6 +14,7 @@ import { PermissionsModule } from '@app/rest/team-resources/permissions/permissi
 import DatabaseConfig from '@libs/database/config/database.config';
 import { JwtStrategy } from '@libs/strategies/jwt.strategy';
 
+
 @Module({
   imports: [
     ConfigModule.forRoot({

@@ -25,7 +25,7 @@ async function bootstrap() {
       'MIT License',
       'https://github.com/git/git-scm.com/blob/main/MIT-LICENSE.txt',
     )
-    .addServer('api/v1')
+    .addServer('api/v1/teams')
     .setVersion('1.0')
     .build();
 
