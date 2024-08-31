@@ -6,40 +6,72 @@ import {
   Patch,
   Param,
   Delete,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { TeamMembersService } from './team-members.service';
-import { CreateTeamMemberDto } from './dto/create-team-member.dto';
-import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 
-@Controller('team-members')
+import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
+import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
+import ResponseSerializer, {
+  IResponseWithData,
+  IResponseWithMessage,
+} from '@libs/helpers/ResponseSerializer';
+import { Request } from 'express';
+import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
+
+@Controller('teams/:teamId/members')
 export class TeamMembersController {
   constructor(private readonly teamMembersService: TeamMembersService) {}
 
-  @Post()
-  create(@Body() createTeamMemberDto: CreateTeamMemberDto) {
-    return this.teamMembersService.create(createTeamMemberDto);
-  }
-
   @Get()
-  findAll() {
-    return this.teamMembersService.findAll();
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async findAll(@Param('teamId') teamId: string, @Req() req: Request) {
+    const queryBuilder = this.teamMembersService.findAll(teamId);
+    return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.teamMembersService.findOne(+id);
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async findOne(
+    @Param('teamId') teamId: string,
+    @Param('id') id: string,
+  ): Promise<IResponseWithData> {
+    const data = await this.teamMembersService.findOne(teamId, id);
+    return ResponseSerializer.data(data);
   }
 
   @Patch(':id')
-  update(
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async update(
+    @Param('teamId') teamId: string,
     @Param('id') id: string,
+    @GetCurrentUserId() userId: string,
     @Body() updateTeamMemberDto: UpdateTeamMemberDto,
-  ) {
-    return this.teamMembersService.update(+id, updateTeamMemberDto);
+  ): Promise<IResponseWithData> {
+    const data = await this.teamMembersService.update(
+      teamId,
+      id,
+      userId,
+      updateTeamMemberDto,
+    );
+    return ResponseSerializer.data(data);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.teamMembersService.remove(+id);
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async remove(
+    @Param('teamId') teamId: string,
+    @Param('id') id: string,
+    @GetCurrentUserId() userId: string,
+  ): Promise<IResponseWithMessage> {
+    await this.teamMembersService.remove(teamId, id, userId);
+    return ResponseSerializer.message('Team member removed successfully');
   }
 }

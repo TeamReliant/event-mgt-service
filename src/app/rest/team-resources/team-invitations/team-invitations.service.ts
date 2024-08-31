@@ -1,26 +1,324 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateTeamInvitationDto } from './dto/create-team-invitation.dto';
 import { UpdateTeamInvitationDto } from './dto/update-team-invitation.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
+import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
+import { User } from '@app/rest/users/entities/user.entity';
+import { generateRandomString } from '@libs/helpers/char-generator';
+import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
+import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { events } from '@config/app.config';
+import { TeamInvitationsEvent } from './events/team-invitations.event';
+import { ResendTeamInvitationDto } from '@app/rest/team-resources/team-invitations/dto/resend-team-invitation.dto';
 
 @Injectable()
 export class TeamInvitationsService {
-  create(createTeamInvitationDto: CreateTeamInvitationDto) {
-    return 'This action adds a new teamInvitation';
+  constructor(
+    @InjectRepository(TeamInvitation)
+    private readonly _repo: Repository<TeamInvitation>,
+    private readonly _entityManager: EntityManager,
+    private readonly _eventEmitter: EventEmitter2,
+  ) {}
+
+  async create(
+    createTeamInvitationDto: CreateTeamInvitationDto,
+    teamId: string,
+    userId: string,
+  ) {
+    const { emails } = createTeamInvitationDto;
+    if (!emails || emails.length === 0)
+      throw new NotAcceptableException('Emails are required');
+
+    // find the team with the teamId string
+    const team = await this._entityManager.findOneBy<Team>(Team, {
+      id: teamId,
+    });
+    if (!team) throw new NotFoundException(`Team with id ${teamId} not found`);
+
+    // find the team member where the userId is an admin and the teamId is the teamId
+    const adminMember = await this._entityManager
+      .createQueryBuilder(TeamMember, 'teamMember')
+      .leftJoinAndSelect('teamMember.user', 'user')
+      .where('teamMember.userId = :userId', { userId })
+      .andWhere('teamMember.teamId = :teamId', { teamId })
+      .andWhere('teamMember.isAdmin = true')
+      .getOne();
+
+    if (!adminMember)
+      throw new NotFoundException('Only team admins can invite members');
+
+    // check if any of the emails belong to the current user
+    if (emails.includes(adminMember.user.email))
+      throw new NotAcceptableException(
+        `You cannot invite yourself: ${adminMember.user.email}`,
+      );
+
+    const invitations = await this._entityManager.transaction(
+      async (manager) => {
+        const invitationEntities = [];
+
+        for (const email of emails) {
+          // check if the user has been invited to the team previously
+          const existingInvitation = (await manager
+            .createQueryBuilder(TeamInvitation, 'invitations')
+            .where('invitations.teamId = :teamId', { teamId: team.id })
+            .andWhere('invitations.email = :email', { email })
+            .getOne()) as TeamInvitation;
+          if (existingInvitation) continue;
+
+          // check if the user exists
+          const memberUser = await this._entityManager.findOneBy<User>(User, {
+            email,
+          });
+
+          //generate invitation token
+          const token = await this.generateTeamInvitationToken();
+
+          const invitation = manager.create(TeamInvitation, {
+            team: team,
+            user: memberUser,
+            token,
+            email: email,
+          });
+          invitationEntities.push(invitation);
+        }
+
+        // save the invitations(notification to be worked on later)
+        return await manager.save<TeamInvitation>(invitationEntities);
+      },
+    );
+
+    // emit the event for the invitations
+    for (const invitation of invitations) {
+      this._eventEmitter.emit(
+        events.TEAM_MEMBER_INVITED,
+        new TeamInvitationsEvent(invitation),
+      );
+    }
+    // remove sensitive user and invitation data
+    return invitations.map((invitation) => {
+      delete invitation.token;
+      delete invitation.user?.password;
+      delete invitation.user?.emailVerificationToken;
+      delete invitation.user?.emailVerifiedAt;
+      delete invitation.user?.passwordResetToken;
+      delete invitation.user?.magicSignInToken;
+      delete invitation.user?.refreshToken;
+      return invitation;
+    });
   }
 
-  findAll() {
-    return `This action returns all teamInvitations`;
+  findAll(teamId: string): SelectQueryBuilder<TeamInvitation> {
+    return this._repo
+      .createQueryBuilder('teamInvitations')
+      .leftJoinAndSelect('teamInvitations.user', 'user')
+      .where('teamInvitations.teamId = :teamId', { teamId })
+      .select([
+        'teamInvitations.id',
+        'teamInvitations.email',
+        'teamInvitations.status',
+        'teamInvitations.createdAt',
+        'teamInvitations.updatedAt',
+        'user.id',
+        'user.email',
+        'user.firstname',
+        'user.lastname',
+        'user.picture',
+      ]);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} teamInvitation`;
+  async findOne(teamId: string, id: string): Promise<TeamInvitation> {
+    return await this._repo
+      .createQueryBuilder('teamInvitations')
+      .leftJoinAndSelect('teamInvitations.user', 'user')
+      .where('teamInvitations.teamId = :teamId', { teamId })
+      .andWhere('teamInvitations.id = :id', { id })
+      .select([
+        'teamInvitations.id',
+        'teamInvitations.email',
+        'teamInvitations.status',
+        'teamInvitations.createdAt',
+        'teamInvitations.updatedAt',
+        'user.id',
+        'user.email',
+        'user.firstname',
+        'user.lastname',
+        'user.picture',
+      ])
+      .getOne();
   }
 
-  update(id: number, updateTeamInvitationDto: UpdateTeamInvitationDto) {
-    return `This action updates a #${id} teamInvitation`;
+  findOneByToken(token: string): Promise<TeamInvitation> {
+    return this._repo.findOneBy({ token });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} teamInvitation`;
+  async resendInvitation(
+    teamId: string,
+    userId: string,
+    resendTeamInvitationDto: ResendTeamInvitationDto,
+  ): Promise<TeamInvitation> {
+    const { email } = resendTeamInvitationDto;
+
+    // find the invitation where the id = id and teamId id teamId
+    const invitation = await this._repo
+      .createQueryBuilder('teamInvitations')
+      .leftJoinAndSelect('teamInvitations.user', 'user')
+      .leftJoinAndSelect('teamInvitations.team', 'team')
+      .where('teamInvitations.teamId = :teamId', { teamId })
+      .andWhere('user.email = :email', { email })
+      .getOne();
+
+    if (!invitation)
+      throw new NotFoundException(`Invitation with email ${email} not found`);
+
+    // find the team member where the userId is an admin and the teamId is the teamId
+    const adminMember = await this._entityManager
+      .createQueryBuilder(TeamMember, 'teamMember')
+      .leftJoinAndSelect('teamMember.user', 'user')
+      .where('teamMember.userId = :userId', { userId })
+      .andWhere('teamMember.teamId = :teamId', { teamId })
+      .andWhere('teamMember.isAdmin = true')
+      .getOne();
+
+    if (!adminMember)
+      throw new NotFoundException('Only team admins can invite members');
+
+    // check if the invitations has been accepted or declined
+    if (invitation.status !== 'pending')
+      throw new NotAcceptableException(
+        'Invitation has already been responded to',
+      );
+
+    // dispatch the event for the invitation
+    this._eventEmitter.emit(
+      events.TEAM_MEMBER_INVITED,
+      new TeamInvitationsEvent(invitation),
+    );
+
+    return invitation;
+  }
+
+  async update(
+    teamId: string,
+    id: string,
+    updateTeamInvitationDto: UpdateTeamInvitationDto,
+  ): Promise<TeamInvitation> {
+    const { status, token } = updateTeamInvitationDto;
+
+    // find the invitation where the id = id and teamId id teamId
+    const invitation = await this._repo
+      .createQueryBuilder('teamInvitations')
+      .leftJoinAndSelect('teamInvitations.team', 'team')
+      .leftJoinAndSelect('teamInvitations.user', 'user')
+      .where('teamInvitations.token = :token', { token })
+      .andWhere('teamInvitations.teamId = :teamId', { teamId })
+      .select([
+        'teamInvitations.id',
+        'teamInvitations.email',
+        'teamInvitations.status',
+        'teamInvitations.createdAt',
+        'teamInvitations.updatedAt',
+        'team',
+        'user.id',
+        'user.email',
+        'user.firstname',
+        'user.lastname',
+        'user.picture',
+      ])
+      .getOne();
+
+    // check if the invitation exists
+    if (!invitation) throw new NotFoundException(`Team invitation not found`);
+
+    // check if the invitations has been accepted or declined
+    if (invitation.status !== 'pending')
+      throw new NotAcceptableException(
+        'Invitation has already been responded to',
+      );
+
+    // check if the invited user exists or registered
+    if (!invitation.user)
+      throw new NotFoundException(
+        `The invited user with the email ${invitation.email} not found, probably not registered`,
+      );
+
+    return this._entityManager.transaction(async (manager) => {
+      // update the invitation status
+      invitation.status = status;
+      invitation.token = null;
+      await manager.save<TeamInvitation>(invitation);
+
+      // if the invitation was accepted, add the user to the team
+      if (status === 'accepted') {
+        const teamMember = manager.create(TeamMember, {
+          team: invitation.team,
+          user: invitation.user,
+          isAdmin: false,
+        }) as TeamMember;
+
+        await manager.save<TeamMember>(teamMember);
+        this._eventEmitter.emit(
+          events.TEAM_INVITATION_ACCEPTED,
+          new TeamInvitationsEvent(invitation),
+        );
+      }
+
+      return invitation;
+    });
+  }
+
+  async remove(teamId: string, id: string, userId: string): Promise<boolean> {
+    // find the admin members of the team and select their user id
+    const adminMember = await this._entityManager
+      .createQueryBuilder(TeamMember, 'teamMember')
+      .leftJoinAndSelect('teamMember.user', 'user')
+      .where('teamMember.userId = :userId', { userId })
+      .andWhere('teamMember.teamId = :teamId', { teamId })
+      .andWhere('teamMember.isAdmin = true')
+      .getOne();
+
+    if (!adminMember)
+      throw new NotAcceptableException(
+        'Only team admins can remove team members',
+      );
+
+    const invitation = await this._repo
+      .createQueryBuilder('teamInvitations')
+      .leftJoinAndSelect('teamInvitations.user', 'user')
+      .leftJoinAndSelect('teamInvitations.team', 'team')
+      .where('teamInvitations.teamId = :teamId', { teamId })
+      .andWhere('teamInvitations.id = :id', { id })
+      .getOne();
+
+    if (!invitation)
+      throw new NotFoundException(`Invitation with id ${id} not found`);
+
+    // check if the invitations has been accepted or declined
+    if (invitation.status !== 'pending')
+      throw new NotAcceptableException(
+        'Invitation has already been responded to',
+      );
+
+    // delete the invitation
+    await this._repo.remove(invitation);
+
+    // return true if the invitation was deleted successfully
+    return true;
+  }
+
+  async generateTeamInvitationToken(): Promise<string> {
+    const token = generateRandomString(100);
+    // check if there's already a user with the token
+    if (await this.findOneByToken(token)) {
+      return this.generateTeamInvitationToken();
+    }
+
+    return token;
   }
 }

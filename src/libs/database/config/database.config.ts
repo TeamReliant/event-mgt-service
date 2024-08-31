@@ -12,10 +12,10 @@ const localDBConfig = () => {
     username: process.env.DEV_DB_USER,
     password: process.env.DEV_DB_PASSWORD,
     database: process.env.DEV_DB_NAME,
-    entities: [`${__dirname}/../**/*.entity{.ts,.js}`],
+    entities: [`${__dirname}/../../../../**/*.entity{.ts,.js}`],
     synchronize: process.env.NODE_ENV === 'development',
     logging: process.env.NODE_ENV === 'development',
-    migrations: [`${__dirname}/../../db/migrations/*{.ts,.js}`],
+    migrations: [`${__dirname}/../../../../../db/migrations/*{.ts,.js}`],
     migrationsTableName: 'migrations',
   };
 };
@@ -28,14 +28,14 @@ const remoteDBConfig = () => {
     username: process.env.LIVE_DB_USER,
     password: process.env.LIVE_DB_PASSWORD,
     database: process.env.LIVE_DB_NAME,
-    entities: [`${__dirname}/../**/*.entity{.ts,.js}`],
+    entities: [`${__dirname}/../../../../**/*.entity{.ts,.js}`],
 
     /* CONFIG FOR AUTO MIGRATION TO LIVE SERVER  */
     synchronize: process.env.NODE_ENV === 'development',
     logging: process.env.NODE_ENV === 'development',
     /* END OF CONFIG FOR AUTO MIGRATION TO LIVE SERVER  */
 
-    migrations: [`${__dirname}/../../db/migrations/*{.ts,.js}`],
+    migrations: [`${__dirname}/../../../../../db/migrations/*{.ts,.js}`],
     migrationsTableName: 'migrations',
   };
 };
