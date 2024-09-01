@@ -1,3 +1,4 @@
+import { plainToInstance } from 'class-transformer';
 import { Request } from 'express';
 import { SelectQueryBuilder } from 'typeorm';
 
@@ -65,9 +66,10 @@ class ResponseSerializer {
     };
   }
 
-  public static async applyHTEAOS(
+  public static async applyHTEAOS<T>(
     request: Request,
     queryBuilder: SelectQueryBuilder<any>,
+    dtoClass: new() => T,
   ) {
     const { query } = request;
 
@@ -82,7 +84,7 @@ class ResponseSerializer {
     queryBuilder.skip(offset).take(itemsPerPage);
 
     // Fetch data and count
-    const [data, total] = await queryBuilder.getManyAndCount();
+    let [data, total] = await queryBuilder.getManyAndCount();
 
     // Calculate other pagination properties
     const totalPages = Math.ceil(total / itemsPerPage);
@@ -104,6 +106,10 @@ class ResponseSerializer {
       ? `${baseUrl}?page=${nextPage}&perPage=${itemsPerPage}`
       : null;
 
+      data = plainToInstance(dtoClass, data, {
+        excludeExtraneousValues: true,
+      }); 
+      
     const response = {
       current_page: +currentPage,
       total_pages: totalPages,
