@@ -7,6 +7,12 @@ import { EventsListenerModule } from '@libs/listeners/events-listener/events-lis
 import { UsersModule } from '@app/rest/users/users.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EventsModule } from './app/rest/event-resources/events/events.module';
+import { TicketsModule } from './app/rest/ticket-resources/tickets/tickets.module';
+import { JwtStrategy } from '@libs/strategies/jwt.strategy';
+import { Event } from '@app/rest/event-resources/events/entities/event.entity';
+import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
+import { User } from '@app/rest/users/entities/user.entity';
 
 @Module({
   imports: [
@@ -19,6 +25,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         ...configService.get('database'),
+        entities: [Event, Ticket, User],
       }),
       inject: [ConfigService],
     }),
@@ -37,7 +44,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
     EventEmitterModule.forRoot(),
     EventsListenerModule,
     UsersModule,
+    EventsModule,
+    TicketsModule,
   ],
-  providers: [],
+  providers: [JwtStrategy],
 })
 export class AppModule {}
