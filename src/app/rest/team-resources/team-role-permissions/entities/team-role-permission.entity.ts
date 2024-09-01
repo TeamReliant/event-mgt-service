@@ -1,4 +1,4 @@
-import { AbstractEntity } from '@libs/database/abstract.entity';
+import { AbstractEntity } from '@libs/database';
 import { Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { TeamRole } from '@app/rest/team-resources/team-roles/entities/team-role.entity';
 import { TeamPermission } from '@app/rest/team-resources/team-permissions/entities/team-permission.entity';

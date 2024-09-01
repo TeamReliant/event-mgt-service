@@ -2,6 +2,7 @@ import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entiti
 import { Column, Entity, OneToMany } from 'typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
 import { AbstractEntity } from '@libs/database';
+import { Event } from '@app/rest/event-resources/events/entities/event.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -17,16 +18,20 @@ export class User extends AbstractEntity<User> {
   @Column({ name: 'picture', type: 'text', nullable: true })
   picture?: string;
 
-  @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
-  password?: string;
-
   @Column({
-    name: 'magic_sign_in_token',
+    name: 'user_type',
     type: 'varchar',
     length: 255,
     nullable: true,
+    default: 'attendee',
   })
-  magicSignInToken?: string;
+  userType?: string; // could be a organizer, attendee, or admin
+
+  @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
+  password?: string;
+
+  @Column({ name: 'magic_sign_in_token', nullable: true, type: 'bigint' })
+  magicSignInToken?: number;
 
   @Column({ name: 'email_verified_at', type: 'timestamp', nullable: true })
   emailVerifiedAt?: Date;
@@ -41,7 +46,6 @@ export class User extends AbstractEntity<User> {
     nullable: true,
   })
   passwordResetToken?: number;
-
   @Column({
     name: 'refresh_token',
     type: 'varchar',
@@ -55,6 +59,9 @@ export class User extends AbstractEntity<User> {
     nullable: true,
   })
   googleId?: string;
+
+  @OneToMany(() => Event, (events) => events.user, { cascade: true })
+  events?: Event[];
 
   // teams where the user is an admin
   @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
