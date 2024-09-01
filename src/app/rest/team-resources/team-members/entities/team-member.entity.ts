@@ -3,13 +3,14 @@ import {
   Column,
   Entity,
   JoinColumn,
-  JoinTable,
-  ManyToMany,
   ManyToOne,
+  OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 import { AbstractEntity } from '@libs/database';
+import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
 
 @Entity({ name: 'team_members' })
 export class TeamMember extends AbstractEntity<TeamMember> {
@@ -31,15 +32,21 @@ export class TeamMember extends AbstractEntity<TeamMember> {
   @Column({
     name: 'status',
     type: 'varchar',
-    default: 'active',
+    default: 'pending',
   })
-  status?: string; // active, inactive, or exited
+  status?: string; // active, inactive, pending, or exited
 
-  @ManyToMany(() => Permission, (permission) => permission.teamMembers)
-  @JoinTable({
-    name: 'team_members_permissions',
-    joinColumn: { name: 'teamMemberId', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'permissionId', referencedColumnName: 'id' },
-  })
+  @OneToOne(() => TeamInvitation, (invitation) => invitation.member)
+  invitation: TeamInvitation;
+
+  @OneToMany(() => Permission, (permission) => permission.teamMembers)
   permissions?: Permission[];
+
+  // @ManyToMany(() => Permission, (permission) => permission.teamMembers)
+  // @JoinTable({
+  //   name: 'team_members_permissions',
+  //   joinColumn: { name: 'teamMemberId', referencedColumnName: 'id' },
+  //   inverseJoinColumn: { name: 'permissionId', referencedColumnName: 'id' },
+  // })
+  // permissions?: Permission[];
 }

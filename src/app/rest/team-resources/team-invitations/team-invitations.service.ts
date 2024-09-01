@@ -16,6 +16,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { events } from '@config/app.config';
 import { TeamInvitationsEvent } from './events/team-invitations.event';
 import { ResendTeamInvitationDto } from '@app/rest/team-resources/team-invitations/dto/resend-team-invitation.dto';
+import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 
 @Injectable()
 export class TeamInvitationsService {
@@ -27,7 +28,7 @@ export class TeamInvitationsService {
   ) {}
 
   async create(
-    createTeamInvitationDto: CreateTeamInvitationDto,
+    createTeamInvitationDto: { emails: string[] },
     teamId: string,
     userId: string,
   ) {
@@ -61,7 +62,7 @@ export class TeamInvitationsService {
 
     const invitations = await this._entityManager.transaction(
       async (manager) => {
-        const invitationEntities = [];
+        const invitations = [];
 
         for (const email of emails) {
           // check if the user has been invited to the team previously
@@ -73,24 +74,36 @@ export class TeamInvitationsService {
           if (existingInvitation) continue;
 
           // check if the user exists
-          const memberUser = await this._entityManager.findOneBy<User>(User, {
+          const invitedUser = await this._entityManager.findOneBy<User>(User, {
             email,
           });
 
           //generate invitation token
           const token = await this.generateTeamInvitationToken();
 
-          const invitation = manager.create(TeamInvitation, {
+          const invitationEntity = manager.create(TeamInvitation, {
             team: team,
-            user: memberUser,
+            user: invitedUser,
             token,
             email: email,
-          });
-          invitationEntities.push(invitation);
+          }) as TeamInvitation;
+
+          const invitation = await manager.save(invitationEntity);
+
+          // push the invitation to invitations array.
+          invitations.push(invitation);
+
+          // create the member account for the invited team member
+          const memberEntity = manager.create(TeamMember, {
+            team: team,
+            user: invitedUser,
+            invitation,
+          }) as TeamMember;
+
+          await manager.save<TeamMember>(memberEntity);
         }
 
-        // save the invitations(notification to be worked on later)
-        return await manager.save<TeamInvitation>(invitationEntities);
+        return invitations;
       },
     );
 
@@ -112,6 +125,112 @@ export class TeamInvitationsService {
       delete invitation.user?.refreshToken;
       return invitation;
     });
+  }
+
+  async inviteUser(
+    createTeamInvitationDto: CreateTeamInvitationDto,
+    teamId: string,
+    userId: string,
+  ): Promise<TeamInvitation> {
+    const { email, permissions } = createTeamInvitationDto;
+
+    // find the team with the teamId string
+    const team = await this._entityManager.findOneBy<Team>(Team, {
+      id: teamId,
+    });
+
+    if (!team) throw new NotFoundException(`Team with id ${teamId} not found`);
+
+    // find the team member where the userId is an admin and the teamId is the teamId
+    const adminMember = await this._entityManager
+      .createQueryBuilder(TeamMember, 'teamMember')
+      .leftJoinAndSelect('teamMember.user', 'user')
+      .where('teamMember.userId = :userId', { userId })
+      .andWhere('teamMember.teamId = :teamId', { teamId })
+      .andWhere('teamMember.isAdmin = true')
+      .getOne();
+
+    if (!adminMember)
+      throw new NotFoundException('Only team admins can invite members');
+
+    // check if any of the emails belong to the current user
+    if (email === adminMember.user.email)
+      throw new NotAcceptableException(
+        `You cannot invite yourself: ${adminMember.user.email}`,
+      );
+
+    const invitation = await this._entityManager.transaction(
+      async (manager) => {
+        // check if the user has been invited to the team previously
+        const existingInvitation = (await manager
+          .createQueryBuilder(TeamInvitation, 'invitations')
+          .where('invitations.teamId = :teamId', { teamId: team.id })
+          .andWhere('invitations.email = :email', { email })
+          .getOne()) as TeamInvitation;
+        if (existingInvitation)
+          throw new NotAcceptableException(
+            `User with email ${email} has already been invited to the team`,
+          );
+
+        // find the member user data(registered/not registered)
+        const invitedUser = await this._entityManager.findOneBy<User>(User, {
+          email,
+        });
+
+        //generate invitation token
+        const token = await this.generateTeamInvitationToken();
+
+        const invitationEntity = manager.create(TeamInvitation, {
+          team: team,
+          user: invitedUser,
+          token,
+          email: email,
+        }) as TeamInvitation;
+
+        // save the invitations(notification to be worked on later)
+        const invitation = await manager.save<TeamInvitation>(invitationEntity);
+
+        // create the member account for the invited team member
+        const memberEntity = manager.create(TeamMember, {
+          team: team,
+          user: invitedUser,
+          invitation,
+        }) as TeamMember;
+
+        const member = await manager.save<TeamMember>(memberEntity);
+
+        // create the permissions for the member
+        if (permissions && permissions.length) {
+          const permissionEntities = permissions.map(
+            (permission) =>
+              manager.create(Permission, {
+                name: permission,
+                team,
+                member,
+              }) as Permission,
+          );
+          await manager.save<Permission>(permissionEntities);
+        }
+
+        return invitation;
+      },
+    );
+
+    // emit the event for the invitations
+    this._eventEmitter.emit(
+      events.TEAM_MEMBER_INVITED,
+      new TeamInvitationsEvent(invitation),
+    );
+
+    // remove sensitive user and invitation data
+    delete invitation.token;
+    delete invitation.user?.password;
+    delete invitation.user?.emailVerificationToken;
+    delete invitation.user?.emailVerifiedAt;
+    delete invitation.user?.passwordResetToken;
+    delete invitation.user?.magicSignInToken;
+    delete invitation.user?.refreshToken;
+    return invitation;
   }
 
   findAll(teamId: string): SelectQueryBuilder<TeamInvitation> {

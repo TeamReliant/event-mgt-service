@@ -1,7 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { User } from '@app/rest/users/entities/user.entity';
 import { AbstractEntity } from '@libs/database';
+import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
 
 @Entity({ name: 'team_invitations' })
 export class TeamInvitation extends AbstractEntity<TeamInvitation> {
@@ -26,4 +27,7 @@ export class TeamInvitation extends AbstractEntity<TeamInvitation> {
     nullable: false,
   })
   status: string; // pending, accepted, declined
+
+  @OneToOne(() => TeamMember, (member) => member.invitation)
+  member?: TeamMember;
 }
