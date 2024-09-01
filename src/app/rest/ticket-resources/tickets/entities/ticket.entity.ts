@@ -1,7 +1,7 @@
-import { AbstractEntity } from '@libs/database/abstract.entity';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { TicketCategory } from '../enums';
 import { Event } from '@app/rest/event-resources/events/entities/event.entity';
+import { AbstractEntity } from '@libs/database';
 
 @Entity()
 export class Ticket extends AbstractEntity<Ticket> {
