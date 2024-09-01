@@ -65,7 +65,7 @@ export class EventsController {
     @CurrentUser() user: TJwtPayload,
   ): Promise<IResponseWithData> {
     const queryBuilder = await this.eventsService.findMyEvents(req, user);
-    return await ResponseSerializer.applyHTEAOS<EventResponseDto>(req, queryBuilder, EventResponseDto);
+    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<EventResponseDto>(req, queryBuilder, EventResponseDto);
   }
 
   @Get(':id')
