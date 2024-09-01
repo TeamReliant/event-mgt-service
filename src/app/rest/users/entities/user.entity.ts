@@ -1,5 +1,6 @@
+import { Event } from '@app/rest/event-resources/events/entities/event.entity';
 import { AbstractEntity } from '@libs/database/abstract.entity';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -12,16 +13,23 @@ export class User extends AbstractEntity<User> {
   @Column({ unique: true, nullable: false, length: 255 })
   email: string;
 
-  @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
-  password?: string;
+  @Column({ name: 'picture', type: 'text', nullable: true })
+  picture?: string;
 
   @Column({
-    name: 'magic_sign_in_token',
+    name: 'user_type',
     type: 'varchar',
     length: 255,
     nullable: true,
+    default: 'attendee',
   })
-  magicSignInToken?: string;
+  userType?: string; // could be a organizer, attendee, or admin
+
+  @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
+  password?: string;
+
+  @Column({ name: 'magic_sign_in_token', nullable: true, type: 'bigint' })
+  magicSignInToken?: number;
 
   @Column({ name: 'email_verified_at', type: 'timestamp', nullable: true })
   emailVerifiedAt?: Date;
@@ -44,6 +52,14 @@ export class User extends AbstractEntity<User> {
     nullable: true,
   })
   refreshToken?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  googleId?: string;
+  @OneToMany(() => Event, (events) => events.user, { cascade: true })
+  events?: Event[];
 
   // teams where the user is an admin
   // @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
