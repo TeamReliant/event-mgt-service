@@ -119,5 +119,4 @@ export class UsersService {
     // Step 3: Save the updated entity
     return await this.repo.save(entityToUpdate);
   }
-
 }

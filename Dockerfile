@@ -59,7 +59,7 @@ RUN npm install -g @nestjs/cli@latest
 RUN npm run build
 
 # Expose port 5000
-EXPOSE 5000
+EXPOSE 5001
 
 # Start the server using the production build
 CMD ["node", "dist/src/main.js"]

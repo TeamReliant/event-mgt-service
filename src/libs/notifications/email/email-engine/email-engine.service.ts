@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { appInfo } from '@config/constants';
 import * as nodemailer from 'nodemailer';
 import * as path from 'path';
 import * as pug from 'pug';
 import { ConfigService } from '@nestjs/config';
+import { appInfo } from '@config/app.config';
 
 @Injectable()
 export class EmailEngineService {

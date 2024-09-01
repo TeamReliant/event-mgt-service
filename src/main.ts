@@ -21,7 +21,7 @@ async function bootstrap() {
    * swagger configuration
    */
   const config = new DocumentBuilder()
-    .setTitle('Plaventi Event Managment Service - REST API')
+    .setTitle('Plaventi Event Management Service - REST API')
     .setDescription(
       'Use the base API URL as http://localhost:5000/api/v1/event-mngt',
     )
@@ -30,7 +30,7 @@ async function bootstrap() {
       'MIT License',
       'https://github.com/git/git-scm.com/blob/main/MIT-LICENSE.txt',
     )
-    .addServer('api/v1')
+    .addServer('api/v1/teams')
     .setVersion('1.0')
     .build();
 
