@@ -37,7 +37,7 @@ export class TeamInvitationsController {
     @Param('teamId') teamId: string,
     @GetCurrentUserId() userId: string,
   ) {
-    return this.teamInvitationsService.create(
+    return this.teamInvitationsService.inviteUser(
       createTeamInvitationDto,
       teamId,
       userId,

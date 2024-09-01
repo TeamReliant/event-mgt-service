@@ -1,7 +1,27 @@
-import { IsArray, IsEmail, IsNotEmpty, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  MaxLength,
+} from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 
 export class CreateTeamInvitationDto {
+  @IsNotEmpty()
+  @MaxLength(255, {
+    message:
+      'each string in the array must be less than or equal to 255 characters',
+  })
+  @IsEmail(
+    {},
+    {
+      message: 'each element in the array must be an email',
+    },
+  )
+  @FormatValidationException()
+  email: string;
+
   @IsNotEmpty()
   @IsNotEmpty({ each: true })
   @IsArray()
@@ -10,13 +30,14 @@ export class CreateTeamInvitationDto {
     message:
       'each string in the array must be less than or equal to 255 characters',
   })
-  @IsEmail(
-    {},
+  @IsEnum(
+    ['analytics', 'budgeting', 'event builder', 'task', 'ticket scanning'],
     {
       each: true,
-      message: 'each element in the array must be an email',
+      message:
+        'each element in the array must be one of the following values: analytics, budgeting, event builder, task, ticket scanning',
     },
   )
   @FormatValidationException()
-  emails: string[];
+  permissions: string[];
 }

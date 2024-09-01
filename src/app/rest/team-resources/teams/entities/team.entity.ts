@@ -2,6 +2,7 @@ import { Column, Entity, OneToMany } from 'typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
 import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
 import { AbstractEntity } from '@libs/database';
+import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 
 @Entity({ name: 'teams' })
 export class Team extends AbstractEntity<Team> {
@@ -31,4 +32,9 @@ export class Team extends AbstractEntity<Team> {
     cascade: true,
   })
   invitations?: TeamInvitation[];
+
+  @OneToMany(() => Permission, (permissions) => permissions.team, {
+    cascade: true,
+  })
+  permissions?: Permission[];
 }
