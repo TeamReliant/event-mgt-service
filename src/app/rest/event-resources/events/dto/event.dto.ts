@@ -1,59 +1,62 @@
-import { UserDto } from "@app/rest/users/dto/shared/user.dto";
-import { Expose, Type } from "class-transformer";
-import { EventStatus, EventVisibility } from "../enums";
-import { TicketDto } from "@app/rest/ticket-resources/tickets/dto/ticket.dto";
+import { UserDto } from '@app/rest/users/dto/shared/user.dto';
+import { Expose, Type } from 'class-transformer';
+import { EventStatus, EventVisibility } from '../enums';
+import { TicketDto } from '@app/rest/ticket-resources/tickets/dto/ticket.dto';
 
 export class EventResponseDto {
-    @Expose()
-    id: number;
-    
-    @Expose()
-    name: string;
+  @Expose()
+  id: number;
 
-    @Expose()
-    location: string;
+  @Expose()
+  name: string;
 
-    @Expose()
-    address: string;
+  @Expose()
+  location: string;
 
-    @Expose()
-    description?: string;
+  @Expose()
+  address: string;
 
-    @Expose()
-    eventImageURL?: string;
+  @Expose()
+  description?: string;
 
-    @Expose()
-    eventVisibility: EventVisibility;
+  @Expose()
+  tags?: string[];
 
-    @Expose()
-    eventStatus: EventStatus;
+  @Expose()
+  eventImageURL?: string;
 
-    @Expose()
-    createdAt: Date;
+  @Expose()
+  eventVisibility: EventVisibility;
 
-    @Expose()
-    updatedAt: Date;
+  @Expose()
+  eventStatus: EventStatus;
 
-    @Expose()
-    eventStartTime?: string;
+  @Expose()
+  createdAt: Date;
 
-    @Expose()
-    eventEndTime?: string;
+  @Expose()
+  updatedAt: Date;
 
-    @Expose()
-    eventStartDate?: Date;
+  @Expose()
+  eventStartTime?: string;
 
-    @Expose()
-    eventEndDate?: Date;
+  @Expose()
+  eventEndTime?: string;
 
-    @Expose()
-    isAvailable: boolean;
+  @Expose()
+  eventStartDate?: Date;
 
-    @Expose()
-    @Type(() => UserDto)
-    user: UserDto
+  @Expose()
+  eventEndDate?: Date;
 
-    @Expose()
-    @Type(() => TicketDto)
-    tickets: TicketDto
+  @Expose()
+  isAvailable: boolean;
+
+  @Expose()
+  @Type(() => UserDto)
+  user: UserDto;
+
+  @Expose()
+  @Type(() => TicketDto)
+  tickets: TicketDto;
 }
