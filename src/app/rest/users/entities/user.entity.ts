@@ -44,7 +44,6 @@ export class User extends AbstractEntity<User> {
     nullable: true,
   })
   passwordResetToken?: number;
-
   @Column({
     name: 'refresh_token',
     type: 'varchar',
