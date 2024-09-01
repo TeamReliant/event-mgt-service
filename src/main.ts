@@ -4,10 +4,15 @@ import { ConfigService } from '@nestjs/config';
 import { CustomExceptionFilter } from '@libs/filters/custom-exception.filter';
 import { CustomValidationPipe } from '@libs/pipes/custom-validation.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { UsersService } from '@app/rest/users/users.service';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  // const usersService = app.get(UsersService);
+
+  // await usersService.seedUser();
 
   // Custom exceptions filter
   app.useGlobalFilters(new CustomExceptionFilter());
@@ -45,7 +50,13 @@ async function bootstrap() {
   });
 
   // Attaching the validation piper at the global level
-  app.useGlobalPipes(new CustomValidationPipe());
+  app.useGlobalPipes(new CustomValidationPipe(),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+);
 
   const port = configService.get<number>('PORT');
 
