@@ -23,13 +23,13 @@ import ResponseSerializer, {
 } from '@libs/helpers/ResponseSerializer';
 import { ResendTeamInvitationDto } from '@app/rest/team-resources/team-invitations/dto/resend-team-invitation.dto';
 
-@Controller('teams/:teamId/invitations')
+@Controller()
 export class TeamInvitationsController {
   constructor(
     private readonly teamInvitationsService: TeamInvitationsService,
   ) {}
 
-  @Post()
+  @Post('teams/:teamId/invitations')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
   create(
@@ -44,7 +44,7 @@ export class TeamInvitationsController {
     );
   }
 
-  @Get()
+  @Get('teams/:teamId/invitations')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   findAll(@Param('teamId') teamId: string, @Req() req: Request) {
@@ -52,7 +52,7 @@ export class TeamInvitationsController {
     return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 
-  @Get(':id')
+  @Get('teams/:teamId/invitations/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async findOne(
@@ -63,7 +63,7 @@ export class TeamInvitationsController {
     return ResponseSerializer.data(data);
   }
 
-  @Post('resend')
+  @Post('teams/:teamId/invitations/resend')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async resendInvitation(
@@ -79,22 +79,27 @@ export class TeamInvitationsController {
     return ResponseSerializer.message('Team invitation resent successfully');
   }
 
-  @Post('respond')
+  @Post('invitations/respond')
   @HttpCode(HttpStatus.OK)
   async update(
-    @Param('teamId') teamId: string,
-    @Param('id') id: string,
     @Body() updateTeamInvitationDto: UpdateTeamInvitationDto,
   ): Promise<IResponseWithData> {
     const data = await this.teamInvitationsService.update(
-      teamId,
-      id,
       updateTeamInvitationDto,
     );
+
+    delete data.token;
+    delete data.user?.password;
+    delete data.user?.emailVerificationToken;
+    delete data.user?.emailVerifiedAt;
+    delete data.user?.passwordResetToken;
+    delete data.user?.magicSignInToken;
+    delete data.user?.refreshToken;
+
     return ResponseSerializer.data(data);
   }
 
-  @Delete(':id')
+  @Delete('teams/:teamId/invitations/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async remove(

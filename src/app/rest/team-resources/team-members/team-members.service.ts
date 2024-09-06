@@ -35,10 +35,12 @@ export class TeamMembersService {
     const member = await this._repo
       .createQueryBuilder('member')
       .leftJoinAndSelect('member.user', 'user')
+      .leftJoinAndSelect('member.permissions', 'permissions')
       .where('member.id = :id', { id })
       .andWhere('member.teamId = :teamId', { teamId })
       .select([
         'member',
+        'permissions',
         'user.id',
         'user.firstname',
         'user.lastname',

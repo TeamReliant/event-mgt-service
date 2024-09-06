@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToMany, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { TeamMember } from '../../team-members/entities/team-member.entity';
 import { AbstractEntity } from '@libs/database';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';

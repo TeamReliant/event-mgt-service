@@ -3,43 +3,65 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { PermissionsService } from './permissions.service';
-import { CreatePermissionDto } from './dto/create-permission.dto';
-import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { AttachPermissionsDto } from './dto/attach-permissions.dto';
+import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
+import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
+import ResponseSerializer, {
+  IResponseWithData,
+} from '@libs/helpers/ResponseSerializer';
+import { DetachPermissionDto } from '@app/rest/team-resources/permissions/dto/detach-permission.dto';
 
-@Controller('permissions')
+@Controller()
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
-  @Post()
-  create(@Body() createPermissionDto: CreatePermissionDto) {
-    return this.permissionsService.create(createPermissionDto);
+  // attach permission to a member
+  @Post('permissions')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body() createPermissionDto: AttachPermissionsDto,
+    @GetCurrentUserId() userId: string,
+  ): Promise<IResponseWithData> {
+    const data = await this.permissionsService.create(
+      createPermissionDto,
+      userId,
+    );
+    return ResponseSerializer.data(data);
   }
 
-  @Get()
-  findAll() {
-    return this.permissionsService.findAll();
+  // find all permissions of a member
+  @Get('teams/:teamId/members/:memberId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async findAll(
+    @Param('teamId') teamId: string,
+    @Param('memberId') memberId: string,
+  ): Promise<IResponseWithData> {
+    // find all member with a permission
+    const data = await this.permissionsService.findAll(teamId, memberId);
+    return ResponseSerializer.data(data);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.permissionsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updatePermissionDto: UpdatePermissionDto,
-  ) {
-    return this.permissionsService.update(+id, updatePermissionDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.permissionsService.remove(+id);
+  // detach permission from a member
+  @Delete('permissions')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async remove(
+    @Body() detachPermissionDto: DetachPermissionDto,
+    @GetCurrentUserId() userId: string,
+  ): Promise<IResponseWithData> {
+    const data = await this.permissionsService.remove(
+      detachPermissionDto,
+      userId,
+    );
+    return ResponseSerializer.data(data);
   }
 }

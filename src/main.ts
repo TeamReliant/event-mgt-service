@@ -45,7 +45,7 @@ async function bootstrap() {
   });
 
   // Global route prefix, v1 is the version number
-  app.setGlobalPrefix('api/v1', {
+  app.setGlobalPrefix('api/v1/em', {
     //exclude some routes
   });
 
