@@ -9,16 +9,8 @@ import { FormatValidationException } from '@libs/decorators/format-validation-ex
 
 export class CreateTeamInvitationDto {
   @IsNotEmpty()
-  @MaxLength(255, {
-    message:
-      'each string in the array must be less than or equal to 255 characters',
-  })
-  @IsEmail(
-    {},
-    {
-      message: 'each element in the array must be an email',
-    },
-  )
+  @MaxLength(255)
+  @IsEmail()
   @FormatValidationException()
   email: string;
 

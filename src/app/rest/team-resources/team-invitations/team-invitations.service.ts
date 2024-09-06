@@ -3,6 +3,7 @@ import {
   NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { CreateTeamInvitationDto } from './dto/create-team-invitation.dto';
 import { UpdateTeamInvitationDto } from './dto/update-team-invitation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -195,7 +196,7 @@ export class TeamInvitationsService {
           team: team,
           user: invitedUser,
           invitation,
-        }) as TeamMember;
+        });
 
         const member = await manager.save<TeamMember>(memberEntity);
 
@@ -249,7 +250,8 @@ export class TeamInvitationsService {
         'user.firstname',
         'user.lastname',
         'user.picture',
-      ]);
+      ])
+      .orderBy('teamInvitations.createdAt', 'DESC');
   }
 
   async findOne(teamId: string, id: string): Promise<TeamInvitation> {
@@ -324,11 +326,10 @@ export class TeamInvitationsService {
   }
 
   async update(
-    teamId: string,
-    id: string,
     updateTeamInvitationDto: UpdateTeamInvitationDto,
   ): Promise<TeamInvitation> {
-    const { status, token } = updateTeamInvitationDto;
+    const { account, userType, firstname, lastname, password, status, token } =
+      updateTeamInvitationDto;
 
     // find the invitation where the id = id and teamId id teamId
     const invitation = await this._repo
@@ -336,7 +337,6 @@ export class TeamInvitationsService {
       .leftJoinAndSelect('teamInvitations.team', 'team')
       .leftJoinAndSelect('teamInvitations.user', 'user')
       .where('teamInvitations.token = :token', { token })
-      .andWhere('teamInvitations.teamId = :teamId', { teamId })
       .select([
         'teamInvitations.id',
         'teamInvitations.email',
@@ -361,10 +361,9 @@ export class TeamInvitationsService {
         'Invitation has already been responded to',
       );
 
-    // check if the invited user exists or registered
-    if (!invitation.user)
-      throw new NotFoundException(
-        `The invited user with the email ${invitation.email} not found, probably not registered`,
+    if (!invitation.user && (!account || account === 'registered'))
+      throw new NotAcceptableException(
+        'Please provide a registered account for the invitation, or set the account to not-registered',
       );
 
     return this._entityManager.transaction(async (manager) => {
@@ -373,20 +372,63 @@ export class TeamInvitationsService {
       invitation.token = null;
       await manager.save<TeamInvitation>(invitation);
 
+      let user: User;
+      // check if the invited user exists or registered
+      if (!invitation.user) {
+        user = await manager.findOneBy<User>(User, {
+          email: invitation.email,
+        });
+
+        // create the user if the user does not exist
+        if (!user) {
+          const salt = await bcrypt.genSalt();
+          // Generating the hashed version of the password
+          const hashedPassword = await bcrypt.hash(password, salt);
+
+          const userEntity = manager.create(User, {
+            lastname,
+            firstname,
+            userType,
+            password: hashedPassword,
+            email: invitation.email,
+            emailVerifiedAt: new Date(),
+          }) as User;
+          // save the user
+          user = await manager.save<User>(userEntity);
+        }
+      }
+
       // if the invitation was accepted, add the user to the team
       if (status === 'accepted') {
-        const teamMember = manager.create(TeamMember, {
-          team: invitation.team,
-          user: invitation.user,
-          isAdmin: false,
-        }) as TeamMember;
+        invitation.user = user;
+        await manager.save<TeamInvitation>(invitation);
 
-        await manager.save<TeamMember>(teamMember);
+        const member = await manager
+          .createQueryBuilder(TeamMember, 'member')
+          .leftJoinAndSelect('member.user', 'user')
+          .where('member.invitationId = :invitationId', {
+            invitationId: invitation.id,
+          })
+          .andWhere('member.teamId = :teamId', { teamId: invitation.team.id })
+          .getOne();
+
+        member.status = 'active';
+        member.user = user;
+        await manager.save<TeamMember>(member);
+
+        // dispatch the event for the invitation
         this._eventEmitter.emit(
           events.TEAM_INVITATION_ACCEPTED,
           new TeamInvitationsEvent(invitation),
         );
+        return invitation;
       }
+
+      // dispatch the event for the invitation declined(Not handled yet)
+      this._eventEmitter.emit(
+        events.TEAM_INVITATION_DECLINED,
+        new TeamInvitationsEvent(invitation),
+      );
 
       return invitation;
     });

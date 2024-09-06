@@ -37,9 +37,10 @@ export class TeamMember extends AbstractEntity<TeamMember> {
   status?: string; // active, inactive, pending, or exited
 
   @OneToOne(() => TeamInvitation, (invitation) => invitation.member)
+  @JoinColumn({ name: 'invitationId' })
   invitation: TeamInvitation;
 
-  @OneToMany(() => Permission, (permission) => permission.teamMembers)
+  @OneToMany(() => Permission, (permission) => permission.member)
   permissions?: Permission[];
 
   // @ManyToMany(() => Permission, (permission) => permission.teamMembers)

@@ -1,7 +1,26 @@
-import { IsArray, IsEnum, IsNotEmpty, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 
-export class CreatePermissionDto {
+export class AttachPermissionsDto {
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  @FormatValidationException()
+  teamId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  @FormatValidationException()
+  memberId: string;
+
   @IsNotEmpty()
   @IsNotEmpty({ each: true })
   @IsArray()
