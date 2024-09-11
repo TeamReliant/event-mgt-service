@@ -17,6 +17,7 @@ import ResponseSerializer, {
   IResponseWithData,
 } from '@libs/helpers/ResponseSerializer';
 import { DetachPermissionDto } from '@app/rest/team-resources/permissions/dto/detach-permission.dto';
+import { FetchTeamMemberPermissionsParamsDto } from '@app/rest/team-resources/permissions/dto/fetch-team-member-permissions-params.dto';
 
 @Controller()
 export class PermissionsController {
@@ -42,11 +43,13 @@ export class PermissionsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async findAll(
-    @Param('teamId') teamId: string,
-    @Param('memberId') memberId: string,
+    @Param() params: FetchTeamMemberPermissionsParamsDto,
   ): Promise<IResponseWithData> {
     // find all member with a permission
-    const data = await this.permissionsService.findAll(teamId, memberId);
+    const data = await this.permissionsService.findAll(
+      params.teamId,
+      params.memberId,
+    );
     return ResponseSerializer.data(data);
   }
 

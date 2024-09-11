@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { CustomExceptionFilter } from '@libs/filters/custom-exception.filter';
 import { CustomValidationPipe } from '@libs/pipes/custom-validation.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -43,6 +44,17 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1/em', {
     //exclude some routes
   });
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
 
   // Attaching the validation piper at the global level
   app.useGlobalPipes(new CustomValidationPipe());

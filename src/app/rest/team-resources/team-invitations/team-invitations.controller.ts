@@ -22,6 +22,11 @@ import ResponseSerializer, {
   IResponseWithMessage,
 } from '@libs/helpers/ResponseSerializer';
 import { ResendTeamInvitationDto } from '@app/rest/team-resources/team-invitations/dto/resend-team-invitation.dto';
+import { CreateTeamInvitationParamsDto } from '@app/rest/team-resources/team-invitations/dto/create-team-invitation-params.dto';
+import { FetchTeamInvitationsParamsDto } from '@app/rest/team-resources/team-invitations/dto/fetch-team-invitations-params.dto';
+import { ShowTeamInvitationParamsDto } from '@app/rest/team-resources/team-invitations/dto/show-team-invitation-params.dto';
+import { ResendTeamInvitationParamsDto } from '@app/rest/team-resources/team-invitations/dto/resend-team-invitation-params.dto';
+import { DeleteTeamInvitationParamsDto } from '@app/rest/team-resources/team-invitations/dto/delete-team-invitation-params.dto';
 
 @Controller()
 export class TeamInvitationsController {
@@ -34,12 +39,12 @@ export class TeamInvitationsController {
   @UseGuards(JwtAuthGuard)
   create(
     @Body() createTeamInvitationDto: CreateTeamInvitationDto,
-    @Param('teamId') teamId: string,
+    @Param() params: CreateTeamInvitationParamsDto,
     @GetCurrentUserId() userId: string,
   ) {
     return this.teamInvitationsService.inviteUser(
       createTeamInvitationDto,
-      teamId,
+      params.teamId,
       userId,
     );
   }
@@ -47,8 +52,8 @@ export class TeamInvitationsController {
   @Get('teams/:teamId/invitations')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  findAll(@Param('teamId') teamId: string, @Req() req: Request) {
-    const queryBuilder = this.teamInvitationsService.findAll(teamId);
+  findAll(@Param() params: FetchTeamInvitationsParamsDto, @Req() req: Request) {
+    const queryBuilder = this.teamInvitationsService.findAll(params.teamId);
     return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 
@@ -56,10 +61,12 @@ export class TeamInvitationsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async findOne(
-    @Param('teamId') teamId: string,
-    @Param('id') id: string,
+    @Param() params: ShowTeamInvitationParamsDto,
   ): Promise<IResponseWithData> {
-    const data = await this.teamInvitationsService.findOne(teamId, id);
+    const data = await this.teamInvitationsService.findOne(
+      params.teamId,
+      params.id,
+    );
     return ResponseSerializer.data(data);
   }
 
@@ -67,12 +74,12 @@ export class TeamInvitationsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async resendInvitation(
-    @Param('teamId') teamId: string,
+    @Param() params: ResendTeamInvitationParamsDto,
     @GetCurrentUserId() userId: string,
     @Body() resendTeamInvitationDto: ResendTeamInvitationDto,
   ): Promise<IResponseWithMessage> {
     await this.teamInvitationsService.resendInvitation(
-      teamId,
+      params.teamId,
       userId,
       resendTeamInvitationDto,
     );
@@ -103,11 +110,10 @@ export class TeamInvitationsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async remove(
-    @Param('teamId') teamId: string,
-    @Param('id') id: string,
+    @Param() params: DeleteTeamInvitationParamsDto,
     @GetCurrentUserId() userId: string,
   ): Promise<IResponseWithMessage> {
-    await this.teamInvitationsService.remove(teamId, id, userId);
+    await this.teamInvitationsService.remove(params.teamId, params.id, userId);
     return ResponseSerializer.message('Team invitation deleted successfully');
   }
 }
