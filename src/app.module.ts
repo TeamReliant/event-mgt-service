@@ -12,7 +12,12 @@ import { TeamInvitationsModule } from '@app/rest/team-resources/team-invitations
 import { TeamsModule } from '@app/rest/team-resources/teams/teams.module';
 import { PermissionsModule } from '@app/rest/team-resources/permissions/permissions.module';
 import DatabaseConfig from '@libs/database/config/database.config';
+import { EventsModule } from './app/rest/event-resources/events/events.module';
+import { TicketsModule } from './app/rest/ticket-resources/tickets/tickets.module';
 import { JwtStrategy } from '@libs/strategies/jwt.strategy';
+import { Event } from '@app/rest/event-resources/events/entities/event.entity';
+import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
+import { User } from '@app/rest/users/entities/user.entity';
 
 @Module({
   imports: [
@@ -25,6 +30,7 @@ import { JwtStrategy } from '@libs/strategies/jwt.strategy';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         ...configService.get('database'),
+        entities: [Event, Ticket, User],
       }),
       inject: [ConfigService],
     }),
@@ -43,6 +49,8 @@ import { JwtStrategy } from '@libs/strategies/jwt.strategy';
     EventEmitterModule.forRoot(),
     EventsListenerModule,
     UsersModule,
+    EventsModule,
+    TicketsModule,
     TeamMembersModule,
     TeamInvitationsModule,
     TeamsModule,

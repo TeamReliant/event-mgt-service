@@ -13,7 +13,7 @@ export function IsFutureDate(validationOptions?: ValidationOptions) {
       options: validationOptions,
       validator: {
         validate(value: any, args: ValidationArguments) {
-          return new Date(value) > new Date();
+          return new Date(value) >= new Date();
         },
         defaultMessage(args: ValidationArguments) {
           return `${args.property} must be a future date`;

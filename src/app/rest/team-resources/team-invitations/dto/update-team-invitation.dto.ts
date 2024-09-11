@@ -65,3 +65,4 @@ export class UpdateTeamInvitationDto extends PartialType(CreateUserDto) {
   @FormatValidationException()
   token: string;
 }
+

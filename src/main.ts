@@ -9,6 +9,9 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  // const usersService = app.get(UsersService);
+
+  // await usersService.seedUser();
 
   // Custom exceptions filter
   app.useGlobalFilters(new CustomExceptionFilter());
@@ -26,7 +29,7 @@ async function bootstrap() {
       'MIT License',
       'https://github.com/git/git-scm.com/blob/main/MIT-LICENSE.txt',
     )
-    .addServer('api/v1')
+    .addServer('api/v1/teams')
     .setVersion('1.0')
     .build();
 
@@ -57,7 +60,13 @@ async function bootstrap() {
   );
 
   // Attaching the validation piper at the global level
-  app.useGlobalPipes(new CustomValidationPipe());
+  app.useGlobalPipes(new CustomValidationPipe(),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+);
 
   const port = configService.get<number>('PORT');
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import IFileSystem from '@libs/services/file-system/interfaces/IFileSystem';
 import { ConfigService } from '@nestjs/config';
 import { BlobServiceClient, BlockBlobClient } from '@azure/storage-blob';
@@ -29,6 +29,9 @@ export class AzureBlobFileSystemService implements IFileSystem {
   }
 
   async uploadFileAsync(file: Express.Multer.File): Promise<string> {
+    if (!file || !file.mimetype) {
+      throw new BadRequestException('Invalid file format');
+    }
     // Fetch the extension of the file
     const extension = file.mimetype.split('/')[1];
     // Generate a unique filename with the extension
@@ -43,12 +46,9 @@ export class AzureBlobFileSystemService implements IFileSystem {
     // fetch the azure blob storage url
     const azureBlobStorageUrl = this.configService.getOrThrow(
       'AZURE_BLOB_STORAGE_URL',
-    );
+    ).replace(/\/+$/, '');
     // Extract the filename from the object URL
-    const filename = objectUrl.replace(azureBlobStorageUrl, '');
-
-    console.log(filename);
-
+    const filename = objectUrl.replace(/^https?:\/\//, '').replace(azureBlobStorageUrl, '').replace(/^\/+/, '');
     const blobClient = this.getBlobClient(filename);
     await blobClient.delete();
     return true;

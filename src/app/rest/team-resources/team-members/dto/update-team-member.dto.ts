@@ -9,3 +9,4 @@ export class UpdateTeamMemberDto {
   @FormatValidationException()
   status?: string;
 }
+
