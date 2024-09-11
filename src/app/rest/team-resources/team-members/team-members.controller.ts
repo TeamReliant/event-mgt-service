@@ -1,7 +1,6 @@
 import {
   Controller,
   Get,
-  Post,
   Body,
   Patch,
   Param,
@@ -21,6 +20,10 @@ import ResponseSerializer, {
 } from '@libs/helpers/ResponseSerializer';
 import { Request } from 'express';
 import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
+import { FetchTeamMembersParamsDto } from '@app/rest/team-resources/team-members/dto/fetch-team-members-params.dto';
+import { ShowTeamMemberParamsDto } from '@app/rest/team-resources/team-members/dto/show-team-member-params.dto';
+import { UpdateTeamMemberParamsDto } from '@app/rest/team-resources/team-members/dto/update-team-member-params.dto';
+import { DeleteTeamMemberParamsDto } from '@app/rest/team-resources/team-members/dto/delete-team-member-params.dto';
 
 @Controller('teams/:teamId/members')
 export class TeamMembersController {
@@ -29,8 +32,11 @@ export class TeamMembersController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async findAll(@Param('teamId') teamId: string, @Req() req: Request) {
-    const queryBuilder = this.teamMembersService.findAll(teamId);
+  async findAll(
+    @Param() params: FetchTeamMembersParamsDto,
+    @Req() req: Request,
+  ) {
+    const queryBuilder = this.teamMembersService.findAll(params.teamId);
     return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 
@@ -38,10 +44,12 @@ export class TeamMembersController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async findOne(
-    @Param('teamId') teamId: string,
-    @Param('id') id: string,
+    @Param() params: ShowTeamMemberParamsDto,
   ): Promise<IResponseWithData> {
-    const data = await this.teamMembersService.findOne(teamId, id);
+    const data = await this.teamMembersService.findOne(
+      params.teamId,
+      params.id,
+    );
     return ResponseSerializer.data(data);
   }
 
@@ -49,14 +57,13 @@ export class TeamMembersController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async update(
-    @Param('teamId') teamId: string,
-    @Param('id') id: string,
+    @Param() params: UpdateTeamMemberParamsDto,
     @GetCurrentUserId() userId: string,
     @Body() updateTeamMemberDto: UpdateTeamMemberDto,
   ): Promise<IResponseWithData> {
     const data = await this.teamMembersService.update(
-      teamId,
-      id,
+      params.teamId,
+      params.id,
       userId,
       updateTeamMemberDto,
     );
@@ -67,11 +74,10 @@ export class TeamMembersController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async remove(
-    @Param('teamId') teamId: string,
-    @Param('id') id: string,
+    @Param() params: DeleteTeamMemberParamsDto,
     @GetCurrentUserId() userId: string,
   ): Promise<IResponseWithMessage> {
-    await this.teamMembersService.remove(teamId, id, userId);
+    await this.teamMembersService.remove(params.teamId, params.id, userId);
     return ResponseSerializer.message('Team member removed successfully');
   }
 }
