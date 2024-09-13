@@ -4,10 +4,14 @@ import { ConfigService } from '@nestjs/config';
 import { CustomExceptionFilter } from '@libs/filters/custom-exception.filter';
 import { CustomValidationPipe } from '@libs/pipes/custom-validation.pipe';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  // const usersService = app.get(UsersService);
+
+  // await usersService.seedUser();
 
   // Custom exceptions filter
   app.useGlobalFilters(new CustomExceptionFilter());
@@ -16,7 +20,7 @@ async function bootstrap() {
    * swagger configuration
    */
   const config = new DocumentBuilder()
-    .setTitle('Plaventi Event Managment Service - REST API')
+    .setTitle('Plaventi Event Management Service - REST API')
     .setDescription(
       'Use the base API URL as http://localhost:5000/api/v1/event-mngt',
     )
@@ -25,7 +29,7 @@ async function bootstrap() {
       'MIT License',
       'https://github.com/git/git-scm.com/blob/main/MIT-LICENSE.txt',
     )
-    .addServer('api/v1')
+    .addServer('api/v1/teams')
     .setVersion('1.0')
     .build();
 
@@ -40,12 +44,29 @@ async function bootstrap() {
   });
 
   // Global route prefix, v1 is the version number
-  app.setGlobalPrefix('api/v1', {
+  app.setGlobalPrefix('api/v1/em', {
     //exclude some routes
   });
 
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
+
   // Attaching the validation piper at the global level
-  app.useGlobalPipes(new CustomValidationPipe());
+  app.useGlobalPipes(new CustomValidationPipe(),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+);
 
   const port = configService.get<number>('PORT');
 

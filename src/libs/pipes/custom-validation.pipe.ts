@@ -3,6 +3,7 @@ import {
   Injectable,
   PipeTransform,
   BadRequestException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidatorOptions } from 'class-validator';
@@ -19,7 +20,13 @@ export class CustomValidationPipe implements PipeTransform<any> {
 
     // Proceed if the transformation produced a valid object
     if (object) {
-      const validatorOptions: ValidatorOptions = {
+      const validatorOptions = {
+        // whitelist: true,
+        // forbidNonWhitelisted: true,
+        // transform: true,
+        // transformOptions: {
+        //   enableImplicitConversion: true,
+        // },
         validationError: {
           target: false, // Exclude the object from the error message
         },
@@ -29,7 +36,7 @@ export class CustomValidationPipe implements PipeTransform<any> {
 
       // If there are validation errors, handle them
       if (errors.length > 0) {
-        throw new BadRequestException({
+        throw new UnprocessableEntityException({
           status: 'VALIDATION_ERROR',
           errors: this.formatErrors(errors),
         });

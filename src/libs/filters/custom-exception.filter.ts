@@ -1,3 +1,4 @@
+import { errors } from '@config/app.config';
 import {
   ExceptionFilter,
   Catch,
@@ -11,7 +12,6 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { errors } from '@config/constants';
 
 @Catch(
   UnauthorizedException,

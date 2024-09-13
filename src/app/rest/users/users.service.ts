@@ -8,6 +8,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -16,6 +17,22 @@ export class UsersService {
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  async seedUser(): Promise<void> {
+    const user = {
+      firstname: 'John',
+      lastname: 'Doe',
+      email: 'johndoe@example.com',
+      password: await bcrypt.hash('securepassword123', 10), // Hash the password
+    };
+
+    try {
+      await this.repo.save(user);
+      console.log('User seeded successfully');
+    } catch (err) {
+      console.error('Error seeding user:', err.message);
+    }
+  }
 
   async findByEmailWithFullData(email: string): Promise<User> {
     return this.repo
@@ -68,7 +85,7 @@ export class UsersService {
     });
   }
 
-  async checkUserMagicSignInToken(magicSignInToken: string): Promise<User> {
+  async checkUserMagicSignInToken(magicSignInToken: number): Promise<User> {
     return this.repo.findOneBy({
       magicSignInToken,
     });
@@ -102,5 +119,4 @@ export class UsersService {
     // Step 3: Save the updated entity
     return await this.repo.save(entityToUpdate);
   }
-
 }
