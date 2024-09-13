@@ -25,7 +25,7 @@ RUN npm install
 COPY . .
 
 ENV NODE_ENV=production \
-    PORT=5000 \
+    PORT=5001 \
     LIVE_DB_TYPE=mysql \
     LIVE_DB_HOST=seenergy.mysql.database.azure.com \
     LIVE_DB_PORT=3306 \
