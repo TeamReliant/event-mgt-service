@@ -3,7 +3,6 @@ import { IsArray, IsDate, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNest
 import { EventStatus, EventVisibility } from '../enums';
 import { IsFutureDate } from '@libs/decorators/date-validator.decorator';
 import { Type } from 'class-transformer';
-import { IsFile, MaxFileSize } from 'nestjs-form-data';
 import { CreateTicketDto } from '@app/rest/ticket-resources/tickets/dto/create-ticket.dto';
 
 export class CreateEventDto {
