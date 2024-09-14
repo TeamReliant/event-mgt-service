@@ -36,7 +36,7 @@ export class EventsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  @SerializeResponse(EventResponseDto, "data")
+  @SerializeResponse(EventResponseDto, 'data')
   @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
   async create(
     @Body() createEventDto: CreateEventDto,
@@ -65,17 +65,18 @@ export class EventsController {
     @CurrentUser() user: TJwtPayload,
   ): Promise<IResponseWithData> {
     const queryBuilder = await this.eventsService.findMyEvents(req, user);
-    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<EventResponseDto>(req, queryBuilder, EventResponseDto);
+    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<EventResponseDto>(
+      req,
+      queryBuilder,
+      EventResponseDto,
+    );
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @SerializeResponse(EventResponseDto)
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: TJwtPayload,
-  ){
+  async findOne(@Param('id') id: string, @CurrentUser() user: TJwtPayload) {
     const event = await this.eventsService.findOne(id, user);
     return event;
   }
@@ -94,7 +95,11 @@ export class EventsController {
     if (eventCoverImage) {
       updateEventDto.eventCoverImage = eventCoverImage;
     }
-    const updatedEvent = await this.eventsService.update(id, updateEventDto, user);
+    const updatedEvent = await this.eventsService.update(
+      id,
+      updateEventDto,
+      user,
+    );
     return updatedEvent;
   }
 

@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TJwtPayload } from '@libs/types';
@@ -52,11 +57,13 @@ export class TicketsService {
       return savedTicket;
     } catch (error) {
       if (error instanceof BadRequestException) {
-        console.error("Error creating ticket: ", error.message);
+        console.error('Error creating ticket: ', error.message);
         throw error;
-      }   
-      console.error("Error creating ticket: ", error.message);
-      throw new InternalServerErrorException('Error creating ticket, please try again');
+      }
+      console.error('Error creating ticket: ', error.message);
+      throw new InternalServerErrorException(
+        'Error creating ticket, please try again',
+      );
     }
   }
 
@@ -83,10 +90,10 @@ export class TicketsService {
       return ticket;
     } catch (error) {
       if (error instanceof NotFoundException) {
-        console.error("Error retrieving ticket: ", error.message);
+        console.error('Error retrieving ticket: ', error.message);
         throw error;
-      } 
-      console.error("Error fetching ticket: ", error.message);
+      }
+      console.error('Error fetching ticket: ', error.message);
       throw new BadRequestException('Error fetching ticket, please try again');
     }
   }
@@ -136,7 +143,9 @@ export class TicketsService {
       const deletedResult = await manager.remove(ticket);
 
       if (!deletedResult) {
-        throw new BadRequestException(`Ticket with ${ticketId} could not be deleted`);
+        throw new BadRequestException(
+          `Ticket with ${ticketId} could not be deleted`,
+        );
       }
     });
   }

@@ -1,5 +1,13 @@
 import { MaxArrayLength } from '@libs/decorators/max-array-length-validator';
-import { IsArray, IsDate, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsDate,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { EventStatus, EventVisibility } from '../enums';
 import { IsFutureDate } from '@libs/decorators/date-validator.decorator';
 import { Type } from 'class-transformer';
@@ -27,8 +35,8 @@ export class CreateEventDto {
   // @MaxFileSize(2 * 1024 * 1024)
   eventCoverImage: any;
 
-  @IsArray({message: "Field must be an array"})
-  @MaxArrayLength(10, {message: "Tags can contain at most 10 items"})
+  @IsArray({ message: 'Field must be an array' })
+  @MaxArrayLength(10, { message: 'Tags can contain at most 10 items' })
   @IsOptional()
   tags: string[];
 

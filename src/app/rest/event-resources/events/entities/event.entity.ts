@@ -4,7 +4,7 @@ import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entit
 import { User } from '@app/rest/users/entities/user.entity';
 import { AbstractEntity } from '@libs/database';
 
-@Entity()
+@Entity({ name: 'events' })
 export class Event extends AbstractEntity<Event> {
   @Column()
   name: string;
@@ -15,52 +15,51 @@ export class Event extends AbstractEntity<Event> {
   @Column()
   address: string;
 
-  @Column({nullable:  true})
+  @Column({ nullable: true })
   description: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   eventImageURL: string;
 
-  @Column("simple-array")
+  @Column('simple-array')
   tags: string[] = [];
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: EventVisibility,
-    default: EventVisibility.PRIVATE
+    default: EventVisibility.PRIVATE,
   })
   eventVisibility: EventVisibility;
 
   @Column({
-    type: "enum",
+    type: 'enum',
     enum: EventStatus,
-    default: EventStatus.DRAFT
+    default: EventStatus.DRAFT,
   })
   eventStatus: EventStatus;
 
   @Column()
   eventStartDate: Date;
 
-  @Column({nullable: true})
-  eventEndDate:Date;
+  @Column({ nullable: true })
+  eventEndDate: Date;
 
   @Column('time')
   eventStartTime: string;
 
-
-  @Column('time', {nullable: true})
+  @Column('time', { nullable: true })
   eventEndTime: string;
 
   // should be set to false when all ticket in tickets.isAvailable returns false
   //  should be set to false when eventEndDate is less than current date
-  @Column({default: true})
+  @Column({ default: true })
   isAvailable: boolean;
 
   //cascade true automatically saves tickets when an event is saved
-  @OneToMany(() => Ticket, ticket => ticket.event, {cascade: true})
+  @OneToMany(() => Ticket, (ticket) => ticket.event, { cascade: true })
   tickets: Ticket[];
 
-  @ManyToOne(() => User, user => user.events)
+  @ManyToOne(() => User, (user) => user.events)
   user: User;
 
   constructor(event: Partial<Event>) {

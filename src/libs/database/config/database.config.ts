@@ -8,7 +8,7 @@ const localDBConfig = () => {
   return {
     type: process.env.DEV_DB_TYPE,
     host: process.env.DEV_DB_HOST || 'localhost',
-    port: parseInt(process.env.DEV_DB_PORT, 10) || 3306,
+    port: parseInt(process.env.DEV_DB_PORT, 10) || 5432,
     username: process.env.DEV_DB_USER,
     password: process.env.DEV_DB_PASSWORD,
     database: process.env.DEV_DB_NAME,
@@ -24,7 +24,7 @@ const remoteDBConfig = () => {
   return {
     type: process.env.LIVE_DB_TYPE,
     host: process.env.LIVE_DB_HOST,
-    port: parseInt(process.env.LIVE_DB_PORT, 10) || 3306,
+    port: parseInt(process.env.LIVE_DB_PORT, 10) || 5432,
     username: process.env.LIVE_DB_USER,
     password: process.env.LIVE_DB_PASSWORD,
     database: process.env.LIVE_DB_NAME,

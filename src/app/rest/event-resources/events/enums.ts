@@ -4,6 +4,6 @@ export enum EventVisibility {
 }
 
 export enum EventStatus {
-  PUBLISHED = "published",
-  DRAFT = "draft",
+  PUBLISHED = 'published',
+  DRAFT = 'draft',
 }

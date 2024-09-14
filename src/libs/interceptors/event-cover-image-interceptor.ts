@@ -11,7 +11,9 @@ export function ImageUploadInterceptor(fieldName: string) {
       const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png'];
       if (!allowedMimeTypes.includes(file.mimetype)) {
         return callback(
-          new BadRequestException('Invalid file type. Only JPEG, JPG, and PNG are allowed!'),
+          new BadRequestException(
+            'Invalid file type. Only JPEG, JPG, and PNG are allowed!',
+          ),
           false,
         );
       }
