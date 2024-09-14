@@ -1,4 +1,4 @@
 export enum TicketCategory {
-    FREE = "free",
-    PAID = "paid",
+  FREE = 'free',
+  PAID = 'paid',
 }

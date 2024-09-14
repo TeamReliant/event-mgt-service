@@ -8,7 +8,11 @@ import { UsersModule } from '@app/rest/users/users.module';
 import { EventsModule } from '@app/rest/event-resources/events/events.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Event, Ticket]), UsersModule, EventsModule],
+  imports: [
+    TypeOrmModule.forFeature([Event, Ticket]),
+    UsersModule,
+    EventsModule,
+  ],
   controllers: [TicketsController],
   providers: [TicketsService],
 })

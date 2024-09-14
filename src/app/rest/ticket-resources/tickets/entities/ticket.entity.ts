@@ -14,7 +14,7 @@ export class Ticket extends AbstractEntity<Ticket> {
   @Column({
     type: 'enum',
     enum: TicketCategory,
-    default: TicketCategory.PAID
+    default: TicketCategory.PAID,
   })
   category: TicketCategory;
 

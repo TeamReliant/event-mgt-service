@@ -9,10 +9,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import {
-  EntityManager,
-  Repository,
-} from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -28,7 +25,6 @@ export class EventsService {
     private readonly azureBlobService: AzureBlobFileSystemService,
   ) {}
 
-
   private async uploadImage(file: Express.Multer.File): Promise<string> {
     if (!file) throw new BadRequestException('No file provided for upload');
     const url = await this.azureBlobService.uploadFileAsync(file);
@@ -42,13 +38,11 @@ export class EventsService {
     }
   }
 
-
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
     try {
       const { eventCoverImage, tickets, ...rest } = createEventDto;
-      if (eventCoverImage)
-      {
+      if (eventCoverImage) {
         eventImageURL = await this.uploadImage(eventCoverImage);
       }
       const createdEvent = await this.entityManager.transaction(
@@ -79,8 +73,8 @@ export class EventsService {
       return createdEvent;
     } catch (error) {
       //if saving of event fails, delete the uploaded image
-      await this.deleteImage(eventImageURL)
-      console.error("Error creating event:", error);
+      await this.deleteImage(eventImageURL);
+      console.error('Error creating event:', error);
       throw new BadRequestException('Error creating event');
     }
   }
@@ -207,15 +201,17 @@ export class EventsService {
       return event;
     } catch (error) {
       if (error instanceof NotFoundException) {
-        console.error("Error retrieving event: ", error.message);
-        throw error;
-      }   
-      if (error instanceof UnauthorizedException) {
-        console.error("Error retrieving event: ", error.message);
+        console.error('Error retrieving event: ', error.message);
         throw error;
       }
-      console.error("Unexpected error retrieving event: ", error.message);
-      throw new InternalServerErrorException('Unexpected error occurred while retrieving event');
+      if (error instanceof UnauthorizedException) {
+        console.error('Error retrieving event: ', error.message);
+        throw error;
+      }
+      console.error('Unexpected error retrieving event: ', error.message);
+      throw new InternalServerErrorException(
+        'Unexpected error occurred while retrieving event',
+      );
     }
   }
 
@@ -251,26 +247,25 @@ export class EventsService {
       // return updated event
       return updatedEvent;
     } catch (error) {
-      console.error("Error updating event: ",error.message);
+      console.error('Error updating event: ', error.message);
       throw new BadRequestException('Error updating event');
     }
   }
 
-  async remove(id: string, user: TJwtPayload) { 
+  async remove(id: string, user: TJwtPayload) {
     try {
       //check if event exists and belongs to authenticated user
-    const event = await this.findOne(id, user);
+      const event = await this.findOne(id, user);
 
-    //delete event and it's related tickets
-    await this.entityManager.transaction(async (manager) => {
-      await manager.delete(Event, id);
-      await this.deleteImage(event.eventImageURL);
-    });
-    return;
+      //delete event and it's related tickets
+      await this.entityManager.transaction(async (manager) => {
+        await manager.delete(Event, id);
+        await this.deleteImage(event.eventImageURL);
+      });
+      return;
     } catch (error) {
-      console.error("Error deleting event: ",error.message);
+      console.error('Error deleting event: ', error.message);
       throw new BadRequestException('Error deleting event. Please try again');
     }
-    
   }
 }

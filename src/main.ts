@@ -60,13 +60,14 @@ async function bootstrap() {
   );
 
   // Attaching the validation piper at the global level
-  app.useGlobalPipes(new CustomValidationPipe(),
+  app.useGlobalPipes(
+    new CustomValidationPipe(),
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
     }),
-);
+  );
 
   const port = configService.get<number>('PORT');
 

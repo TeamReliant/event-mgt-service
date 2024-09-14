@@ -49,11 +49,14 @@ export class TicketsController {
     return savedTicket;
   }
 
-  @Get(":id")
+  @Get(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @SerializeResponse(TicketDto)
-  async findOne(@Param('id') ticketId: string, @CurrentUser() user: TJwtPayload) {  
+  async findOne(
+    @Param('id') ticketId: string,
+    @CurrentUser() user: TJwtPayload,
+  ) {
     const ticket = await this.ticketsService.findOne(ticketId, user);
     return ticket;
   }
@@ -61,7 +64,7 @@ export class TicketsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  @SerializeResponse(TicketDto, "collection")
+  @SerializeResponse(TicketDto, 'collection')
   async findAll(
     @Query('eventId') eventId: string,
     @CurrentUser() user: TJwtPayload,
@@ -90,9 +93,11 @@ export class TicketsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async remove(@Param('id') ticketId: string, @CurrentUser() user: TJwtPayload): Promise<IResponseWithMessage>{
+  async remove(
+    @Param('id') ticketId: string,
+    @CurrentUser() user: TJwtPayload,
+  ): Promise<IResponseWithMessage> {
     await this.ticketsService.remove(ticketId, user);
     return ResponseSerializer.message('Ticket deleted successfully');
-
   }
 }
