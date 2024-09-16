@@ -20,13 +20,7 @@ export class CustomValidationPipe implements PipeTransform<any> {
 
     // Proceed if the transformation produced a valid object
     if (object) {
-      const validatorOptions = {
-        // whitelist: true,
-        // forbidNonWhitelisted: true,
-        // transform: true,
-        // transformOptions: {
-        //   enableImplicitConversion: true,
-        // },
+      const validatorOptions: ValidatorOptions = {
         validationError: {
           target: false, // Exclude the object from the error message
         },

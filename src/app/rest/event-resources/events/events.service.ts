@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotAcceptableException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -15,6 +16,8 @@ import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entit
 import { TJwtPayload } from '@libs/types';
 import { User } from '@app/rest/users/entities/user.entity';
 import { Request } from 'express';
+import { AssignTeamDto } from '@app/rest/event-resources/events/dto/assign-team.dto';
+import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 
 @Injectable()
 export class EventsService {
@@ -186,7 +189,7 @@ export class EventsService {
     try {
       const event = await this.entityManager.findOne(Event, {
         where: { id },
-        relations: ['user', 'tickets'],
+        relations: ['user', 'tickets', 'team'],
       });
       if (!event) {
         throw new NotFoundException('Event not found');
@@ -267,5 +270,38 @@ export class EventsService {
       console.error('Error deleting event: ', error.message);
       throw new BadRequestException('Error deleting event. Please try again');
     }
+  }
+
+  async assignTeam(body: AssignTeamDto, eventId: string, userId: string) {
+    // get the teamId from the body
+    const { teamId } = body;
+
+    // find the event
+    const event = await this.eventRepo
+      .createQueryBuilder('event')
+      .where('event.id = :eventId', { eventId })
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('event.user', 'user')
+      .getOne();
+
+    if (!event) throw new NotFoundException('Event not found');
+
+    // check if the event belongs to the user
+    if (event.user.id !== userId)
+      throw new UnauthorizedException(
+        'Event does not belong to authenticated user',
+      );
+
+    // check if the event already has a team
+    if (event.team)
+      throw new NotAcceptableException('Event already has a team');
+
+    // find the team
+    const team = await this.entityManager.findOneBy(Team, { id: teamId });
+    if (!team) throw new NotFoundException('Team not found');
+
+    // assign the team to the event
+    event.team = team;
+    return await this.eventRepo.save(event);
   }
 }
