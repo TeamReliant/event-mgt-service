@@ -12,10 +12,12 @@ import { EventStatus, EventVisibility } from '../enums';
 import { IsFutureDate } from '@libs/decorators/date-validator.decorator';
 import { Type } from 'class-transformer';
 import { CreateTicketDto } from '@app/rest/ticket-resources/tickets/dto/create-ticket.dto';
+import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 
 export class CreateEventDto {
   @IsNotEmpty()
   @IsString()
+  @FormatValidationException()
   name: string;
 
   @IsNotEmpty()

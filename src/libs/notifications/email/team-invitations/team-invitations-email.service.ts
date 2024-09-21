@@ -25,7 +25,7 @@ export class TeamInvitationsEmailService {
     await this.emailEngineService.sendHtmlEmail(
       [email],
       subject,
-      `teams/invitation-message`,
+      `teams/invitation`,
       payload,
     );
   }
@@ -43,7 +43,7 @@ export class TeamInvitationsEmailService {
     await this.emailEngineService.sendHtmlEmail(
       [email],
       subject,
-      `teams/invitation-accepted-message`,
+      `teams/invitation-accepted`,
       payload,
     );
   }

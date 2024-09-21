@@ -1,4 +1,4 @@
-import { errors } from '@config/app.config';
+import { errors as errorCodes } from '@config/app.config';
 import {
   ExceptionFilter,
   Catch,
@@ -40,42 +40,44 @@ export class CustomExceptionFilter implements ExceptionFilter {
       status: string;
       data?: any;
       message: string;
+      errors: any;
     };
 
-    const { data, message } = errorResponse;
+    const { data, message, errors } = errorResponse;
     let statusCode: number;
     let status: string;
 
     if (exception instanceof NotFoundException) {
       statusCode = 404;
-      status = errors.NOT_FOUND_ERROR;
+      status = errorCodes.NOT_FOUND_ERROR;
     } else if (exception instanceof UnauthorizedException) {
       statusCode = 401;
-      status = errors.AUTHORIZATION_ERROR;
+      status = errorCodes.AUTHORIZATION_ERROR;
     } else if (exception instanceof ForbiddenException) {
       statusCode = 403;
-      status = errors.FORBIDDEN_ERROR;
+      status = errorCodes.FORBIDDEN_ERROR;
     } else if (exception instanceof ConflictException) {
       statusCode = 409;
-      status = errors.DATA_CONFLICT_ERROR;
+      status = errorCodes.DATA_CONFLICT_ERROR;
     } else if (exception instanceof UnprocessableEntityException) {
       statusCode = 422;
-      status = errors.UNPROCESSABLE_DATA_ERROR;
+      status = errorCodes.UNPROCESSABLE_DATA_ERROR;
     } else if (exception instanceof NotAcceptableException) {
       statusCode = 406;
-      status = errors.NOT_ACCEPTABLE_ERROR;
+      status = errorCodes.NOT_ACCEPTABLE_ERROR;
     } else if (exception instanceof InternalServerErrorException) {
       statusCode = 500;
-      status = errors.INTERNAL_SERVER_ERROR;
+      status = errorCodes.INTERNAL_SERVER_ERROR;
     } else {
       statusCode = 500;
-      status = errors.INTERNAL_SERVER_ERROR;
+      status = errorCodes.INTERNAL_SERVER_ERROR;
     }
 
     response.status(statusCode).json({
       status,
       message,
       data,
+      errors,
     });
   }
 }

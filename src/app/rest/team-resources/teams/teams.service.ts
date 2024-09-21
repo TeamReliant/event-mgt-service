@@ -275,9 +275,6 @@ export class TeamsService {
   }
 
   async remove(id: string, userId: string): Promise<boolean> {
-    // fetch the current user data
-    const user = await this._usersService.findOneById(userId);
-
     // fetch the team data with the members, invitations using query builder
     const team = (await this._entityManager
       .createQueryBuilder(Team, 'team')

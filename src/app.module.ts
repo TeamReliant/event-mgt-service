@@ -15,9 +15,8 @@ import DatabaseConfig from '@libs/database/config/database.config';
 import { EventsModule } from '@app/rest/event-resources/events/events.module';
 import { TicketsModule } from '@app/rest/ticket-resources/tickets/tickets.module';
 import { JwtStrategy } from '@libs/strategies/jwt.strategy';
-import { Event } from '@app/rest/event-resources/events/entities/event.entity';
-import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
-import { User } from '@app/rest/users/entities/user.entity';
+import { TasksModule } from '@app/rest/event-resources/tasks/tasks.module';
+import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items.module';
 
 @Module({
   imports: [
@@ -55,6 +54,8 @@ import { User } from '@app/rest/users/entities/user.entity';
     TeamInvitationsModule,
     TeamsModule,
     PermissionsModule,
+    TasksModule,
+    LineItemsModule,
   ],
   providers: [JwtStrategy],
 })
