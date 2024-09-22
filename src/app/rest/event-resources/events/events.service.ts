@@ -41,10 +41,47 @@ export class EventsService {
     }
   }
 
+  private validateEventCreation(user:User, eventVisibility: string){
+    const { subscribedPlan, numOfEventsCreated, numOfPrivateEventsCreated } = user;
+
+    const plan = subscribedPlan.toLowerCase();
+    const visibility = eventVisibility.toLowerCase();
+
+    const planRestrictions = {
+      free: { maxEvents: 4, maxPrivateEvents: 0},
+      pro: { maxEvents: 8, maxPrivateEvents: 8},
+      premium: { maxEvents: Infinity, maxPrivateEvents: Infinity}
+    }
+
+    const {maxEvents, maxPrivateEvents} = planRestrictions[plan];
+    if (plan === 'free' && visibility === 'private')
+    {
+      throw new UnauthorizedException('Free plan users cannot create private events');
+    }
+
+
+    if (visibility === "private" && numOfPrivateEventsCreated >= maxPrivateEvents)
+    {
+      throw new UnauthorizedException('Private event limit exceeded for this user');
+    }
+
+    if (numOfEventsCreated >= maxEvents)
+    {
+      throw new UnauthorizedException('Private event limit exceeded for this user');
+    }
+
+    if (visibility === 'private')
+    {
+      user.numOfPrivateEventsCreated++;
+    }
+
+    user.numOfEventsCreated++;
+  }
+
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
     try {
-      const { eventCoverImage, tickets, ...rest } = createEventDto;
+      const { eventCoverImage, tickets, eventVisibility, ...rest } = createEventDto;
       if (eventCoverImage) {
         eventImageURL = await this.uploadImage(eventCoverImage);
       }
@@ -59,9 +96,12 @@ export class EventsService {
             throw new NotFoundException('User not found');
           }
 
+          this.validateEventCreation(eventCreator, eventVisibility);
+
           const eventInstance = manager.create(Event, {
             ...rest,
             eventImageURL,
+            eventVisibility,
             user: eventCreator,
           });
           if (tickets && tickets.length > 0) {
@@ -77,6 +117,12 @@ export class EventsService {
     } catch (error) {
       //if saving of event fails, delete the uploaded image
       await this.deleteImage(eventImageURL);
+
+      if(error instanceof UnauthorizedException || error instanceof NotFoundException)
+      {
+        console.error(error.message);
+        throw error;
+      } 
       console.error('Error creating event:', error);
       throw new BadRequestException('Error creating event');
     }
@@ -149,17 +195,17 @@ export class EventsService {
     queryBuilder.andWhere('event.user = :userId', { userId });
 
     if (name) {
-      queryBuilder.andWhere('event.name LIKE :name', { name: `%${name}%` });
+      queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
     }
 
     if (location) {
-      queryBuilder.andWhere('event.location LIKE :location', {
+      queryBuilder.andWhere('event.location ILIKE :location', {
         location: `%${location}%`,
       });
     }
 
     if (address) {
-      queryBuilder.andWhere('event.address LIKE :address', {
+      queryBuilder.andWhere('event.address ILIKE :address', {
         address: `%${address}%`,
       });
     }
