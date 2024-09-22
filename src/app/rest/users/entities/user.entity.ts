@@ -54,11 +54,56 @@ export class User extends AbstractEntity<User> {
   })
   refreshToken?: string;
 
+  @Column({ default: 0 })
+  numOfEventsCreated: number;
+
+  @Column({ default: 0 })
+  numOfPrivateEventsCreated: number;
+
   @Column({
     type: 'text',
     nullable: true,
   })
   googleId?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  stripeConnectedAccountId?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  customerId?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  sessionId?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  updateSessionId?: string;
+
+  @Column({ nullable: true })
+  subscriptionStatus?:
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'trialing'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'unpaid'
+    | 'paused'
+    | null;
+
+  @Column({ nullable: true, default: "free" })
+  subscribedPlan?: string;
 
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];
