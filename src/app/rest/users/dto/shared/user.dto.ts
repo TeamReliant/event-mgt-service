@@ -27,4 +27,22 @@ export class UserDto {
 
   @Expose()
   updatedAt: Date;
+
+  @Expose()
+  numOfEventsCreated: number;
+
+  @Expose()
+  numOfPrivateEventsCreated: number;
+  
+  @Expose()
+  stripeConnectedAccountId?: string;
+
+  @Expose()
+  customerId?: string;
+
+  @Expose()
+  subscriptionStatus?: 'incomplete' | 'incomplete_expired' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'paused' | null;
+
+  @Expose()
+  subscribedPlan?: string;
 }
