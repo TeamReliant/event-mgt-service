@@ -12,16 +12,19 @@ export class StripePaymentStrategy implements PaymentStrategy {
   }
 
   async createSessions(email: string, stripeConnectedAccountId?: string) {
-    let account;
+    let accountId;
     if (!stripeConnectedAccountId) {
-      account = await this.stripe.accounts.create({
+      const account = await this.stripe.accounts.create({
         type: 'express',
         email: email,
       });
+      accountId = account.id; // Use the newly created account's ID
+    } else {
+      accountId = stripeConnectedAccountId; // Use the provided connected account ID
     }
 
     const accountSession = await this.stripe.accountSessions.create({
-      account: account ? account.id : stripeConnectedAccountId,
+      account: accountId,
       components: {
         account_management: {
           enabled: true,
@@ -92,7 +95,7 @@ export class StripePaymentStrategy implements PaymentStrategy {
     });
 
     return {
-      accountId: account.id,
+      accountId: accountId,
       clientSecret: accountSession.client_secret,
     };
     // const accountLink = await this.stripe.accountLinks.create({
