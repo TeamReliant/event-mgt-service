@@ -9,6 +9,7 @@ import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
+import { events } from '@config/app.config';
 
 @Controller('payment')
 export class PaymentController {
@@ -24,7 +25,7 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   async createSessions(@CurrentUser() user: TJwtPayload, @Query('paymentMethod') paymentMethod: string) {
     const clientSecret =  await this.paymentService.createSessions(user, paymentMethod);
-    return ResponseSerializer.data(clientSecret);
+    return ResponseSerializer.data({clientSecret});
   }
 
   @Post('create-subscription')
@@ -64,15 +65,22 @@ export class PaymentController {
       case 'invoice.payment_failed':
         await this.paymentService.handlePaymentFailed(event);
         break;
+      case 'account.updated':
+        await this.paymentService.handleAccountUpdated(event);
+        break;
+      case 'payout.paid':
+        await this.paymentService.handlePayout(event, events.PAYOUT_SUCCESS);
+        break;
+      case 'payout.failed':
+        await this.paymentService.handlePayout(event, events.PAYOUT_FAILED);
+        break;
+      // case 'customer.created':
+      //   await this.paymentService.handleCustomerCreated(event);
+      //   break;
       default:
         console.warn(`Unhandled event type: ${event.type}`);
     }
 
     res.status(HttpStatus.OK).send();
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.paymentService.remove(+id);
   }
 }
