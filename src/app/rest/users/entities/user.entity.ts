@@ -78,6 +78,9 @@ export class User extends AbstractEntity<User> {
   })
   customerId?: string;
 
+  @Column({default: false})
+  isOnboarded: boolean;
+
   @Column({
     type: 'text',
     nullable: true,

@@ -41,6 +41,9 @@ export class UserDto {
   customerId?: string;
 
   @Expose()
+  isOnboarded: boolean;
+
+  @Expose()
   subscriptionStatus?: 'incomplete' | 'incomplete_expired' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'paused' | null;
 
   @Expose()

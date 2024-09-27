@@ -8,7 +8,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TJwtPayload } from '@libs/types';
 import { EventsService } from '@app/rest/event-resources/events/events.service';
-import { EntityManager, ILike, Repository } from 'typeorm';
+import { EntityManager, ILike, Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Ticket } from './entities/ticket.entity';
 import { Event } from '@app/rest/event-resources/events/entities/event.entity';
@@ -31,14 +31,13 @@ export class TicketsService {
 
       const existingTicket = await this.ticketRepository.findOne({
         where: {
-          name: ILike(createTicketDto.name),
+          name: createTicketDto.name,
           event: { id: event.id },
         },
       });
 
-      if (existingTicket) {
-        throw new BadRequestException('Ticket already exists');
-      }
+      if (existingTicket) throw new BadRequestException('Ticket already exists');
+
 
       const ticket = await this.ticketRepository.create({
         ...createTicketDto,

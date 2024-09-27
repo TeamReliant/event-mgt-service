@@ -1,15 +1,15 @@
 {
-    "sqltools.connections": [
-        {
-            "previewLimit": 50,
-            "server": "localhost",
-            "port": 5432,
-            "driver": "PostgreSQL",
-            "name": "PostgreSQL@Local",
-            "group": "Postgres",
-            "database": "plaventi",
-            "username": "plaventi",
-            "password": "passcode"
-        }
-    ]
+  "sqltools.connections": [
+    {
+      "previewLimit": 50,
+      "server": "plaventi-db.postgres.database.azure.com",
+      "port": 5432,
+      "driver": "PostgreSQL",
+      "name": "azurePostgres",
+      "database": "plaventi_dev",
+      "username": "plaventi",
+      "password": "Josh1.$ua1234567"
+    }
+  ],
+  "cSpell.words": ["firstname"]
 }
