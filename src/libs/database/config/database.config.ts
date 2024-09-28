@@ -1,7 +1,7 @@
 import { registerAs } from '@nestjs/config';
 
 export default registerAs('database', () =>
-  process.env.NODE_ENV == 'development' ? remoteDBConfig(): localDBConfig(),
+  process.env.NODE_ENV == 'development' ? localDBConfig() : remoteDBConfig(),
 );
 
 const localDBConfig = () => {
