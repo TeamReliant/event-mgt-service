@@ -1,9 +1,9 @@
+import { TicketDto } from '@app/rest/ticket-resources/tickets/dto/ticket.dto';
 import { Expose, Type } from 'class-transformer';
 import { EventStatus, EventVisibility } from '../enums';
-import { TicketDto } from '@app/rest/ticket-resources/tickets/dto/ticket.dto';
-import { UserDto } from '@app/rest/users/dto/shared/user.dto';
+import { TeamDto } from '@app/rest/team-resources/teams/dto/team.dto';
 
-export class EventResponseDto {
+export class GetOneEventResponseDto {
   @Expose()
   id: number;
 
@@ -56,10 +56,10 @@ export class EventResponseDto {
   isAvailable: boolean;
 
   @Expose()
-  @Type(() => UserDto)
-  user: UserDto;
-
-  @Expose()
   @Type(() => TicketDto)
   tickets?: TicketDto;
+
+  @Expose()
+  @Type(() => TeamDto)
+  team?: TeamDto;
 }

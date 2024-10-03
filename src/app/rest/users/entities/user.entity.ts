@@ -27,6 +27,13 @@ export class User extends AbstractEntity<User> {
   })
   userType?: string; // could be a organizer, attendee, or admin
 
+  @Column({
+    name: 'visibility',
+    type: 'boolean',
+    default: true,
+  })
+  visibility?: boolean;
+
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password?: string;
 

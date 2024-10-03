@@ -44,6 +44,9 @@ export class UserDto {
   isOnboarded: boolean;
 
   @Expose()
+  visibility: boolean;
+
+  @Expose()
   subscriptionStatus?: 'incomplete' | 'incomplete_expired' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'paused' | null;
 
   @Expose()
