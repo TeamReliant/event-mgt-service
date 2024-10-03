@@ -92,8 +92,9 @@ export class TeamsService {
     const queryBuilder = this._repo
       .createQueryBuilder('teams')
       .leftJoinAndSelect('teams.members', 'members')
+      .leftJoinAndSelect('members.permissions', 'permissions')
       .where('members.userId = :userId', { userId })
-      .select(['teams', 'members.id']);
+      .select(['teams', 'permissions', 'members.id']);
 
     // check for search query and apply it to the query builder
     if (query.search) {

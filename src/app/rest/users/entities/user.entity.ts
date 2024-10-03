@@ -25,7 +25,14 @@ export class User extends AbstractEntity<User> {
     nullable: true,
     default: 'attendee',
   })
-  userType?: string; // could be a organizer, attendee, or admin
+  userType?: string; // could be an organizer, attendee, or admin
+
+  @Column({
+    name: 'visibility',
+    type: 'boolean',
+    default: true,
+  })
+  visibility?: boolean;
 
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password?: string;
@@ -46,6 +53,7 @@ export class User extends AbstractEntity<User> {
     nullable: true,
   })
   passwordResetToken?: number;
+
   @Column({
     name: 'refresh_token',
     type: 'varchar',
@@ -78,7 +86,8 @@ export class User extends AbstractEntity<User> {
   })
   customerId?: string;
 
-  @Column({default: false})
+
+  @Column({ default: false })
   isOnboarded: boolean;
 
   @Column({
@@ -104,6 +113,7 @@ export class User extends AbstractEntity<User> {
     | 'unpaid'
     | 'paused'
     | null;
+
 
   @Column({ nullable: true, default: "free" })
   subscribedPlan?: string;
