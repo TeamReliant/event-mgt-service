@@ -1,6 +1,6 @@
 import { Expose } from 'class-transformer';
 
-export class UserDto {
+export class UserInTeamDto {
   @Expose()
   id: number;
 
@@ -14,25 +14,10 @@ export class UserDto {
   email: string;
 
   @Expose()
-  picture: string;
-
-  @Expose()
-  emailVerifiedAt?: number;
-
-  @Expose()
-  fcmDeviceToken?: string;
-
-  @Expose()
   createdAt: Date;
 
   @Expose()
   updatedAt: Date;
-
-  @Expose()
-  numOfEventsCreated: number;
-
-  @Expose()
-  numOfPrivateEventsCreated: number;
   
   @Expose()
   stripeConnectedAccountId?: string;

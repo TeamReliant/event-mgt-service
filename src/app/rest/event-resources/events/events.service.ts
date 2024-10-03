@@ -18,13 +18,14 @@ import { User } from '@app/rest/users/entities/user.entity';
 import { Request } from 'express';
 import { AssignTeamDto } from '@app/rest/event-resources/events/dto/assign-team.dto';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
+import { UsersService } from '@app/rest/users/users.service';
 
 @Injectable()
 export class EventsService {
   constructor(
     @InjectRepository(Event) private readonly eventRepo: Repository<Event>,
-    @InjectRepository(Ticket) private readonly ticketRepo: Repository<Ticket>,
     private readonly entityManager: EntityManager,
+    private readonly userService: UsersService,
     private readonly azureBlobService: AzureBlobFileSystemService,
   ) {}
 
@@ -41,37 +42,42 @@ export class EventsService {
     }
   }
 
-  private validateEventCreation(user:User, eventVisibility: string){
-    const { subscribedPlan, numOfEventsCreated, numOfPrivateEventsCreated } = user;
+  private validateEventCreation(user: User, eventVisibility: string) {
+    const { subscribedPlan, numOfEventsCreated, numOfPrivateEventsCreated } =
+      user;
 
     const plan = subscribedPlan.toLowerCase();
     const visibility = eventVisibility.toLowerCase();
 
     const planRestrictions = {
-      free: { maxEvents: 4, maxPrivateEvents: 0},
-      pro: { maxEvents: 8, maxPrivateEvents: 8},
-      premium: { maxEvents: Infinity, maxPrivateEvents: Infinity}
+      free: { maxEvents: 4, maxPrivateEvents: 0 },
+      pro: { maxEvents: 8, maxPrivateEvents: 8 },
+      premium: { maxEvents: Infinity, maxPrivateEvents: Infinity },
+    };
+
+    const { maxEvents, maxPrivateEvents } = planRestrictions[plan];
+    if (plan === 'free' && visibility === 'private') {
+      throw new UnauthorizedException(
+        'Free plan users cannot create private events',
+      );
     }
 
-    const {maxEvents, maxPrivateEvents} = planRestrictions[plan];
-    if (plan === 'free' && visibility === 'private')
-    {
-      throw new UnauthorizedException('Free plan users cannot create private events');
+    if (
+      visibility === 'private' &&
+      numOfPrivateEventsCreated >= maxPrivateEvents
+    ) {
+      throw new UnauthorizedException(
+        'Private event limit exceeded for this user',
+      );
     }
 
-
-    if (visibility === "private" && numOfPrivateEventsCreated >= maxPrivateEvents)
-    {
-      throw new UnauthorizedException('Private event limit exceeded for this user');
+    if (numOfEventsCreated >= maxEvents) {
+      throw new UnauthorizedException(
+        'Private event limit exceeded for this user',
+      );
     }
 
-    if (numOfEventsCreated >= maxEvents)
-    {
-      throw new UnauthorizedException('Private event limit exceeded for this user');
-    }
-
-    if (visibility === 'private')
-    {
+    if (visibility === 'private') {
       user.numOfPrivateEventsCreated++;
     }
 
@@ -81,16 +87,15 @@ export class EventsService {
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
     try {
-      const { eventCoverImage, tickets, eventVisibility, ...rest } = createEventDto;
+      const { eventCoverImage, tickets, eventVisibility, ...rest } =
+        createEventDto;
       if (eventCoverImage) {
         eventImageURL = await this.uploadImage(eventCoverImage);
       }
       const createdEvent = await this.entityManager.transaction(
         async (manager) => {
           //eventCreator: user creating the event
-          const eventCreator = await manager.findOne(User, {
-            where: { id: user.userId },
-          });
+          const eventCreator = await this.userService.findOne(user.userId);
 
           if (!eventCreator) {
             throw new NotFoundException('User not found');
@@ -110,6 +115,7 @@ export class EventsService {
             );
           }
 
+          await manager.save<User>(eventCreator);
           return await manager.save<Event>(eventInstance);
         },
       );
@@ -118,11 +124,13 @@ export class EventsService {
       //if saving of event fails, delete the uploaded image
       await this.deleteImage(eventImageURL);
 
-      if(error instanceof UnauthorizedException || error instanceof NotFoundException)
-      {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException
+      ) {
         console.error(error.message);
         throw error;
-      } 
+      }
       console.error('Error creating event:', error);
       throw new BadRequestException('Error creating event');
     }
@@ -182,7 +190,7 @@ export class EventsService {
     const { query } = req;
     const {
       name,
-      location,
+      locationName,
       address,
       eventVisibility,
       eventStatus,
@@ -191,16 +199,24 @@ export class EventsService {
 
     const userId = user.userId;
     const queryBuilder = this.eventRepo.createQueryBuilder('event');
-    queryBuilder.leftJoinAndSelect('event.tickets', 'ticket');
-    queryBuilder.andWhere('event.user = :userId', { userId });
+    queryBuilder
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'ticket')
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('team.members', 'teamMember');
+
+    //select event where user is the owner or a team member
+    queryBuilder
+      .andWhere('event.user = :userId', { userId })
+      .orWhere('teamMember.user.id = :userId', { userId });
 
     if (name) {
       queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
     }
 
-    if (location) {
-      queryBuilder.andWhere('event.location ILIKE :location', {
-        location: `%${location}%`,
+    if (locationName) {
+      queryBuilder.andWhere('event.locationName ILIKE :locationName', {
+        locationName: `%${locationName}%`,
       });
     }
 
@@ -235,16 +251,28 @@ export class EventsService {
     try {
       const event = await this.entityManager.findOne(Event, {
         where: { id },
-        relations: ['user', 'tickets', 'team'],
+        relations: [
+          'user',
+          'tickets',
+          'team',
+          'team.members',
+          'team.members.user',
+        ],
       });
+
       if (!event) {
         throw new NotFoundException('Event not found');
       }
 
+      const isOwner = event.user.id === user.userId;
+      const isTeamMember = event.team?.members?.some(
+        (member) => member.user.id === user.userId,
+      );
+
       //check if event belongs to existing user
-      if (event.user.id !== user.userId) {
+      if (!isOwner && !isTeamMember) {
         throw new UnauthorizedException(
-          'Event does not belong to authenticated user',
+          'User is neither the event owner nor a team member',
         );
       }
       return event;
@@ -308,6 +336,7 @@ export class EventsService {
 
       //delete event and it's related tickets
       await this.entityManager.transaction(async (manager) => {
+        await manager.delete(Ticket, { event: { id: event.id } });
         await manager.delete(Event, id);
         await this.deleteImage(event.eventImageURL);
       });
