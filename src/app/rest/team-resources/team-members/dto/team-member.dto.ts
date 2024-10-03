@@ -1,6 +1,6 @@
-import { UserDto } from '@app/rest/users/dto/shared/user.dto';
 import { Expose, Type } from 'class-transformer';
 import { TeamDto } from '../../teams/dto/team.dto';
+import { UserInTeamDto } from '@app/rest/users/dto/shared/user-in-team-object.dto';
 
 export class TeamMemberDto {
   @Expose()
@@ -11,8 +11,8 @@ export class TeamMemberDto {
   team: TeamDto;
 
   @Expose()
-  @Type(() => UserDto)
-  user: UserDto;
+  @Type(() => UserInTeamDto)
+  user: UserInTeamDto;
 
   @Expose()
   isAdmin?: boolean;

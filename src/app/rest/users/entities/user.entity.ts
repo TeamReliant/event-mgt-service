@@ -34,13 +34,6 @@ export class User extends AbstractEntity<User> {
   })
   visibility?: boolean;
 
-  @Column({
-    name: 'visibility',
-    type: 'boolean',
-    default: true,
-  })
-  visibility?: boolean;
-
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password?: string;
 

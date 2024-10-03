@@ -114,6 +114,8 @@ export class EventsService {
               manager.create(Ticket, ticket),
             );
           }
+
+          await manager.save<User>(eventCreator);
           return await manager.save<Event>(eventInstance);
         },
       );
@@ -334,6 +336,7 @@ export class EventsService {
 
       //delete event and it's related tickets
       await this.entityManager.transaction(async (manager) => {
+        await manager.delete(Ticket, { event: { id: event.id } });
         await manager.delete(Event, id);
         await this.deleteImage(event.eventImageURL);
       });
