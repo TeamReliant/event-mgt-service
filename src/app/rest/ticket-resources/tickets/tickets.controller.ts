@@ -1,17 +1,16 @@
 import {
-  Controller,
-  Get,
-  Post,
+  BadRequestException,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
-  UseGuards,
+  Param,
+  Patch,
+  Post,
   Query,
-  BadRequestException,
-  Res,
+  UseGuards,
 } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -20,7 +19,6 @@ import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
 import { CurrentUser } from '@libs/decorators/current-user.decorator';
 import { TJwtPayload } from '@libs/types';
 import ResponseSerializer, {
-  IResponseWithData,
   IResponseWithMessage,
 } from '@libs/helpers/ResponseSerializer';
 import { SerializeResponse } from '@libs/interceptors/serialize-response.interceptor';
@@ -38,15 +36,8 @@ export class TicketsController {
     @Query('eventId') eventId: string,
     @CurrentUser() user: TJwtPayload,
   ) {
-    if (!eventId) {
-      throw new BadRequestException('Event ID is required');
-    }
-    const savedTicket = await this.ticketsService.create(
-      createTicketDto,
-      eventId,
-      user,
-    );
-    return savedTicket;
+    if (!eventId) throw new BadRequestException('Event ID is required');
+    return await this.ticketsService.create(createTicketDto, eventId, user);
   }
 
   @Get(':id')
@@ -57,8 +48,7 @@ export class TicketsController {
     @Param('id') ticketId: string,
     @CurrentUser() user: TJwtPayload,
   ) {
-    const ticket = await this.ticketsService.findOne(ticketId, user);
-    return ticket;
+    return await this.ticketsService.findOne(ticketId, user);
   }
 
   @Get()
@@ -69,8 +59,7 @@ export class TicketsController {
     @Query('eventId') eventId: string,
     @CurrentUser() user: TJwtPayload,
   ) {
-    const tickets = await this.ticketsService.findAll(eventId, user);
-    return tickets;
+    return await this.ticketsService.findAll(eventId, user);
   }
 
   @Patch(':id')
@@ -82,12 +71,7 @@ export class TicketsController {
     @Body() updateTicketDto: UpdateTicketDto,
     @CurrentUser() user: TJwtPayload,
   ) {
-    const updatedTicket = await this.ticketsService.update(
-      ticketId,
-      updateTicketDto,
-      user,
-    );
-    return updatedTicket;
+    return await this.ticketsService.update(ticketId, updateTicketDto, user);
   }
 
   @Delete(':id')

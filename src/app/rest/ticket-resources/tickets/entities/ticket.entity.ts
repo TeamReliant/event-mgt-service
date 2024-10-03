@@ -8,8 +8,8 @@ export class Ticket extends AbstractEntity<Ticket> {
   @Column()
   name: string;
 
-  @Column('decimal')
-  price: number;
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  price?: number;
 
   @Column({
     type: 'enum',
