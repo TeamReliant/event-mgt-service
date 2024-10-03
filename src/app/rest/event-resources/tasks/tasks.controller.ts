@@ -27,7 +27,11 @@ import { Task } from '@app/rest/event-resources/tasks/entities/task.entity';
 import { ShowTaskParamsDto } from '@app/rest/event-resources/tasks/dto/show-task-params.dto';
 import { UpdateTaskParamsDto } from '@app/rest/event-resources/tasks/dto/update-task-params.dto';
 import { DeleteTaskParamsDto } from '@app/rest/event-resources/tasks/dto/delete-task-params.dto';
+import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
+import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
 
+@UseGuards(JwtAuthGuard, SubscriptionPlanGuard)
+@RestrictedPlans(['free', 'pro'])
 @Controller('events/:eventId/tasks')
 export class TasksController {
   constructor(
@@ -37,7 +41,6 @@ export class TasksController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard)
   async assign(
     @Body() body: AssignTaskDto,
     @Param() params: AssignTaskParamsDto,
@@ -50,7 +53,6 @@ export class TasksController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   findAll(
     @Param() params: FetchTasksParamsDto,
     @Query() query: FetchTasksQueriesDto,
@@ -61,7 +63,6 @@ export class TasksController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   async findOne(
     @Param() params: ShowTaskParamsDto,
   ): Promise<IResponseWithData> {
@@ -71,7 +72,6 @@ export class TasksController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.ACCEPTED)
-  @UseGuards(JwtAuthGuard)
   async update(
     @Param() params: UpdateTaskParamsDto,
     @Body() updateTaskDto: UpdateTaskDto,
@@ -88,7 +88,6 @@ export class TasksController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   async remove(
     @Param() params: DeleteTaskParamsDto,
     @GetCurrentUserId() userId: string,

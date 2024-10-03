@@ -11,7 +11,10 @@ export class EventResponseDto {
   name: string;
 
   @Expose()
-  location: string;
+  locationPlaceId: string;
+
+  @Expose()
+  locationName: string;
 
   @Expose()
   address: string;

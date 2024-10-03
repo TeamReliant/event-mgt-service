@@ -1,0 +1,16 @@
+extends ../baseEmail
+
+block content
+  h1 Congratulations, #{payload.user.firstname}!
+
+  p We're excited to inform you that your stripe onboarding is now complete. You can now start using all the features of #{payload.appInfo.name} by subscribing for one of our plans!
+
+  p If you have any questions or need assistance, our support team is here to help.
+
+  p
+    a(href=payload.dashboardLink, class='btn btn-primary') Go to Your Dashboard
+
+  small Cheers!
+  br
+  small
+    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
