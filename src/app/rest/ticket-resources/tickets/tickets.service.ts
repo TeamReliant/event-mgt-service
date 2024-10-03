@@ -39,7 +39,7 @@ export class TicketsService {
       if (existingTicket) throw new BadRequestException('Ticket already exists');
 
 
-      const ticket = await this.ticketRepository.create({
+      const ticket = this.ticketRepository.create({
         ...createTicketDto,
         event: event,
       });
