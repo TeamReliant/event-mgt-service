@@ -12,6 +12,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  UsePipes,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -34,6 +35,7 @@ import { AssignTeamParamsDto } from '@app/rest/event-resources/events/dto/assign
 import { AssignTeamDto } from '@app/rest/event-resources/events/dto/assign-team.dto';
 import { GetOneEventResponseDto } from './dto/get-one-event-response.dto';
 import { GetAllEventsResponseDto } from './dto/get-all-events-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('events')
 export class EventsController {
@@ -45,10 +47,11 @@ export class EventsController {
   @SerializeResponse(EventResponseDto, 'data')
   @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
   async create(
-    @Body() createEventDto: CreateEventDto,
+    @Body() body: any,
     @UploadedFile(FileValidationPipe) eventCoverImage: Express.Multer.File,
     @CurrentUser() user: TJwtPayload,
   ) {
+    let createEventDto = plainToInstance(CreateEventDto, body);
     createEventDto.eventCoverImage = eventCoverImage;
     return await this.eventsService.create(createEventDto, user);
   }
