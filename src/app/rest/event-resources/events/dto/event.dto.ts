@@ -1,4 +1,3 @@
-
 import { Expose, Type } from 'class-transformer';
 import { EventStatus, EventVisibility } from '../enums';
 import { TicketDto } from '@app/rest/ticket-resources/tickets/dto/ticket.dto';
@@ -12,7 +11,10 @@ export class EventResponseDto {
   name: string;
 
   @Expose()
-  location: string;
+  locationPlaceId: string;
+
+  @Expose()
+  locationName: string;
 
   @Expose()
   address: string;
@@ -59,5 +61,5 @@ export class EventResponseDto {
 
   @Expose()
   @Type(() => TicketDto)
-  tickets: TicketDto;
+  tickets?: TicketDto;
 }

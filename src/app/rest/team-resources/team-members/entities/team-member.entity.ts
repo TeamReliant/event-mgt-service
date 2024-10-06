@@ -11,6 +11,7 @@ import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 import { AbstractEntity } from '@libs/database';
 import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
+import { Task } from '@app/rest/event-resources/tasks/entities/task.entity';
 
 @Entity({ name: 'team_members' })
 export class TeamMember extends AbstractEntity<TeamMember> {
@@ -42,6 +43,9 @@ export class TeamMember extends AbstractEntity<TeamMember> {
 
   @OneToMany(() => Permission, (permission) => permission.member)
   permissions?: Permission[];
+
+  @OneToMany(() => Task, (task) => task.assignee)
+  tasks: Task[];
 
   // @ManyToMany(() => Permission, (permission) => permission.teamMembers)
   // @JoinTable({

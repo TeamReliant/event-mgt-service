@@ -1,0 +1,19 @@
+extends ../baseEmail
+
+block content
+  p #{(payload.assignee)? `Hello ${payload.assignee.lastname}  ${payload.assignee.lastname} `: 'Hello'},
+  p You have been assigned a new task within the #{payload.task.event.name} team.
+
+  p Task Title: **#{payload.task.title}**
+  p
+   b Description:
+  p #{payload.task.description}
+
+  p Please log in to your dashboard to view more details and manage your tasks.
+
+  p If you have any questions, feel free to reach out to our 24/7 contact centre immediately on #{payload.appInfo.companyPhone}. Alternatively, send an email to #{payload.appInfo.appEmail}.
+
+  small Thank you!
+  br
+  small
+    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}

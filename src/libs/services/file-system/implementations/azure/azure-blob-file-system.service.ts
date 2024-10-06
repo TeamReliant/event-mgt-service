@@ -44,11 +44,14 @@ export class AzureBlobFileSystemService implements IFileSystem {
 
   async deleteFileAsync(objectUrl: string): Promise<boolean> {
     // fetch the azure blob storage url
-    const azureBlobStorageUrl = this.configService.getOrThrow(
-      'AZURE_BLOB_STORAGE_URL',
-    ).replace(/\/+$/, '');
+    const azureBlobStorageUrl = this.configService
+      .getOrThrow('AZURE_BLOB_STORAGE_URL')
+      .replace(/\/+$/, '');
     // Extract the filename from the object URL
-    const filename = objectUrl.replace(/^https?:\/\//, '').replace(azureBlobStorageUrl, '').replace(/^\/+/, '');
+    const filename = objectUrl
+      .replace(/^https?:\/\//, '')
+      .replace(azureBlobStorageUrl, '')
+      .replace(/^\/+/, '');
     const blobClient = this.getBlobClient(filename);
     await blobClient.delete();
     return true;

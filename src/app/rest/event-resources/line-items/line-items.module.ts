@@ -1,0 +1,18 @@
+import { Module } from '@nestjs/common';
+import { LineItemsService } from './line-items.service';
+import { LineItemsController } from './line-items.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from '@app/rest/users/users.module';
+import { PaginationModule } from '@libs/helpers/pagination/pagination.module';
+import { LineItem } from '@app/rest/event-resources/line-items/entities/line-item.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([LineItem]),
+    UsersModule,
+    PaginationModule,
+  ],
+  controllers: [LineItemsController],
+  providers: [LineItemsService],
+})
+export class LineItemsModule {}

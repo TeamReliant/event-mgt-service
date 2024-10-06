@@ -92,8 +92,9 @@ export class TeamsService {
     const queryBuilder = this._repo
       .createQueryBuilder('teams')
       .leftJoinAndSelect('teams.members', 'members')
+      .leftJoinAndSelect('members.permissions', 'permissions')
       .where('members.userId = :userId', { userId })
-      .select(['teams', 'members.id']);
+      .select(['teams', 'permissions', 'members.id']);
 
     // check for search query and apply it to the query builder
     if (query.search) {
@@ -275,9 +276,6 @@ export class TeamsService {
   }
 
   async remove(id: string, userId: string): Promise<boolean> {
-    // fetch the current user data
-    const user = await this._usersService.findOneById(userId);
-
     // fetch the team data with the members, invitations using query builder
     const team = (await this._entityManager
       .createQueryBuilder(Team, 'team')

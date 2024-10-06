@@ -1,17 +1,18 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
-  Req,
+  UsePipes,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -28,6 +29,13 @@ import ResponseSerializer, {
 import { Request } from 'express';
 import { SerializeResponse } from '@libs/interceptors/serialize-response.interceptor';
 import { EventResponseDto } from './dto/event.dto';
+import { ShowEventParamsDto } from '@app/rest/event-resources/events/dto/show-event-params.dto';
+import { UpdateEventParamsDto } from '@app/rest/event-resources/events/dto/update-event-params.dto';
+import { AssignTeamParamsDto } from '@app/rest/event-resources/events/dto/assign-team-params.dto';
+import { AssignTeamDto } from '@app/rest/event-resources/events/dto/assign-team.dto';
+import { GetOneEventResponseDto } from './dto/get-one-event-response.dto';
+import { GetAllEventsResponseDto } from './dto/get-all-events-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('events')
 export class EventsController {
@@ -36,16 +44,16 @@ export class EventsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  @SerializeResponse(EventResponseDto, "data")
+  @SerializeResponse(EventResponseDto, 'data')
   @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
   async create(
-    @Body() createEventDto: CreateEventDto,
+    @Body() body: any,
     @UploadedFile(FileValidationPipe) eventCoverImage: Express.Multer.File,
     @CurrentUser() user: TJwtPayload,
   ) {
+    let createEventDto = plainToInstance(CreateEventDto, body);
     createEventDto.eventCoverImage = eventCoverImage;
-    const createdEvent = await this.eventsService.create(createEventDto, user);
-    return createdEvent;
+    return await this.eventsService.create(createEventDto, user);
   }
 
   // @Get()
@@ -64,20 +72,23 @@ export class EventsController {
     @Req() req: Request,
     @CurrentUser() user: TJwtPayload,
   ): Promise<IResponseWithData> {
-    const queryBuilder = await this.eventsService.findMyEvents(req, user);
-    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<EventResponseDto>(req, queryBuilder, EventResponseDto);
+    const queryBuilder = this.eventsService.findMyEvents(req, user);
+    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<GetAllEventsResponseDto>(
+      req,
+      queryBuilder,
+      GetAllEventsResponseDto,
+    );
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  @SerializeResponse(EventResponseDto)
+  @SerializeResponse(GetOneEventResponseDto)
   async findOne(
-    @Param('id') id: string,
+    @Param() params: ShowEventParamsDto,
     @CurrentUser() user: TJwtPayload,
-  ){
-    const event = await this.eventsService.findOne(id, user);
-    return event;
+  ) {
+    return await this.eventsService.findOne(params.id, user);
   }
 
   @Patch(':id')
@@ -86,7 +97,7 @@ export class EventsController {
   @SerializeResponse(EventResponseDto)
   @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
   async update(
-    @Param('id') id: string,
+    @Param() params: UpdateEventParamsDto,
     @Body() updateEventDto: UpdateEventDto,
     @CurrentUser() user: TJwtPayload,
     @UploadedFile(FileValidationPipe) eventCoverImage?: Express.Multer.File,
@@ -94,8 +105,7 @@ export class EventsController {
     if (eventCoverImage) {
       updateEventDto.eventCoverImage = eventCoverImage;
     }
-    const updatedEvent = await this.eventsService.update(id, updateEventDto, user);
-    return updatedEvent;
+    return await this.eventsService.update(params.id, updateEventDto, user);
   }
 
   @Delete(':id')
@@ -107,5 +117,23 @@ export class EventsController {
   ): Promise<IResponseWithMessage> {
     await this.eventsService.remove(id, user);
     return ResponseSerializer.message('Event deleted successfully');
+  }
+
+  @Post(':id/team')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async addTeamToEvent(
+    @Param() params: AssignTeamParamsDto,
+    @Body() body: AssignTeamDto,
+    @CurrentUser() user: TJwtPayload,
+  ) {
+    const data = await this.eventsService.assignTeam(
+      body,
+      params.id,
+      user.userId,
+    );
+
+    delete data.user;
+    return ResponseSerializer.data(data);
   }
 }

@@ -1,0 +1,15 @@
+extends ../baseEmail
+
+block content
+  h1 Great News, #{payload.user.firstname}!
+
+  p You've successfully enabled charges on your account. Now, you can start receiving payments!
+
+  p To fully benefit from our platform, please complete your payouts setup. It's quick and easy!
+
+  p If you need assistance, feel free to reach out to our support team.
+
+  small Thank you for being a part of #{payload.appInfo.appName}!
+  br
+  small
+    b - #{payload.appInfo.appName}, #{payload.appInfo.appName}

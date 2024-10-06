@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
-export class TeamInvitationsEventListenerService {
+export class TeamInvitationsListener {
   constructor(
     private readonly _teamInvitationsEmailService: TeamInvitationsEmailService,
     private readonly _eventEmitter: EventEmitter2,

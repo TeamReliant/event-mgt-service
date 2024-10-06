@@ -3,6 +3,7 @@ import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-
 import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
 import { AbstractEntity } from '@libs/database';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
+import { Event } from '@app/rest/event-resources/events/entities/event.entity';
 
 @Entity({ name: 'teams' })
 export class Team extends AbstractEntity<Team> {
@@ -32,6 +33,11 @@ export class Team extends AbstractEntity<Team> {
     cascade: true,
   })
   invitations?: TeamInvitation[];
+
+  @OneToMany(() => Event, (events) => events.team, {
+    cascade: true,
+  })
+  events?: Event[];
 
   @OneToMany(() => Permission, (permissions) => permissions.team, {
     cascade: true,

@@ -17,7 +17,7 @@ export class TeamInvitationsEmailService {
 
     const payload = {
       invitation: invitation,
-      appName: appName,
+      appInfo,
       reactionLink: `${this.configService.get<string>('FRONTEND_URL')}/invitation-reaction/${invitation.token}`,
     };
 
@@ -25,7 +25,7 @@ export class TeamInvitationsEmailService {
     await this.emailEngineService.sendHtmlEmail(
       [email],
       subject,
-      `teams/invitation-message`,
+      `teams/invitation`,
       payload,
     );
   }
@@ -36,14 +36,14 @@ export class TeamInvitationsEmailService {
 
     const payload = {
       invitation: invitation,
-      appName: appName,
+      appInfo
     };
 
     const subject: string = `INVITATION ACCEPTED | ${appName}`;
     await this.emailEngineService.sendHtmlEmail(
       [email],
       subject,
-      `teams/invitation-accepted-message`,
+      `teams/invitation-accepted`,
       payload,
     );
   }

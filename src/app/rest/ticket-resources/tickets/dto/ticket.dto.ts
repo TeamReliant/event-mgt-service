@@ -1,48 +1,48 @@
-import { EventResponseDto } from "@app/rest/event-resources/events/dto/event.dto";
-import { UserDto } from "@app/rest/users/dto/shared/user.dto";
-import { Expose, Type } from "class-transformer";
-import { TicketCategory } from "../enums";
+import { EventResponseDto } from '@app/rest/event-resources/events/dto/event.dto';
+import { UserDto } from '@app/rest/users/dto/shared/user.dto';
+import { Expose, Type } from 'class-transformer';
+import { TicketCategory } from '../enums';
 
 export class TicketDto {
-    @Expose()
-    id: number;
-    
-    @Expose()
-    name: string;
+  @Expose()
+  id: number;
 
-    @Expose()
-    price: number;
+  @Expose()
+  name: string;
 
-    @Expose()
-    category: TicketCategory;
+  @Expose()
+  price: number;
 
-    @Expose()
-    description: string;
+  @Expose()
+  category: TicketCategory;
 
-    @Expose()
-    isAvailable: boolean;
+  @Expose()
+  description: string;
 
-    @Expose()
-    availableTickets: number;
+  @Expose()
+  isAvailable: boolean;
 
-    @Expose()
-    maxNumberOfTicketsOrderable: number;
+  @Expose()
+  availableTickets: number;
 
-    @Expose()
-    createdAt: Date;
+  @Expose()
+  maxNumberOfTicketsOrderable: number;
 
-    @Expose()
-    updatedAt: Date;
+  @Expose()
+  createdAt: Date;
 
-    @Type(() => EventResponseDto)
-    @Expose()
-    event: EventResponseDto;
-    
-    @Type(() => UserDto)
-    @Expose()
-    user: UserDto;
+  @Expose()
+  updatedAt: Date;
 
-    constructor(partial: Partial<TicketDto>) {
-        Object.assign(this, partial);
-      }
+  @Type(() => EventResponseDto)
+  @Expose()
+  event: EventResponseDto;
+
+  @Type(() => UserDto)
+  @Expose()
+  user: UserDto;
+
+  constructor(partial: Partial<TicketDto>) {
+    Object.assign(this, partial);
+  }
 }
