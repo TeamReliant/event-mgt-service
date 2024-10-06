@@ -32,7 +32,12 @@ export class TeamsService {
   async create(createTeamDto: CreateTeamDto, userId: string) {
     // fetch the current user data
     const user = await this._usersService.findOneById(userId);
-    const { name, bio, website, color, members } = createTeamDto;
+
+    if (user.userType !== 'organizer')
+      throw new NotAcceptableException('Only organizers can create a team');
+
+    const { name, bio, website, primaryColor, secondaryColor, members } =
+      createTeamDto;
 
     // check if the team name already exists that belongs to the user
     const teamExists = await this._repo
@@ -56,7 +61,8 @@ export class TeamsService {
         name,
         bio,
         website,
-        color,
+        primaryColor,
+        secondaryColor,
       }) as Team;
 
       // save the team to the database
@@ -142,12 +148,12 @@ export class TeamsService {
 
     // delete user sensitive data
     team.members = team.members.map((member) => {
-      delete member.user.password;
-      delete member.user.emailVerificationToken;
-      delete member.user.emailVerifiedAt;
-      delete member.user.passwordResetToken;
-      delete member.user.magicSignInToken;
-      delete member.user.refreshToken;
+      delete member?.user?.password;
+      delete member?.user?.emailVerificationToken;
+      delete member?.user?.emailVerifiedAt;
+      delete member?.user?.passwordResetToken;
+      delete member?.user?.magicSignInToken;
+      delete member?.user?.refreshToken;
       return member;
     });
 
@@ -159,7 +165,8 @@ export class TeamsService {
     // fetch the current user data
     const user = await this._usersService.findOneById(userId);
     // destructure the update team dto
-    const { name, color, bio, website, members } = updateTeamDto;
+    const { name, primaryColor, secondaryColor, bio, website, members } =
+      updateTeamDto;
 
     // check if the team name already exists that belongs to the user and not the current team
     if (name) {
@@ -201,7 +208,7 @@ export class TeamsService {
     // fetch the team data
     await this._entityManager.transaction(async (manager) => {
       // Modify the entity with new data
-      Object.assign(team, { name, color, bio, website });
+      Object.assign(team, { name, primaryColor, secondaryColor, bio, website });
 
       // Save the updated entity
       await manager.save<Team>(team);
@@ -276,6 +283,12 @@ export class TeamsService {
   }
 
   async remove(id: string, userId: string): Promise<boolean> {
+    // fetch the current user data
+    const user = await this._usersService.findOneById(userId);
+
+    if (user.userType !== 'organizer')
+      throw new NotAcceptableException('Only organizers can remove a team');
+
     // fetch the team data with the members, invitations using query builder
     const team = (await this._entityManager
       .createQueryBuilder(Team, 'team')

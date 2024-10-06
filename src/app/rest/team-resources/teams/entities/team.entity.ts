@@ -11,12 +11,20 @@ export class Team extends AbstractEntity<Team> {
   name: string;
 
   @Column({
-    name: 'color',
+    name: 'primary_color',
     type: 'varchar',
     nullable: false,
     default: '#000000',
   })
-  color?: string;
+  primaryColor?: string;
+
+  @Column({
+    name: 'secondary_color',
+    type: 'varchar',
+    nullable: false,
+    default: '#000000',
+  })
+  secondaryColor?: string;
 
   @Column({ name: 'bio', type: 'text', nullable: true })
   bio?: string;

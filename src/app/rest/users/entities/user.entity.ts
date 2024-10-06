@@ -12,6 +12,14 @@ export class User extends AbstractEntity<User> {
   @Column({ name: 'lastname', type: 'varchar', length: 255, nullable: true })
   lastname?: string;
 
+  @Column({
+    name: 'phone_number',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  phoneNumber?: string;
+
   @Column({ unique: true, nullable: false, length: 255 })
   email: string;
 
@@ -29,10 +37,10 @@ export class User extends AbstractEntity<User> {
 
   @Column({
     name: 'visibility',
-    type: 'boolean',
+    type: 'varchar',
     default: true,
   })
-  visibility?: boolean;
+  visibility?: string;
 
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password?: string;
