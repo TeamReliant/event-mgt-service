@@ -63,6 +63,7 @@ export const errors = {
 };
 
 export const roles = {
-  ADMIN: 'ADMIN',
-  REGULAR: 'REGULAR',
+  ORGANIZER: 'organizer',
+  ATTENDEE: 'attendee',
+  ADMIN: 'admin',
 };

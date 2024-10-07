@@ -73,7 +73,7 @@ export class EventsService {
 
     if (numOfEventsCreated >= maxEvents) {
       throw new UnauthorizedException(
-        'Private event limit exceeded for this user',
+        'Event creation limit exceeded for this user',
       );
     }
 
@@ -333,11 +333,14 @@ export class EventsService {
     try {
       //check if event exists and belongs to authenticated user
       const event = await this.findOne(id, user);
+      const userEntity = await this.userService.findOne(user.userId);
 
       //delete event and it's related tickets
       await this.entityManager.transaction(async (manager) => {
         await manager.delete(Ticket, { event: { id: event.id } });
         await manager.delete(Event, id);
+        userEntity.numOfEventsCreated--;
+        await manager.save(User, userEntity);
         await this.deleteImage(event.eventImageURL);
       });
       return;
