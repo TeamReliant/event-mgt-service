@@ -15,14 +15,6 @@ import { Task } from '@app/rest/event-resources/tasks/entities/task.entity';
 
 @Entity({ name: 'team_members' })
 export class TeamMember extends AbstractEntity<TeamMember> {
-  @ManyToOne(() => Team, (team) => team.members)
-  @JoinColumn({ name: 'teamId' })
-  team: Team;
-
-  @ManyToOne(() => User, (user) => user.teamMembers)
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
   @Column({
     name: 'is_admin',
     type: 'boolean',
@@ -36,6 +28,14 @@ export class TeamMember extends AbstractEntity<TeamMember> {
     default: 'pending',
   })
   status?: string; // active, inactive, pending, or exited
+
+  @ManyToOne(() => User, (user) => user.teamMembers)
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @ManyToOne(() => Team, (team) => team.members)
+  @JoinColumn({ name: 'teamId' })
+  team: Team;
 
   @OneToOne(() => TeamInvitation, (invitation) => invitation.member)
   @JoinColumn({ name: 'invitationId' })

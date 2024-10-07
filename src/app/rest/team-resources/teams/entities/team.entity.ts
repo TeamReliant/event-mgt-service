@@ -1,9 +1,17 @@
-import { Column, Entity, OneToMany } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
 import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
 import { AbstractEntity } from '@libs/database';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 import { Event } from '@app/rest/event-resources/events/entities/event.entity';
+import { User } from '@app/rest/users/entities/user.entity';
 
 @Entity({ name: 'teams' })
 export class Team extends AbstractEntity<Team> {
@@ -35,6 +43,10 @@ export class Team extends AbstractEntity<Team> {
   // one-to-many relation with team members
   @OneToMany(() => TeamMember, (members) => members.team, { cascade: true })
   members?: TeamMember[];
+
+  @ManyToOne(() => User, (user) => user.teams)
+  @JoinColumn({ name: 'userId' })
+  admin: User;
 
   // one-to-many relation with team invitations
   @OneToMany(() => TeamInvitation, (invitations) => invitations.team, {
