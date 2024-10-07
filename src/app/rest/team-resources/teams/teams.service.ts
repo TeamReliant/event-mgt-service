@@ -63,6 +63,7 @@ export class TeamsService {
         website,
         primaryColor,
         secondaryColor,
+        admin: user,
       }) as Team;
 
       // save the team to the database
@@ -99,6 +100,7 @@ export class TeamsService {
       .createQueryBuilder('teams')
       .leftJoinAndSelect('teams.members', 'members')
       .leftJoinAndSelect('members.permissions', 'permissions')
+      .leftJoinAndSelect('teams.admin', 'admin')
       .where('members.userId = :userId', { userId })
       .select(['teams', 'permissions', 'members.id']);
 
@@ -136,26 +138,42 @@ export class TeamsService {
   async findOne(id: string, throwException: boolean = false) {
     const team = await this._repo
       .createQueryBuilder('team')
+      .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('team.members', 'members')
       .leftJoinAndSelect('members.user', 'user')
       .where('team.id = :id', { id })
+      .select([
+        'team',
+        'admin.id',
+        'admin.firstname',
+        'admin.lastname',
+        'admin.email',
+        'admin.picture',
+        'admin.visibility',
+        'admin.userType',
+        'admin.createdAt',
+        'admin.updatedAt',
+        'admin.numOfEventsCreated',
+        'admin.numOfPrivateEventsCreated',
+        'members',
+        'user.id',
+        'user.firstname',
+        'user.lastname',
+        'user.email',
+        'user.picture',
+        'user.visibility',
+        'user.userType',
+        'user.createdAt',
+        'user.updatedAt',
+        'user.numOfEventsCreated',
+        'user.numOfPrivateEventsCreated',
+      ])
       .getOne();
 
     // check if the team exists
     if (!team && throwException) {
       throw new NotFoundException(`Team with id ${id} not found`);
     }
-
-    // delete user sensitive data
-    team.members = team.members.map((member) => {
-      delete member?.user?.password;
-      delete member?.user?.emailVerificationToken;
-      delete member?.user?.emailVerifiedAt;
-      delete member?.user?.passwordResetToken;
-      delete member?.user?.magicSignInToken;
-      delete member?.user?.refreshToken;
-      return member;
-    });
 
     // return the found team data
     return team;

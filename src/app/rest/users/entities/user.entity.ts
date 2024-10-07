@@ -3,6 +3,7 @@ import { Column, Entity, OneToMany } from 'typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
 import { AbstractEntity } from '@libs/database';
 import { Event } from '@app/rest/event-resources/events/entities/event.entity';
+import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -129,6 +130,9 @@ export class User extends AbstractEntity<User> {
   // teams where the user is an admin
   @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
   teamMembers?: TeamMember[];
+
+  @OneToMany(() => Team, (teams) => teams.admin, { cascade: true })
+  teams?: Team[];
 
   @OneToMany(() => TeamInvitation, (invitation) => invitation.user, {
     cascade: true,
