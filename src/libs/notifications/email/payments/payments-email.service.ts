@@ -49,6 +49,16 @@ export class PaymentsEmailService {
     await this.sendEmail(paymentNotification, subject, template, additionalPayload);
   }
 
+  async sendCustomerCreatedMessage(paymentNotification: Payment) {
+    const subject: string = `${appInfo.appName}: Customer Created!`;
+    const template = `payments/customer-created`;
+    const additionalPayload = {
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+    };
+
+    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+  }
+
   async sendStripePaymentOnboardingCompletedMessage(paymentNotification: Payment) {
     const subject: string = `${appInfo.appName}: Stripe Payment Onboarding is Complete!`;
     const template = `payments/stripe-onboarding-completed`;
@@ -75,5 +85,58 @@ export class PaymentsEmailService {
       payoutAmount: ((payoutNotification.payout.amount) / 100).toFixed(2)
     }
     await this.sendEmail(payoutNotification, subject, template, additionalPayload);
+  }
+
+  async sendPaymentFailedMessage(paymentNotification: Payment)
+  {
+    const subject: string = `${appInfo.appName}: Payment Failed!`;
+    const template = `payments/payment-failed`;
+    const {transactionObj} = paymentNotification;
+    await this.sendEmail(paymentNotification, subject, template);
+    const additionalPayload = {
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      ...transactionObj
+    }
+
+    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+  }
+
+  async sendPaymentSuccessMessage(paymentNotification: Payment)
+  {
+    const subject: string = `${appInfo.appName}: Payment Succeeded!`;
+    const template = `payments/payment-succeeded`;
+    const {transactionObj} = paymentNotification;
+    const additionalPayload = {
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      ...transactionObj
+    }
+
+    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+  }
+
+  async sendSubscriptionPaymentSuccessMessage(paymentNotification: Payment)
+  {
+    const subject: string = `${appInfo.appName}: Subscription Payment Success!`;
+    const template = `payments/subscription-payment-success`;
+    const {transactionObj} = paymentNotification;
+    const additionalPayload = {
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      ...transactionObj
+    }
+
+    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+  }
+
+  async sendSubscriptionPaymentFailedMessage(paymentNotification: Payment)
+  {
+    const subject: string = `${appInfo.appName}: Subscription Payment Success!`;
+    const template = `payments/subscription-payment-success`;
+    const {transactionObj} = paymentNotification;
+    const additionalPayload = {
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      ...transactionObj
+    }
+
+    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
   }
 }

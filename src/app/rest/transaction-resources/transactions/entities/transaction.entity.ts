@@ -1,6 +1,7 @@
 import { AbstractEntity } from "@libs/database";
-import { Column } from "typeorm";
+import { Column, Entity } from "typeorm";
 
+@Entity()
 export class Transaction extends AbstractEntity<Transaction> {
     @Column()
     userId: string;
@@ -8,7 +9,10 @@ export class Transaction extends AbstractEntity<Transaction> {
     @Column()
     plan: string;
 
-    @Column()
+    @Column({nullable: true})
+    type?: string;
+
+    @Column('decimal')
     amount: number;
 
     @Column()
@@ -23,10 +27,10 @@ export class Transaction extends AbstractEntity<Transaction> {
     @Column()
     status: string;
 
-    @Column()
-    subscriptionId: string;
+    @Column({nullable: true})
+    subscriptionId?: string;
 
-    @Column()
+    @Column({nullable: true})
     failureReason?: string
     
 }

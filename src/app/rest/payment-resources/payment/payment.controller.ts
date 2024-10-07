@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, UseGuards, HttpStatus, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, UseGuards, HttpStatus, Req, Res, RawBody, RawBodyRequest } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
@@ -33,7 +33,7 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   async createSubscription(@Body() createSubDto: CreateSubscriptionDto , @CurrentUser() user: TJwtPayload, @Query('paymentMethod') paymentMethod: string) {
     const {statusCode, sessionUrl} = await this.paymentService.createSubscription(user, createSubDto, paymentMethod);
-    return {statusCode, sessionUrl};
+    return ResponseSerializer.data({statusCode, sessionUrl});
   }
 
   @Post('update-subscription')
@@ -41,17 +41,17 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   async createPortalSession(@CurrentUser() user: TJwtPayload, @Query('paymentMethod') paymentMethod: string) {
     const {statusCode, sessionUrl} = await this.paymentService.updateSubscription(user, paymentMethod);
-    return {statusCode, sessionUrl};
+    return ResponseSerializer.data({statusCode, sessionUrl});
   }
 
   @Post('stripe-webhooks')
-  async handleWebhooks(@Req() req: Request, @Res() res: Response) {
+  async handleWebhooks(@Req() req: RawBodyRequest<Request>, @Res() res: Response) {
 
     let event = req.body;
     const signature = req.headers['stripe-signature'];
 
     try {
-      event = this.stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+      event = this.stripe.webhooks.constructEvent(req.rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
 
     } catch (error) {
       console.error('Error handling webhook signature:', error.message);
@@ -60,23 +60,19 @@ export class PaymentController {
   
     switch (event.type) {
       case 'invoice.payment_succeeded':
-        await this.paymentService.handlePaymentSucceeded(event);
-        break;
       case 'invoice.payment_failed':
-        await this.paymentService.handlePaymentFailed(event);
+        await this.paymentService.handlePayment(event);
         break;
       case 'account.updated':
         await this.paymentService.handleAccountUpdated(event);
         break;
       case 'payout.paid':
-        await this.paymentService.handlePayout(event, events.PAYOUT_SUCCESS);
-        break;
       case 'payout.failed':
         await this.paymentService.handlePayout(event, events.PAYOUT_FAILED);
         break;
-      // case 'customer.created':
-      //   await this.paymentService.handleCustomerCreated(event);
-      //   break;
+      case 'customer.created':
+        await this.paymentService.handleCustomerCreated(event);
+        break;
       default:
         console.warn(`Unhandled event type: ${event.type}`);
     }

@@ -77,4 +77,64 @@ export class PaymentListener {
       this.dispatchPayoutFailedMessage
     );
   }
+
+  @OnEvent(events.CUSTOMER_CREATED)
+  async dispatchCustomerCreatedMessage(payload: PaymentEvent)
+  {
+    const {paymentNotification} = payload;
+    await this.paymentsEmailService.sendCustomerCreatedMessage(paymentNotification);
+
+    this.eventEmitter.removeListener(
+      events.CUSTOMER_CREATED,
+      this.dispatchCustomerCreatedMessage
+    );
+  }
+
+  @OnEvent(events.PAYMENT_SUCCESS)
+  async dispatchInvoicePaymentSuccessMessage(payload: PaymentEvent)
+  {
+    const {paymentNotification} = payload;
+    await this.paymentsEmailService.sendPaymentSuccessMessage(paymentNotification);
+
+    this.eventEmitter.removeListener(
+      events.PAYMENT_SUCCESS,
+      this.dispatchInvoicePaymentSuccessMessage
+    );
+  }
+
+  @OnEvent(events.PAYMENT_FAILED)
+  async dispatchInvoicePaymentFailedMessage(payload: PaymentEvent)
+  {
+    const {paymentNotification} = payload;
+    await this.paymentsEmailService.sendPaymentFailedMessage(paymentNotification);
+
+    this.eventEmitter.removeListener(
+      events.PAYMENT_FAILED,
+      this.dispatchInvoicePaymentFailedMessage
+    );
+  }
+
+  @OnEvent(events.SUBSCRIPTION_PAYMENT_SUCCESS)
+  async dispatchSubscriptionPaymentSuccessMessage(payload: PaymentEvent)
+  {
+    const {paymentNotification} = payload;
+    await this.paymentsEmailService.sendSubscriptionPaymentSuccessMessage(paymentNotification);
+
+    this.eventEmitter.removeListener(
+      events.SUBSCRIPTION_PAYMENT_SUCCESS,
+      this.dispatchSubscriptionPaymentSuccessMessage
+    );
+  }
+
+  @OnEvent(events.SUBSCRIPTION_PAYMENT_FAILED)
+  async dispatchSubscriptionPaymentFailedMessage(payload: PaymentEvent)
+  {
+    const {paymentNotification} = payload;
+    await this.paymentsEmailService.sendSubscriptionPaymentFailedMessage(paymentNotification);
+
+    this.eventEmitter.removeListener(
+      events.SUBSCRIPTION_PAYMENT_FAILED,
+      this.dispatchSubscriptionPaymentFailedMessage
+    );
+  }
 }

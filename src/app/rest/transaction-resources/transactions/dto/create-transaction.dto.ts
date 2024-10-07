@@ -7,7 +7,11 @@ export class CreateTransactionDto {
 
     @IsNotEmpty()
     @IsString()
-    plan: string;
+    plan?: string;
+
+    @IsNotEmpty()
+    @IsString()
+    type: string;
 
     @IsNotEmpty()
     @IsNumber()
@@ -32,10 +36,10 @@ export class CreateTransactionDto {
 
     @IsNotEmpty()
     @IsString()
-    subscriptionId: string;
+    subscriptionId?: string;
 
     @IsString()
     @IsOptional()
-    failureReason: string
+    failureReason?: string
 
 }
