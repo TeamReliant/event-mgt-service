@@ -22,7 +22,11 @@ export class CreateEventDto {
 
   @IsNotEmpty()
   @IsString()
-  location: string;
+  locationName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  locationPlaceId: string;
 
   @IsNotEmpty()
   @IsString()

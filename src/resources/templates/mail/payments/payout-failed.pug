@@ -1,0 +1,18 @@
+extends ../baseEmail
+
+block content
+  h1 Action Needed, #{payload.user.firstname}
+
+  p We encountered an issue while trying to process your recent payout of #{payload.payoutAmount}. Unfortunately, the payout failed and was not completed.
+
+  p This could be due to an issue with your bank account information or other restrictions. Please review your payout settings and ensure your bank details are correct.
+
+  p If you need further assistance, our support team is here to help. You can also update your bank details directly on your dashboard.
+
+  p
+    a(href=payload.dashboardLink, class='btn btn-primary') Update Bank Details
+
+  small We're here to support you. Thank you for using #{payload.appInfo.name}!
+  br
+  small
+    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}

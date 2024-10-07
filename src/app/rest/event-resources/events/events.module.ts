@@ -6,11 +6,13 @@ import { AzureBlobFileSystemService } from '@libs/services/file-system/implement
 import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
 import { UsersModule } from '@app/rest/users/users.module';
 import { Event } from './entities/event.entity';
+import { UsersService } from '@app/rest/users/users.service';
+import { User } from '@app/rest/users/entities/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Event, Ticket]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Event, Ticket, User]), UsersModule],
   controllers: [EventsController],
-  providers: [EventsService, AzureBlobFileSystemService],
+  providers: [EventsService, UsersService, AzureBlobFileSystemService],
   exports: [EventsService],
 })
 export class EventsModule {}
