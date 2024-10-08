@@ -316,7 +316,7 @@ export class TeamsService {
     const team = (await this._entityManager
       .createQueryBuilder(Team, 'team')
       .leftJoinAndSelect('team.members', 'members')
-      .leftJoinAndSelect('team.invitations', 'invitations')
+      .leftJoinAndSelect('team.invitation', 'invitations')
       .leftJoinAndSelect('team.permissions', 'permissions')
       .where('team.id = :id', { id })
       .getOne()) as Team;
@@ -336,14 +336,14 @@ export class TeamsService {
     if (!adminMember)
       throw new NotFoundException('Only team admins can remove a team');
 
-    // remove the team invitations from the database
-    await this._entityManager.remove(TeamInvitation, team.invitations);
-
     // remove the team permissions from the database
     await this._entityManager.remove(Permission, team.permissions);
 
     // remove the team members from the database
     await this._entityManager.remove(TeamMember, team.members);
+
+    // remove the team invitations from the database
+    await this._entityManager.remove(TeamInvitation, team.invitations);
 
     // remove the team from the database
     await this._entityManager.remove(Team, team);
