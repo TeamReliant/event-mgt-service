@@ -20,7 +20,13 @@ export class EventResponseDto {
   address: string;
 
   @Expose()
+  googleMapUrl?: string;
+
+  @Expose()
   description?: string;
+  
+  @Expose()
+  additionalInfo?: string;
 
   @Expose()
   tags?: string[];
@@ -41,16 +47,13 @@ export class EventResponseDto {
   updatedAt: Date;
 
   @Expose()
-  eventStartTime?: string;
+  eventStartDateAndTime?: Date;
 
   @Expose()
-  eventEndTime?: string;
+  eventEndDateAndTime?: Date;
 
   @Expose()
-  eventStartDate?: Date;
-
-  @Expose()
-  eventEndDate?: Date;
+  timeZone?: string;
 
   @Expose()
   isAvailable: boolean;
