@@ -1,0 +1,16 @@
+extends ../baseEmail
+
+block content
+  h1 Awesome News, #{payload.user.firstname}!
+
+  p We're thrilled to let you know that your payouts are now enabled! You can start receiving funds directly to your bank account.
+
+  p Thank you for completing your Stripe onboarding process. If you have any questions about using our platform or managing your payouts, our support team is here to help.
+
+  p
+    a(href=payload.dashboardLink, class='btn btn-primary') Go to Your Dashboard
+
+  small Thank you for choosing #{payload.appInfo.name}!
+  br
+  small
+    b - #{payload.appInfo.email}, #{payload.appInfo.name}

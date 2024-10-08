@@ -16,6 +16,12 @@ export class Event extends AbstractEntity<Event> {
   location?: string;
 
   @Column()
+  locationPlaceId: string;
+
+  @Column()
+  locationName: string;
+
+  @Column()
   address: string;
 
   @Column({ nullable: true })

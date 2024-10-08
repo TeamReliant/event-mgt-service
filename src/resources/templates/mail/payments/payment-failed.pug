@@ -1,0 +1,32 @@
+extends ../baseEmail
+
+block content
+  h1 Payment Failed - #{payload.appInfo.appName}
+
+  p Hello #{payload.user.firstname},
+
+  p We regret to inform you that your payment was not successful. Here are the details of your transaction attempt:
+
+  ul
+    li
+      strong Transaction ID:
+      |  #{payload.transactionId}
+    li
+      strong Amount Attempted:
+      |  #{payload.amount} #{payload.currency}
+    li
+      strong Payment Method:
+      |  #{payload.paymentMethod}
+    li
+      strong Failure Reason:
+      |  #{payload.failureReason}
+
+  p Please try again or contact our support team for assistance.
+
+  p
+    a(href=payload.appInfo.appEmail, class='btn btn-primary') Contact Support
+
+  small We apologize for the inconvenience caused. Thank you for your understanding.
+  br
+  small
+    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
