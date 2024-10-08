@@ -21,11 +21,17 @@ export class Event extends AbstractEntity<Event> {
   @Column()
   locationName: string;
 
+  @Column({ nullable: true })
+  googleMapUrl: string;
+
   @Column()
   address: string;
 
   @Column({ nullable: true })
   description: string;
+
+  @Column({ nullable: true })
+  additionalInfo: string;
 
   @Column({ nullable: true })
   eventImageURL: string;
@@ -47,17 +53,14 @@ export class Event extends AbstractEntity<Event> {
   })
   eventStatus: EventStatus;
 
-  @Column()
-  eventStartDate: Date;
+  @Column('timestamp', { nullable: true })
+  eventStartDateAndTime: Date;
+
+  @Column('timestamp', { nullable: true })
+  eventEndDateAndTime: Date;
 
   @Column({ nullable: true })
-  eventEndDate: Date;
-
-  @Column('time')
-  eventStartTime: string;
-
-  @Column('time', { nullable: true })
-  eventEndTime: string;
+  timeZone: string;
 
   // should be set to false when all ticket in tickets.isAvailable returns false
   //  should be set to false when eventEndDate is less than current date
