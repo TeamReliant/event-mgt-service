@@ -140,6 +140,7 @@ export class TeamsService {
       .createQueryBuilder('team')
       .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.user', 'user')
       .where('team.id = :id', { id })
       .select([
@@ -156,6 +157,9 @@ export class TeamsService {
         'admin.numOfEventsCreated',
         'admin.numOfPrivateEventsCreated',
         'members',
+        'invitation.id',
+        'invitation.email',
+        'invitation.createdAt',
         'user.id',
         'user.firstname',
         'user.lastname',

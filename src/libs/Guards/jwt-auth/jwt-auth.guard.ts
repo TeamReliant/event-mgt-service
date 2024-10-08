@@ -25,7 +25,7 @@ export default class JwtAuthGuard extends AuthGuard('jwt') {
     if (isGuest) return true;
 
     const canActivate = await super.canActivate(context);
-    if (!canActivate) return false;
+    if (!canActivate) throw new UnauthorizedException('UnAuthorized Access');
 
     // Extract the request object from the context
     const request = context.switchToHttp().getRequest();
