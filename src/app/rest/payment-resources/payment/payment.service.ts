@@ -241,32 +241,41 @@ export class PaymentService {
       throw new BadRequestException('Plan data is missing');
     }
 
-    const product = await this.stripe.products.retrieve(plan.product as string);
-    const planName = product.name;
+    let planName = null;
+    if (status === 'succeeded') {
+      const product = await this.stripe.products.retrieve(
+        plan.product as string,
+      );
+      planName = product.name;
+    }
+
     //update the status of the user and the plan subscribed for
     user.subscriptionStatus = subscription.status;
-    user.subscribedPlan = planName;
+    user.subscribedPlan = planName !== null ? planName : 'free';
     user.sessionId = null;
 
     let failureReason = null;
-    if (status == "failed")
-      {
-        failureReason =
-            invoice.payment_intent && typeof invoice.payment_intent !== 'string'
-              ? invoice.payment_intent?.last_payment_error?.message ||
-                'Payment failed'
-              : 'Payment failed';
-      }
+    if (status == 'failed') {
+      failureReason =
+        invoice.payment_intent && typeof invoice.payment_intent !== 'string'
+          ? invoice.payment_intent?.last_payment_error?.message ||
+            'Payment failed'
+          : 'Payment failed';
+    }
 
-      let paymentMethod = 'unknown';
+    let paymentMethod = 'unknown';
     if (invoice.payment_intent) {
-      const paymentIntent = await this.stripe.paymentIntents.retrieve(invoice.payment_intent as string);
+      const paymentIntent = await this.stripe.paymentIntents.retrieve(
+        invoice.payment_intent as string,
+      );
       if (paymentIntent.payment_method) {
-        const paymentMethodObj = await this.stripe.paymentMethods.retrieve(paymentIntent.payment_method as string);
+        const paymentMethodObj = await this.stripe.paymentMethods.retrieve(
+          paymentIntent.payment_method as string,
+        );
         paymentMethod = paymentMethodObj.type;
       }
     }
-  
+
     const transactionObj = {
       plan: planName,
       type: 'subscription',
@@ -277,12 +286,11 @@ export class PaymentService {
       paymentMethod,
       status,
       subscriptionId: subscription.id,
-      failureReason, 
+      failureReason,
     };
 
     const transaction = plainToInstance(CreateTransactionDto, transactionObj);
 
-    
     await this.entityManager.transaction(async (manager) => {
       await manager.update(User, user.id, user);
       await manager.save(Transaction, transaction);
@@ -323,14 +331,13 @@ export class PaymentService {
   ) {
     let failureReason = null;
 
-    if (status == "failed")
-      {
-        failureReason =
-            invoice.payment_intent && typeof invoice.payment_intent !== 'string'
-              ? invoice.payment_intent?.last_payment_error?.message ||
-                'Payment failed'
-              : 'Payment failed';
-      }
+    if (status == 'failed') {
+      failureReason =
+        invoice.payment_intent && typeof invoice.payment_intent !== 'string'
+          ? invoice.payment_intent?.last_payment_error?.message ||
+            'Payment failed'
+          : 'Payment failed';
+    }
     const transactionObj = {
       type: 'Ticket Purchase',
       userId: user.id,
@@ -339,7 +346,7 @@ export class PaymentService {
       transactionId: invoice.id,
       paymentMethod: invoice.payment_intent,
       status,
-      failureReason
+      failureReason,
     };
 
     await this.entityManager.transaction(async (manager) => {
