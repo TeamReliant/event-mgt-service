@@ -3,6 +3,7 @@ import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
+import { Permission } from "@app/rest/team-resources/permissions/entities/permission.entity";
 
 @Injectable()
 export class TeamMembersService {
@@ -101,6 +102,9 @@ export class TeamMembersService {
     // make sure the user is not removing itself
     if (member.user?.id === userId)
       throw new NotFoundException('You cannot remove yourself from the team');
+
+    // remove the team permissions from the database
+    await this._entityManager.remove(Permission, member.permissions);
 
     // remove the team member
     await this._repo.remove(member);

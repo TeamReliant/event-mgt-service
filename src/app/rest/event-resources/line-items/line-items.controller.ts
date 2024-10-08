@@ -25,6 +25,7 @@ import { LineItem } from '@app/rest/event-resources/line-items/entities/line-ite
 import { ShowLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/show-line-item-params.dto';
 import { UpdateLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/update-line-item-params.dto';
 import { DeleteLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/delete-line-item-params.dto';
+import { FetchAnalyticsParamsDto } from '@app/rest/event-resources/line-items/dto/fetch-analytics-params.dto';
 import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
 import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
 
@@ -50,6 +51,14 @@ export class LineItemsController {
       userId,
     );
     delete data.event;
+    return ResponseSerializer.data(data);
+  }
+
+  @Get('budget/analytics')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async getAnalytics(@Param() params: FetchAnalyticsParamsDto) {
+    const data = await this.lineItemsService.getAnaylytics(params.eventId);
     return ResponseSerializer.data(data);
   }
 

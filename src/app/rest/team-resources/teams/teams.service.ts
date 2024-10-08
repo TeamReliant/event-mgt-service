@@ -17,6 +17,7 @@ import { Request } from 'express';
 import { events } from '@config/app.config';
 import { TeamInvitationsEvent } from '@app/rest/team-resources/team-invitations/events/team-invitations.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 
 @Injectable()
 export class TeamsService {
@@ -316,6 +317,7 @@ export class TeamsService {
       .createQueryBuilder(Team, 'team')
       .leftJoinAndSelect('team.members', 'members')
       .leftJoinAndSelect('team.invitations', 'invitations')
+      .leftJoinAndSelect('team.permissions', 'permissions')
       .where('team.id = :id', { id })
       .getOne()) as Team;
 
@@ -336,6 +338,9 @@ export class TeamsService {
 
     // remove the team invitations from the database
     await this._entityManager.remove(TeamInvitation, team.invitations);
+
+    // remove the team permissions from the database
+    await this._entityManager.remove(Permission, team.permissions);
 
     // remove the team members from the database
     await this._entityManager.remove(TeamMember, team.members);
