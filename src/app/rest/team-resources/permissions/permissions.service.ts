@@ -33,38 +33,34 @@ export class PermissionsService {
     // find the member to attach the permission to
     const member = await this._entityManager
       .createQueryBuilder(TeamMember, 'teamMember')
+      .leftJoinAndSelect('teamMember.permissions', 'permissions')
       .where('teamMember.id = :memberId', { memberId })
       .andWhere('teamMember.teamId = :teamId', { teamId })
       .getOne();
 
     if (!member) throw new NotFoundException('Team member not found');
 
-    // create the permission
-    if (permissions && permissions.length) {
-      const permissionEntities = [];
-      for (const permission of permissions) {
-        // check if the permission already exists using query builder
-        const existingPermission = await this._entityManager
-          .createQueryBuilder(Permission, 'permission')
-          .where('permission.name = :name', { name: permission })
-          .andWhere('permission.teamId = :teamId', { teamId })
-          .andWhere('permission.teamMemberId = :memberId', { memberId })
-          .getOne();
+    await this._entityManager.transaction(async (manager) => {
+      // add the new ones
+      if (permissions && permissions.length) {
+        // remove the existing permissions
+        await manager.remove(Permission, member.permissions);
 
-        // if the permission exists, skip to the next permission
-        if (existingPermission) continue;
+        const permissionEntities = [];
+        for (const permission of permissions) {
+          const permissionEntity = manager.create(Permission, {
+            name: permission,
+            team: adminMember.team,
+            member,
+          }) as Permission;
+          permissionEntities.push(permissionEntity);
+        }
 
-        const permissionEntity = this._repo.create({
-          name: permission,
-          team: adminMember.team,
-          member,
-        }) as Permission;
-        permissionEntities.push(permissionEntity);
+        await manager.save(Permission, permissionEntities);
       }
+    });
 
-      await this._repo.save(permissionEntities);
-    }
-
+    // return the permissions of the team member
     return this.findAll(teamId, memberId);
   }
 

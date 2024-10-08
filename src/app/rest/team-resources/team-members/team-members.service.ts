@@ -3,7 +3,7 @@ import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
-import { Permission } from "@app/rest/team-resources/permissions/entities/permission.entity";
+import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 
 @Injectable()
 export class TeamMembersService {
