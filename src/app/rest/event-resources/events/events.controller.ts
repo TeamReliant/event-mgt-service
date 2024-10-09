@@ -12,6 +12,7 @@ import {
   UploadedFile,
   UseGuards,
   UseInterceptors,
+  UsePipes,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -32,6 +33,9 @@ import { ShowEventParamsDto } from '@app/rest/event-resources/events/dto/show-ev
 import { UpdateEventParamsDto } from '@app/rest/event-resources/events/dto/update-event-params.dto';
 import { AssignTeamParamsDto } from '@app/rest/event-resources/events/dto/assign-team-params.dto';
 import { AssignTeamDto } from '@app/rest/event-resources/events/dto/assign-team.dto';
+import { GetOneEventResponseDto } from './dto/get-one-event-response.dto';
+import { GetAllEventsResponseDto } from './dto/get-all-events-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('events')
 export class EventsController {
@@ -43,10 +47,11 @@ export class EventsController {
   @SerializeResponse(EventResponseDto, 'data')
   @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
   async create(
-    @Body() createEventDto: CreateEventDto,
+    @Body() body: any,
     @UploadedFile(FileValidationPipe) eventCoverImage: Express.Multer.File,
     @CurrentUser() user: TJwtPayload,
   ) {
+    let createEventDto = plainToInstance(CreateEventDto, body);
     createEventDto.eventCoverImage = eventCoverImage;
     return await this.eventsService.create(createEventDto, user);
   }
@@ -68,17 +73,17 @@ export class EventsController {
     @CurrentUser() user: TJwtPayload,
   ): Promise<IResponseWithData> {
     const queryBuilder = this.eventsService.findMyEvents(req, user);
-    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<EventResponseDto>(
+    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<GetAllEventsResponseDto>(
       req,
       queryBuilder,
-      EventResponseDto,
+      GetAllEventsResponseDto,
     );
   }
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  @SerializeResponse(EventResponseDto)
+  @SerializeResponse(GetOneEventResponseDto)
   async findOne(
     @Param() params: ShowEventParamsDto,
     @CurrentUser() user: TJwtPayload,

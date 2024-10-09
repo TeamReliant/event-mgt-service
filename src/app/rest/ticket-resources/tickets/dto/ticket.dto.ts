@@ -29,6 +29,9 @@ export class TicketDto {
   maxNumberOfTicketsOrderable: number;
 
   @Expose()
+  minNumberOfTicketsOrderable: number;
+
+  @Expose()
   createdAt: Date;
 
   @Expose()

@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsTimeZone,
   ValidateNested,
 } from 'class-validator';
 import { EventStatus, EventVisibility } from '../enums';
@@ -22,15 +23,27 @@ export class CreateEventDto {
 
   @IsNotEmpty()
   @IsString()
-  location: string;
+  locationName: string;
+
+  @IsNotEmpty()
+  @IsString()
+  locationPlaceId: string;
 
   @IsNotEmpty()
   @IsString()
   address: string;
 
+  @IsNotEmpty()
+  @IsString()
+  googleMapUrl: string;
+
   @IsOptional()
   @IsString()
   description: string;
+
+  @IsOptional()
+  @IsString()
+  additionalInfo: string;
 
   // @IsNotEmpty()
   // @IsFile()
@@ -54,22 +67,21 @@ export class CreateEventDto {
 
   @IsDate()
   @IsNotEmpty()
+  @IsOptional()
   @IsFutureDate()
   @Type(() => Date)
-  eventStartDate: Date;
+  eventStartDateAndTime: Date;
 
   @IsDate()
   @IsOptional()
   @IsFutureDate()
   @Type(() => Date)
-  eventEndDate: Date;
+  eventEndDateAndTime: Date;
 
-  @IsString()
-  eventStartTime: string;
-
+  
   @IsOptional()
   @IsString()
-  eventEndTime: string;
+  timeZone: string;
 
   @IsArray()
   @ValidateNested({ each: true })

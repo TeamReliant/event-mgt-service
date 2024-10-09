@@ -49,6 +49,11 @@ export class UsersService {
     return this.repo.findOneBy({ email });
   }
 
+  async findOneByConnectedAccountId(connectedAccountId: string)
+  {
+    return this.repo.findOneBy({ stripeConnectedAccountId: connectedAccountId });
+  }
+
   async findOneByEmailExceptCurrentUser(
     email: string,
     userId: number,

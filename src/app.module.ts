@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/index';
 import { MulterModule } from '@nestjs/platform-express';
@@ -15,6 +15,8 @@ import DatabaseConfig from '@libs/database/config/database.config';
 import { EventsModule } from '@app/rest/event-resources/events/events.module';
 import { TicketsModule } from '@app/rest/ticket-resources/tickets/tickets.module';
 import { JwtStrategy } from '@libs/strategies/jwt.strategy';
+import { PaymentModule } from './app/rest/payment-resources/payment/payment.module';
+import { TransactionsModule } from './app/rest/transaction-resources/transactions/transactions.module';
 import { TasksModule } from '@app/rest/event-resources/tasks/tasks.module';
 import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items.module';
 
@@ -56,6 +58,8 @@ import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items
     PermissionsModule,
     TasksModule,
     LineItemsModule,
+    PaymentModule,
+    TransactionsModule,
   ],
   providers: [JwtStrategy],
 })

@@ -1,0 +1,35 @@
+extends ../baseEmail
+
+block content
+  h1 Subscription Payment Failed - #{payload.appInfo.appName}
+
+  p Hello #{payload.user.firstname},
+
+  p We regret to inform you that your subscription payment was not successful. Here are the details of your transaction attempt:
+
+  ul
+    li
+      strong Transaction ID:
+      |  #{payload.transactionId}
+    li
+      strong Amount Attempted:
+      |  #{payload.amount} #{payload.currency}
+    li
+      strong Payment Method:
+      |  #{payload.paymentMethod}
+    li
+      strong Subscription Plan:
+      |  #{payload.planName}
+    li
+      strong Failure Reason:
+      |  #{payload.failureReason}
+
+  p Please try again or contact our support team for assistance.
+
+  p
+    a(href=payload.supportLink, class='btn btn-primary') Contact Support
+
+  small We apologize for the inconvenience caused. Thank you for your understanding.
+  br
+  small
+    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}

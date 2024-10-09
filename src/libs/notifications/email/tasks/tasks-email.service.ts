@@ -14,7 +14,7 @@ export class TasksEmailService {
     const payload = {
       task: task,
       assignee: task.assignee.user,
-      appName: appName,
+      appInfo,
     };
 
     const subject: string = `TASK ASSIGNED - ${appName}`;

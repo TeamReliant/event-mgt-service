@@ -1,0 +1,32 @@
+extends ../baseEmail
+
+block content
+  h1 Subscription Payment Success - #{payload.appInfo.appName}
+
+  p Hello #{payload.user.firstname},
+
+  p We are pleased to inform you that your subscription payment was successful. Here are the details of your transaction:
+
+  ul
+    li
+      strong Transaction ID:
+      |  #{payload.transactionId}
+    li
+      strong Amount Paid:
+      |  #{payload.amount} #{payload.currency}
+    li
+      strong Payment Method:
+      |  #{payload.paymentMethod}
+    li
+      strong Subscription Plan:
+      |  #{payload.plan}
+
+  p Thank you for subscribing! You can view your subscription details and manage your account by visiting your dashboard.
+
+  p
+    a(href=payload.dashboardLink, class='btn btn-primary') Go to Your Dashboard
+
+  small Thank you for being a valued subscriber of #{payload.appInfo.appName}!
+  br
+  small
+    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}

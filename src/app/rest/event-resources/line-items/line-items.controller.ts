@@ -26,7 +26,11 @@ import { ShowLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/
 import { UpdateLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/update-line-item-params.dto';
 import { DeleteLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/delete-line-item-params.dto';
 import { FetchAnalyticsParamsDto } from '@app/rest/event-resources/line-items/dto/fetch-analytics-params.dto';
+import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
+import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
 
+@UseGuards(JwtAuthGuard, SubscriptionPlanGuard)
+@RestrictedPlans('free')
 @Controller('events/:eventId/line-items')
 export class LineItemsController {
   constructor(
@@ -36,7 +40,6 @@ export class LineItemsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard)
   async create(
     @Body() body: CreateLineItemDto,
     @GetCurrentUserId() userId: string,
@@ -61,7 +64,6 @@ export class LineItemsController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   findAll(
     @Param() params: FetchLineItemsParamsDto,
     @Query() query: FetchLineItemsQueriesDto,
@@ -72,7 +74,6 @@ export class LineItemsController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   async findOne(@Param() params: ShowLineItemParamsDto) {
     const data = await this.lineItemsService.findOne(params.eventId, params.id);
     return ResponseSerializer.data(data);
@@ -80,7 +81,6 @@ export class LineItemsController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.ACCEPTED)
-  @UseGuards(JwtAuthGuard)
   async update(
     @Param() params: UpdateLineItemParamsDto,
     @GetCurrentUserId() userId: string,
@@ -97,7 +97,6 @@ export class LineItemsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   async remove(
     @Param() params: DeleteLineItemParamsDto,
     @GetCurrentUserId() userId: string,
