@@ -337,16 +337,16 @@ export class TeamsService {
       throw new NotFoundException('Only team admins can remove a team');
 
     // remove the team permissions from the database
-    await this._entityManager.remove(Permission, team.permissions);
+    await this._entityManager.softRemove(Permission, team.permissions);
 
     // remove the team members from the database
-    await this._entityManager.remove(TeamMember, team.members);
+    await this._entityManager.softRemove(TeamMember, team.members);
 
     // remove the team invitations from the database
-    await this._entityManager.remove(TeamInvitation, team.invitations);
+    await this._entityManager.softRemove(TeamInvitation, team.invitations);
 
     // remove the team from the database
-    await this._entityManager.remove(Team, team);
+    await this._entityManager.softRemove(Team, team);
     return true;
   }
 

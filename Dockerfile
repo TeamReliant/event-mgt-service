@@ -48,7 +48,8 @@ ENV NODE_ENV=production \
     AZURE_BLOB_STORAGE_CONTAINER_NAME=plaventi \
     AZURE_BLOB_STORAGE_URL="https://plaventi.blob.core.windows.net/plaventi/" \
     GOOGLE_CLIENT_ID=558851748808-5ra3edjtmn6qmiivpfckb1h8narcp8uf.apps.googleusercontent.com \
-    GOOGLE_CLIENT_SECRET=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
+    GOOGLE_CLIENT_SECRET=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 \
+    FRONTEND_URL="http://localhost:3000/invitation"
 
 # Create a "dist" folder with the production build
 RUN npm install -g @nestjs/cli@latest
