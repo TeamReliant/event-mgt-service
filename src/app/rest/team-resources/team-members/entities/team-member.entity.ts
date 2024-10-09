@@ -1,12 +1,12 @@
 import { User } from '@app/rest/users/entities/user.entity';
 import {
-  Column,
+  Column, DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne,
-} from 'typeorm';
+  OneToOne
+} from "typeorm";
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 import { AbstractEntity } from '@libs/database';
@@ -47,6 +47,8 @@ export class TeamMember extends AbstractEntity<TeamMember> {
   @OneToMany(() => Task, (task) => task.assignee)
   tasks: Task[];
 
+  @DeleteDateColumn({ nullable: true })
+  deletedAt?: Date;
   // @ManyToMany(() => Permission, (permission) => permission.teamMembers)
   // @JoinTable({
   //   name: 'team_members_permissions',

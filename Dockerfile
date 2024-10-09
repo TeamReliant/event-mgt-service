@@ -51,8 +51,8 @@ ENV NODE_ENV=production \
     GOOGLE_CLIENT_SECRET=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 \
     AUTH_V1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1 \
     ORG_v1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1/em \
-    STRIPE_SECRET_KEY=sk_test_51P2RdZP4Gkbi4QVGzhA52vb3Lr6URq1Lia8eW59EcBRN2sXDSKSJMvbGeZQg5kEyJ43ZdO8P3cXcYCNvgJFwlStI00CUXJIs9c
-
+    STRIPE_SECRET_KEY=sk_test_51P2RdZP4Gkbi4QVGzhA52vb3Lr6URq1Lia8eW59EcBRN2sXDSKSJMvbGeZQg5kEyJ43ZdO8P3cXcYCNvgJFwlStI00CUXJIs9c \
+    FRONTEND_URL="http://localhost:3000/invitation"
 
 # Create a "dist" folder with the production build
 RUN npm install -g @nestjs/cli@latest

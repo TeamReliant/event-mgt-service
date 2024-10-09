@@ -1,5 +1,6 @@
 import {
   Column,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -63,4 +64,7 @@ export class Team extends AbstractEntity<Team> {
     cascade: true,
   })
   permissions?: Permission[];
+
+  @DeleteDateColumn({ nullable: true })
+  deletedAt?: Date;
 }
