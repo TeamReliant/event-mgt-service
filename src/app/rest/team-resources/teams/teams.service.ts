@@ -79,12 +79,14 @@ export class TeamsService {
       // save the team member data to database
       await manager.save<TeamMember>(teamMember);
 
-      // Create members invitations for members
-      this._teamInvitationsService.create(
-        { emails: members },
-        savedTeam.id,
-        userId,
-      );
+      if (members && members.length) {
+        // Create members invitations for members
+        this._teamInvitationsService.create(
+          { emails: members },
+          savedTeam.id,
+          userId,
+        );
+      }
 
       // return the saved team data
       return savedTeam;
