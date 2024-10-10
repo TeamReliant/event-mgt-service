@@ -72,6 +72,20 @@ export class LineItemsController {
     return this.paginationProvider.applyHTEAOS<LineItem>(queryBuilder);
   }
 
+  @Get('categories/all')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async findCategories(
+    @Param() params: FetchLineItemsParamsDto,
+    @Query() query: FetchLineItemsQueriesDto,
+  ) {
+    const queryBuilder = await this.lineItemsService.findCategories(
+      params.eventId,
+      query,
+    );
+    return ResponseSerializer.data(queryBuilder);
+  }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async findOne(@Param() params: ShowLineItemParamsDto) {

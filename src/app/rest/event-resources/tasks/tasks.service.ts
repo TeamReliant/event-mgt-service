@@ -17,7 +17,6 @@ export class TasksService {
   constructor(
     @InjectRepository(Task)
     private readonly _repo: Repository<Task>,
-    private readonly _usersService: UsersService,
     private readonly _eventEmitter: EventEmitter2,
     private readonly _entityManager: EntityManager,
   ) {}
