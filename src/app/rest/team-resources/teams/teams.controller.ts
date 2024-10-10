@@ -24,13 +24,15 @@ import { Request } from 'express';
 import { ShowTeamParamsDto } from '@app/rest/team-resources/teams/dto/show-team-params.dto';
 import { UpdateTeamParamsDto } from '@app/rest/team-resources/teams/dto/update-team-params.dto';
 import { DeleteTeamParamsDto } from '@app/rest/team-resources/teams/dto/delete-team-params.dto';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { roles } from '@config/app.config';
 
 @Controller('teams')
 export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ADMIN, roles.ORGANIZER]))
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createTeamDto: CreateTeamDto,
@@ -59,7 +61,7 @@ export class TeamsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ADMIN, roles.ORGANIZER]))
   @HttpCode(HttpStatus.OK)
   async update(
     @Param() updateTeamParams: UpdateTeamParamsDto,
@@ -75,7 +77,7 @@ export class TeamsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ADMIN, roles.ORGANIZER]))
   @HttpCode(HttpStatus.OK)
   async remove(
     @Param() deleteTeamParamsDto: DeleteTeamParamsDto,

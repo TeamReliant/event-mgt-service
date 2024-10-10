@@ -1,4 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import {
+  Column,
+  DeleteDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+} from 'typeorm';
 import { TeamMember } from '../../team-members/entities/team-member.entity';
 import { AbstractEntity } from '@libs/database';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
@@ -15,4 +21,7 @@ export class Permission extends AbstractEntity<Permission> {
   @ManyToOne(() => TeamMember, (member: TeamMember) => member.permissions)
   @JoinColumn({ name: 'teamMemberId' })
   member: TeamMember;
+
+  @DeleteDateColumn({ nullable: true })
+  deletedAt?: Date;
 }

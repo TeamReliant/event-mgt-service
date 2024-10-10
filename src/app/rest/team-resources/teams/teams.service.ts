@@ -17,6 +17,7 @@ import { Request } from 'express';
 import { events } from '@config/app.config';
 import { TeamInvitationsEvent } from '@app/rest/team-resources/team-invitations/events/team-invitations.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 
 @Injectable()
 export class TeamsService {
@@ -32,7 +33,12 @@ export class TeamsService {
   async create(createTeamDto: CreateTeamDto, userId: string) {
     // fetch the current user data
     const user = await this._usersService.findOneById(userId);
-    const { name, bio, website, color, members } = createTeamDto;
+
+    if (user.userType !== 'organizer')
+      throw new NotAcceptableException('Only organizers can create a team');
+
+    const { name, bio, website, primaryColor, secondaryColor, members } =
+      createTeamDto;
 
     // check if the team name already exists that belongs to the user
     const teamExists = await this._repo
@@ -56,7 +62,9 @@ export class TeamsService {
         name,
         bio,
         website,
-        color,
+        primaryColor,
+        secondaryColor,
+        admin: user,
       }) as Team;
 
       // save the team to the database
@@ -71,12 +79,14 @@ export class TeamsService {
       // save the team member data to database
       await manager.save<TeamMember>(teamMember);
 
-      // Create members invitations for members
-      this._teamInvitationsService.create(
-        { emails: members },
-        savedTeam.id,
-        userId,
-      );
+      if (members && members.length) {
+        // Create members invitations for members
+        this._teamInvitationsService.create(
+          { emails: members },
+          savedTeam.id,
+          userId,
+        );
+      }
 
       // return the saved team data
       return savedTeam;
@@ -93,6 +103,7 @@ export class TeamsService {
       .createQueryBuilder('teams')
       .leftJoinAndSelect('teams.members', 'members')
       .leftJoinAndSelect('members.permissions', 'permissions')
+      .leftJoinAndSelect('teams.admin', 'admin')
       .where('members.userId = :userId', { userId })
       .select(['teams', 'permissions', 'members.id']);
 
@@ -130,26 +141,46 @@ export class TeamsService {
   async findOne(id: string, throwException: boolean = false) {
     const team = await this._repo
       .createQueryBuilder('team')
+      .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.user', 'user')
       .where('team.id = :id', { id })
+      .select([
+        'team',
+        'admin.id',
+        'admin.firstname',
+        'admin.lastname',
+        'admin.email',
+        'admin.picture',
+        'admin.visibility',
+        'admin.userType',
+        'admin.createdAt',
+        'admin.updatedAt',
+        'admin.numOfEventsCreated',
+        'admin.numOfPrivateEventsCreated',
+        'members',
+        'invitation.id',
+        'invitation.email',
+        'invitation.createdAt',
+        'user.id',
+        'user.firstname',
+        'user.lastname',
+        'user.email',
+        'user.picture',
+        'user.visibility',
+        'user.userType',
+        'user.createdAt',
+        'user.updatedAt',
+        'user.numOfEventsCreated',
+        'user.numOfPrivateEventsCreated',
+      ])
       .getOne();
 
     // check if the team exists
     if (!team && throwException) {
       throw new NotFoundException(`Team with id ${id} not found`);
     }
-
-    // delete user sensitive data
-    team.members = team.members.map((member) => {
-      delete member.user.password;
-      delete member.user.emailVerificationToken;
-      delete member.user.emailVerifiedAt;
-      delete member.user.passwordResetToken;
-      delete member.user.magicSignInToken;
-      delete member.user.refreshToken;
-      return member;
-    });
 
     // return the found team data
     return team;
@@ -159,7 +190,8 @@ export class TeamsService {
     // fetch the current user data
     const user = await this._usersService.findOneById(userId);
     // destructure the update team dto
-    const { name, color, bio, website, members } = updateTeamDto;
+    const { name, primaryColor, secondaryColor, bio, website, members } =
+      updateTeamDto;
 
     // check if the team name already exists that belongs to the user and not the current team
     if (name) {
@@ -201,7 +233,7 @@ export class TeamsService {
     // fetch the team data
     await this._entityManager.transaction(async (manager) => {
       // Modify the entity with new data
-      Object.assign(team, { name, color, bio, website });
+      Object.assign(team, { name, primaryColor, secondaryColor, bio, website });
 
       // Save the updated entity
       await manager.save<Team>(team);
@@ -276,11 +308,18 @@ export class TeamsService {
   }
 
   async remove(id: string, userId: string): Promise<boolean> {
+    // fetch the current user data
+    const user = await this._usersService.findOneById(userId);
+
+    if (user.userType !== 'organizer')
+      throw new NotAcceptableException('Only organizers can remove a team');
+
     // fetch the team data with the members, invitations using query builder
     const team = (await this._entityManager
       .createQueryBuilder(Team, 'team')
       .leftJoinAndSelect('team.members', 'members')
-      .leftJoinAndSelect('team.invitations', 'invitations')
+      .leftJoinAndSelect('team.invitation', 'invitations')
+      .leftJoinAndSelect('team.permissions', 'permissions')
       .where('team.id = :id', { id })
       .getOne()) as Team;
 
@@ -299,14 +338,17 @@ export class TeamsService {
     if (!adminMember)
       throw new NotFoundException('Only team admins can remove a team');
 
-    // remove the team invitations from the database
-    await this._entityManager.remove(TeamInvitation, team.invitations);
+    // remove the team permissions from the database
+    await this._entityManager.softRemove(Permission, team.permissions);
 
     // remove the team members from the database
-    await this._entityManager.remove(TeamMember, team.members);
+    await this._entityManager.softRemove(TeamMember, team.members);
+
+    // remove the team invitations from the database
+    await this._entityManager.softRemove(TeamInvitation, team.invitations);
 
     // remove the team from the database
-    await this._entityManager.remove(Team, team);
+    await this._entityManager.softRemove(Team, team);
     return true;
   }
 

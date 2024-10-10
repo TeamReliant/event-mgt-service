@@ -20,7 +20,6 @@ import { events } from '@config/app.config';
 import { Payment } from './entities/payment.entity';
 import { PaymentEvent } from './events/payment.event';
 
-
 @Injectable()
 export class PaymentService {
   private readonly stripe: Stripe;
@@ -52,6 +51,23 @@ export class PaymentService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  private async getInvoiceAndUserFromStripeEvent(event: Stripe.Event) {
+    const invoice = event.data?.object as Stripe.Invoice;
+    if (!invoice) {
+      throw new BadRequestException('Invoice data is missing');
+    }
+
+    //get the email of the customer from the invoice
+    const customerEmail = invoice.customer_email;
+    if (!customerEmail) {
+      throw new NotFoundException('Customer Email not found');
+    }
+    //get the user from the database using the email
+    const user = await this.checkUserExists(customerEmail);
+
+    return { invoice, user };
   }
 
   async createSessions(user: TJwtPayload, paymentMethod: string) {
@@ -170,123 +186,189 @@ export class PaymentService {
     }
   }
 
-  async handlePaymentSucceeded(event: Stripe.Event) {
+  async handlePayment(event: Stripe.Event) {
     try {
-      const subscription = event.data.object as Stripe.Subscription;
-      const status = subscription.status;
-
-      //get the email of the customer from the subscription
-      const customer = await this.stripe.customers.retrieve(
-        subscription.customer as string,
-      );
-      const customerEmail = (customer as Stripe.Customer).email;
-
-      if (!customerEmail) {
-        throw new NotFoundException('Customer Email not found');
-      }
-      //get the user from the database using the email
-      const user = await this.checkUserExists(customerEmail);
-
-      const plan = subscription.items.data[0].plan;
-      const product = await this.stripe.products.retrieve(
-        plan.product as string,
-      );
-      const planName = product.name;
-      //update the status of the user and the plan subscribed for
-      user.subscriptionStatus = status;
-      user.subscribedPlan = planName;
-      user.sessionId = null;
-
-      await this.entityManager.transaction(async (manager) => {
-        await manager.update(User, user.id, user);
-        const transactionObj = {
-          plan: planName,
-          userId: user.id,
-          amount: plan.amount / 100,
-          currency: plan.currency,
-          transactionId: subscription.latest_invoice,
-          paymentMethod: subscription.default_payment_method || 'card',
-          status: 'succeeded',
-          subscriptionId: subscription.id,
-        };
-
-        const transaction = plainToInstance(
-          CreateTransactionDto,
-          transactionObj,
+      let { invoice, user } =
+        await this.getInvoiceAndUserFromStripeEvent(event);
+      if (invoice.subscription) {
+        this.handleSubscriptionPayment(
+          event.type === 'invoice.payment_failed' ? 'failed' : 'succeeded',
+          invoice,
+          user,
         );
-        await manager.save(Transaction, transaction);
-
-        //TODO notify user of successful payment
-      });
+      } else {
+        this.handleNormalPayment(
+          event.type === 'invoice.payment_failed' ? 'failed' : 'succeeded',
+          invoice,
+          user,
+        );
+      }
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
         console.error(error.message);
         throw error;
+      } else {
       }
       console.error('Error handling payment succeeded event', error.message);
-      //TODO notify admin of error
     }
   }
 
-  async handlePaymentFailed(event: Stripe.Event) {
-    try {
-      const invoice = event.data.object as Stripe.Invoice;
-      const customer = await this.stripe.customers.retrieve(
-        invoice.customer as string,
+  private async handleSubscriptionPayment(
+    status: 'failed' | 'succeeded',
+    invoice: Stripe.Invoice,
+    user: User,
+  ) {
+    //get the subscription details from the invoice
+    const subscriptionId = invoice.subscription as string;
+    const subscription =
+      await this.stripe.subscriptions.retrieve(subscriptionId);
+
+    if (
+      !subscription.items ||
+      !subscription.items.data ||
+      subscription.items.data.length === 0
+    ) {
+      throw new BadRequestException(
+        'Subscription items data is missing or empty',
       );
-      const customerEmail = (customer as Stripe.Customer).email;
+    }
 
-      if (!customerEmail) {
-        throw new NotFoundException('Customer email not found');
-      }
+    const plan = subscription.items.data[0]?.plan;
+    if (!plan) {
+      throw new BadRequestException('Plan data is missing');
+    }
 
-      const user = await this.checkUserExists(customerEmail);
+    let planName = null;
+    if (status === 'succeeded') {
+      const product = await this.stripe.products.retrieve(
+        plan.product as string,
+      );
+      planName = product.name;
+    }
 
-      user.subscriptionStatus = 'past_due';
+    //update the status of the user and the plan subscribed for
+    user.subscriptionStatus = subscription.status;
+    user.subscribedPlan = planName !== null ? planName : 'free';
+    user.sessionId = null;
 
-      await this.entityManager.transaction(async (manager) => {
-        await manager.update(User, user.id, user);
+    let failureReason = null;
+    if (status == 'failed') {
+      failureReason =
+        invoice.payment_intent && typeof invoice.payment_intent !== 'string'
+          ? invoice.payment_intent?.last_payment_error?.message ||
+            'Payment failed'
+          : 'Payment failed';
+    }
 
-        const failureReason =
-          invoice.payment_intent && typeof invoice.payment_intent !== 'string'
-            ? invoice.payment_intent?.last_payment_error?.message ||
-              'Payment failed'
-            : 'Payment failed';
-
-        const transactionObj = {
-          userId: user.id,
-          amount: invoice.amount_due / 100,
-          currency: invoice.currency,
-          transactionId: invoice.id,
-          paymentMethod: invoice.default_payment_method || 'card',
-          status: 'failed',
-          failureReason: failureReason,
-        };
-        const transaction = plainToInstance(
-          CreateTransactionDto,
-          transactionObj,
+    let paymentMethod = 'unknown';
+    if (invoice.payment_intent) {
+      const paymentIntent = await this.stripe.paymentIntents.retrieve(
+        invoice.payment_intent as string,
+      );
+      if (paymentIntent.payment_method) {
+        const paymentMethodObj = await this.stripe.paymentMethods.retrieve(
+          paymentIntent.payment_method as string,
         );
-
-        await manager.save(Transaction, transaction);
-
-        const paymentNotification: Payment = {
-          user,
-          failureReason,
-        };
-
-        //TODO notify user of the failed payment via email
-        this.eventEmitter.emit(
-          events.INVOICE_PAYMENT_FAILED,
-          new PaymentEvent(paymentNotification),
-        );
-      });
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        console.error(error.message);
-        throw error;
+        paymentMethod = paymentMethodObj.type;
       }
-      console.error('Error handling payment failed event', error.message);
-      throw error;
+    }
+
+    const transactionObj = {
+      plan: planName,
+      type: 'subscription',
+      userId: user.id,
+      amount: plan.amount / 100,
+      currency: plan.currency,
+      transactionId: subscription.latest_invoice,
+      paymentMethod,
+      status,
+      subscriptionId: subscription.id,
+      failureReason,
+    };
+
+    const transaction = plainToInstance(CreateTransactionDto, transactionObj);
+
+    await this.entityManager.transaction(async (manager) => {
+      await manager.update(User, user.id, user);
+      await manager.save(Transaction, transaction);
+    });
+
+    const notification: Payment = {
+      user,
+      transactionObj,
+    };
+
+    if (status === 'succeeded') {
+      this.eventEmitter.emit(
+        events.PAYMENT_SUCCESS,
+        new PaymentEvent(notification),
+      );
+
+      this.eventEmitter.emit(
+        events.SUBSCRIPTION_PAYMENT_SUCCESS,
+        new PaymentEvent(notification),
+      );
+    } else {
+      this.eventEmitter.emit(
+        events.PAYMENT_FAILED,
+        new PaymentEvent(notification),
+      );
+
+      this.eventEmitter.emit(
+        events.SUBSCRIPTION_PAYMENT_FAILED,
+        new PaymentEvent(notification),
+      );
+    }
+  }
+
+  private async handleNormalPayment(
+    status: 'failed' | 'succeeded',
+    invoice: Stripe.Invoice,
+    user: User,
+  ) {
+    let failureReason = null;
+
+    if (status == 'failed') {
+      failureReason =
+        invoice.payment_intent && typeof invoice.payment_intent !== 'string'
+          ? invoice.payment_intent?.last_payment_error?.message ||
+            'Payment failed'
+          : 'Payment failed';
+    }
+    const transactionObj = {
+      type: 'Ticket Purchase',
+      userId: user.id,
+      amount: invoice.amount_paid / 100,
+      currency: invoice.currency,
+      transactionId: invoice.id,
+      paymentMethod: invoice.payment_intent,
+      status,
+      failureReason,
+    };
+
+    await this.entityManager.transaction(async (manager) => {
+      const transaction = plainToInstance(CreateTransactionDto, transactionObj);
+      await manager.save(Transaction, transaction);
+    });
+
+    const notification: Payment = {
+      user,
+      transactionObj,
+    };
+
+    if (status === 'succeeded') {
+      this.eventEmitter.emit(
+        events.PAYMENT_SUCCESS,
+        new PaymentEvent(notification),
+      );
+    } else {
+      this.eventEmitter.emit(
+        events.PAYMENT_FAILED,
+        new PaymentEvent(notification),
+      );
     }
   }
 
@@ -331,19 +413,35 @@ export class PaymentService {
     }
   }
 
-  // async handleCustomerCreated(event: Stripe.Event) {
-  //   const customer = event.data.object as Stripe.Customer;
-  //   const user = await this.checkUserExists(customer.email);
+  async handleCustomerCreated(event: Stripe.Event) {
+    try {
+      const customer = event.data.object as Stripe.Customer;
+      if (!customer.email) {
+        console.error('Customer email is null or undefined');
+        return;
+      }
+      const user = await this.checkUserExists(customer.email);
 
-  //   const notification: Payment = {
-  //     user,
-  //   };
+      console.log('<<<<<<<<<<<USSSSSSSEEEEEEEEERRRRRRRRRRR>>>>>>', user);
 
-  //   this.eventEmitter.emit(
-  //     events.CUSTOMER_CREATED,
-  //     new PaymentEvent(notification),
-  //   );
-  // }
+      const notification: Payment = {
+        user,
+      };
+
+      console.log('>>>>>>>>>>>>>>>>>>>>> GOT HERE <<<<<<<<<<<<<<<<<<<<<<<<<<<');
+      this.eventEmitter.emit(
+        events.CUSTOMER_CREATED,
+        new PaymentEvent(notification),
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        console.error(error.message);
+        throw error;
+      }
+      console.error(error.message);
+      throw error;
+    }
+  }
 
   async handlePayout(event: Stripe.Event, eventType: string) {
     try {
@@ -351,7 +449,8 @@ export class PaymentService {
       const user =
         await this.userService.findOneByConnectedAccountId(connectedAccountId);
 
-      if (!user) throw new NotFoundException(
+      if (!user)
+        throw new NotFoundException(
           `User with Stripe Connect account: ${connectedAccountId} not found`,
         );
 
@@ -361,17 +460,13 @@ export class PaymentService {
         payout,
       };
 
-      this.eventEmitter.emit(
-        eventType,
-        new PaymentEvent(payoutNotification),
-      );
+      this.eventEmitter.emit(eventType, new PaymentEvent(payoutNotification));
     } catch (error) {
-      if (error instanceof NotFoundException)
-      {
-        console.error(error.message)
+      if (error instanceof NotFoundException) {
+        console.error(error.message);
         throw Error;
       }
-      console.error("Something went wrong while handling payout success event");
+      console.error('Something went wrong while handling payout success event');
       throw error;
     }
   }

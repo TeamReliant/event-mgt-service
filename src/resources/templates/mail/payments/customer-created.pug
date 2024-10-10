@@ -1,7 +1,7 @@
 extends ../baseEmail
 
 block content
-  h1 Welcome to #{payload.appInfo.appName}, #{payload.user.firstname}!
+  h1 Welcome to #{payload.appInfo.appName}, #{payload.user.firstname}!,
 
   p We're excited to have you with us! Your account has been successfully created, and you're now a part of our community.
 
@@ -12,7 +12,7 @@ block content
   p
     a(href=payload.dashboardLink, class='btn btn-primary') Go to Your Dashboard
 
-  small Thank you for joining #{payload.appInfo.appName}!
+  small Thank you for joining #{payload.appName}!
   br
   small
-    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
+    b - #{payload.appEmail}, #{payload.appName}

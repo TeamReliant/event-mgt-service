@@ -25,6 +25,7 @@ import { LineItem } from '@app/rest/event-resources/line-items/entities/line-ite
 import { ShowLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/show-line-item-params.dto';
 import { UpdateLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/update-line-item-params.dto';
 import { DeleteLineItemParamsDto } from '@app/rest/event-resources/line-items/dto/delete-line-item-params.dto';
+import { FetchAnalyticsParamsDto } from '@app/rest/event-resources/line-items/dto/fetch-analytics-params.dto';
 import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
 import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
 
@@ -53,6 +54,14 @@ export class LineItemsController {
     return ResponseSerializer.data(data);
   }
 
+  @Get('budget/analytics')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async getAnalytics(@Param() params: FetchAnalyticsParamsDto) {
+    const data = await this.lineItemsService.getAnaylytics(params.eventId);
+    return ResponseSerializer.data(data);
+  }
+
   @Get()
   @HttpCode(HttpStatus.OK)
   findAll(
@@ -61,6 +70,20 @@ export class LineItemsController {
   ) {
     const queryBuilder = this.lineItemsService.findAll(params.eventId, query);
     return this.paginationProvider.applyHTEAOS<LineItem>(queryBuilder);
+  }
+
+  @Get('categories/all')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async findCategories(
+    @Param() params: FetchLineItemsParamsDto,
+    @Query() query: FetchLineItemsQueriesDto,
+  ) {
+    const queryBuilder = await this.lineItemsService.findCategories(
+      params.eventId,
+      query,
+    );
+    return ResponseSerializer.data(queryBuilder);
   }
 
   @Get(':id')

@@ -1,6 +1,7 @@
 import { User } from '@app/rest/users/entities/user.entity';
 import {
   Column,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -15,14 +16,6 @@ import { Task } from '@app/rest/event-resources/tasks/entities/task.entity';
 
 @Entity({ name: 'team_members' })
 export class TeamMember extends AbstractEntity<TeamMember> {
-  @ManyToOne(() => Team, (team) => team.members)
-  @JoinColumn({ name: 'teamId' })
-  team: Team;
-
-  @ManyToOne(() => User, (user) => user.teamMembers)
-  @JoinColumn({ name: 'userId' })
-  user: User;
-
   @Column({
     name: 'is_admin',
     type: 'boolean',
@@ -37,6 +30,14 @@ export class TeamMember extends AbstractEntity<TeamMember> {
   })
   status?: string; // active, inactive, pending, or exited
 
+  @ManyToOne(() => User, (user) => user.teamMembers)
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @ManyToOne(() => Team, (team) => team.members)
+  @JoinColumn({ name: 'teamId' })
+  team: Team;
+
   @OneToOne(() => TeamInvitation, (invitation) => invitation.member)
   @JoinColumn({ name: 'invitationId' })
   invitation: TeamInvitation;
@@ -47,6 +48,8 @@ export class TeamMember extends AbstractEntity<TeamMember> {
   @OneToMany(() => Task, (task) => task.assignee)
   tasks: Task[];
 
+  @DeleteDateColumn({ nullable: true })
+  deletedAt?: Date;
   // @ManyToMany(() => Permission, (permission) => permission.teamMembers)
   // @JoinTable({
   //   name: 'team_members_permissions',

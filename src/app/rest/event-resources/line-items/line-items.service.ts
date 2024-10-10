@@ -5,6 +5,7 @@ import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LineItem } from '@app/rest/event-resources/line-items/entities/line-item.entity';
 import { Event } from '@app/rest/event-resources/events/entities/event.entity';
+import { subDays } from 'date-fns';
 
 @Injectable()
 export class LineItemsService {
@@ -13,6 +14,96 @@ export class LineItemsService {
     private readonly _repo: Repository<LineItem>,
     private readonly _entityManager: EntityManager,
   ) {}
+
+  async getAnaylytics(eventId: string) {
+    const today = new Date();
+    const sevenDaysAgo = subDays(today, 7);
+    const fourteenDaysAgo = subDays(today, 14);
+
+    // Fetch total budget, total expenses, available budget for the last 7 days
+    const currentPeriod = await this._repo
+      .createQueryBuilder('line_item')
+      .select('SUM(line_item.intendedBudget)', 'totalBudget')
+      .addSelect('SUM(line_item.amountSpent)', 'totalExpenses')
+      .addSelect(
+        'SUM(line_item.intendedBudget) - SUM(line_item.amountSpent)',
+        'availableBudget',
+      )
+      .where('line_item.eventId = :eventId', { eventId })
+      .andWhere('line_item.createdAt BETWEEN :sevenDaysAgo AND :today', {
+        sevenDaysAgo,
+        today,
+      })
+      .getRawOne();
+
+    // Fetch total budget, total expenses, available budget for the previous 7 days
+    const previousPeriod = await this._repo
+      .createQueryBuilder('line_item')
+      .select('SUM(line_item.intendedBudget)', 'totalBudget')
+      .addSelect('SUM(line_item.amountSpent)', 'totalExpenses')
+      .addSelect(
+        'SUM(line_item.intendedBudget) - SUM(line_item.amountSpent)',
+        'availableBudget',
+      )
+      .where('line_item.eventId = :eventId', { eventId })
+      .andWhere(
+        'line_item.createdAt BETWEEN :fourteenDaysAgo AND :sevenDaysAgo',
+        {
+          fourteenDaysAgo,
+          sevenDaysAgo,
+        },
+      )
+      .getRawOne();
+
+    // Convert current and previous values to numbers
+    const currentBudget = parseFloat(currentPeriod.totalBudget || 0);
+    const currentExpenses = parseFloat(currentPeriod.totalExpenses || 0);
+    const currentAvailableBudget = parseFloat(
+      currentPeriod.availableBudget || 0,
+    );
+
+    const previousBudget = parseFloat(previousPeriod.totalBudget || 0);
+    const previousExpenses = parseFloat(previousPeriod.totalExpenses || 0);
+    const previousAvailableBudget = parseFloat(
+      previousPeriod.availableBudget || 0,
+    );
+
+    // Calculate percentage changes
+    const budgetChange =
+      previousBudget > 0
+        ? ((currentBudget - previousBudget) / previousBudget) * 100
+        : 0;
+
+    const expensesChange =
+      previousExpenses > 0
+        ? ((currentExpenses - previousExpenses) / previousExpenses) * 100
+        : 0;
+
+    const availableBudgetChange =
+      previousAvailableBudget > 0
+        ? ((currentAvailableBudget - previousAvailableBudget) /
+            previousAvailableBudget) *
+          100
+        : 0;
+
+    return {
+      current: {
+        totalBudget: currentBudget,
+        totalExpenses: currentExpenses,
+        availableBudget: currentAvailableBudget,
+      },
+      previous: {
+        totalBudget: previousBudget,
+        totalExpenses: previousExpenses,
+        availableBudget: previousAvailableBudget,
+      },
+      percentageChange: {
+        budgetChange,
+        expensesChange,
+        availableBudgetChange,
+      },
+    };
+  }
 
   async create(
     body: CreateLineItemDto,
@@ -42,7 +133,13 @@ export class LineItemsService {
       );
 
     // check if the line item name already exists
-    const lineItem = await this._repo.findOneBy({ name });
+    const lineItem = await this._repo
+      .createQueryBuilder('lineItem')
+      .leftJoinAndSelect('lineItem.event', 'event')
+      .where('event.id = :eventId', { eventId })
+      .andWhere('lineItem.name = :name', { name })
+      .getOne();
+
     if (lineItem) throw new NotFoundException('Line item name already exists');
 
     // create a new line item
@@ -63,6 +160,25 @@ export class LineItemsService {
     }
 
     return queryBuilder;
+  }
+
+  async findCategories(eventId: string, { ...query }): Promise<string[]> {
+    const queryBuilder = this._repo
+      .createQueryBuilder('lineItems')
+      .select('DISTINCT lineItems.category') // Select distinct categories
+      .where('lineItems.eventId = :eventId', { eventId });
+
+    if (query.search) {
+      const search = query.search as string;
+      queryBuilder.andWhere('lineItems.name LIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    const result = await queryBuilder.getRawMany(); // Execute the query and get results
+
+    // Extract and return just the categories from the raw results
+    return result.map((row) => row.category);
   }
 
   async findOne(

@@ -19,7 +19,13 @@ export class CreateTeamDto {
   @IsString()
   @MaxLength(255)
   @FormatValidationException()
-  color?: string = '#fff';
+  primaryColor?: string = '#fff';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  @FormatValidationException()
+  secondaryColor?: string = '#fff';
 
   @IsOptional()
   @IsString()
