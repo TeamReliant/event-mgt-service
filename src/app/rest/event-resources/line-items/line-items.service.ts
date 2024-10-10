@@ -162,6 +162,25 @@ export class LineItemsService {
     return queryBuilder;
   }
 
+  async findCategories(eventId: string, { ...query }): Promise<string[]> {
+    const queryBuilder = this._repo
+      .createQueryBuilder('lineItems')
+      .select('DISTINCT lineItems.category') // Select distinct categories
+      .where('lineItems.eventId = :eventId', { eventId });
+
+    if (query.search) {
+      const search = query.search as string;
+      queryBuilder.andWhere('lineItems.name LIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    const result = await queryBuilder.getRawMany(); // Execute the query and get results
+
+    // Extract and return just the categories from the raw results
+    return result.map((row) => row.category);
+  }
+
   async findOne(
     eventId: string,
     id: string,
