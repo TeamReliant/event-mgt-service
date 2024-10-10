@@ -15,78 +15,57 @@ export class Event extends AbstractEntity<Event> {
   @Column({ name: 'location', type: 'varchar', length: 255, nullable: true })
   location?: string;
 
-  @Column()
-  locationPlaceId: string;
-
-  @Column()
-  locationName: string;
+  @Column({ name: 'locationPlaceId', nullable: true })
+  locationPlaceId?: string;
 
   @Column({ nullable: true })
-  googleMapUrl: string;
-
-  @Column()
-  address: string;
+  locationName?: string;
 
   @Column({ nullable: true })
-  description: string;
+  googleMapUrl?: string;
 
   @Column({ nullable: true })
-  additionalInfo: string;
+  address?: string;
 
   @Column({ nullable: true })
-  eventImageURL: string;
+  description?: string;
+
+  @Column({ nullable: true })
+  additionalInfo?: string;
+
+  @Column({ nullable: true })
+  eventImageURL?: string;
 
   @Column('simple-array')
-  tags: string[] = [];
+  tags?: string[] = [];
 
   @Column({
     type: 'enum',
     enum: EventVisibility,
     default: EventVisibility.PRIVATE,
   })
-  eventVisibility: EventVisibility;
+  eventVisibility?: EventVisibility;
 
   @Column({
     type: 'enum',
     enum: EventStatus,
     default: EventStatus.DRAFT,
   })
-  eventStatus: EventStatus;
+  eventStatus?: EventStatus;
 
   @Column('timestamp', { nullable: true })
-  eventStartDateAndTime: Date;
+  eventStartDateAndTime?: Date;
 
   @Column('timestamp', { nullable: true })
-  eventEndDateAndTime: Date;
+  eventEndDateAndTime?: Date;
 
   @Column({ nullable: true })
-  timeZone: string;
+  timeZone?: string;
 
   // should be set to false when all ticket in tickets.isAvailable returns false
   //  should be set to false when eventEndDate is less than current date
   @Column({ default: true })
-  isAvailable: boolean;
-
-  @Column()
-  locationPlaceId: string;
-
-  @Column()
-  locationName: string;
-
-  @Column({ nullable: true })
-  googleMapUrl: string;
-
-  @Column({ nullable: true })
-  additionalInfo: string;
-
-  @Column('timestamp', { nullable: true })
-  eventStartDateAndTime: Date;
-
-  @Column('timestamp', { nullable: true })
-  eventEndDateAndTime: Date;
-
-  @Column({ nullable: true })
-  timeZone: string;
+  isAvailable?: boolean;
 
   //cascade true automatically saves tickets when an event is saved
   @OneToMany(() => Ticket, (ticket) => ticket.event, { cascade: true })
