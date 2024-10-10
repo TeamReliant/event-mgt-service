@@ -1,12 +1,13 @@
 import { User } from '@app/rest/users/entities/user.entity';
 import {
-  Column, DeleteDateColumn,
+  Column,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
-  OneToOne
-} from "typeorm";
+  OneToOne,
+} from 'typeorm';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 import { AbstractEntity } from '@libs/database';
