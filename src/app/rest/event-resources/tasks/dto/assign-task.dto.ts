@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   MaxLength,
@@ -40,7 +41,7 @@ export class AssignTaskDto {
   @FormatValidationException()
   priority: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @IsUUID()

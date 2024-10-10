@@ -55,5 +55,5 @@ export class Task extends AbstractEntity<Task> {
 
   // one-to-one relation with team member
   @ManyToOne(() => TeamMember, (member) => member.tasks)
-  assignee: TeamMember;
+  assignee?: TeamMember;
 }
