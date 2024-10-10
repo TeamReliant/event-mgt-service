@@ -67,6 +67,27 @@ export class Event extends AbstractEntity<Event> {
   @Column({ default: true })
   isAvailable: boolean;
 
+  @Column()
+  locationPlaceId: string;
+
+  @Column()
+  locationName: string;
+
+  @Column({ nullable: true })
+  googleMapUrl: string;
+
+  @Column({ nullable: true })
+  additionalInfo: string;
+
+  @Column('timestamp', { nullable: true })
+  eventStartDateAndTime: Date;
+
+  @Column('timestamp', { nullable: true })
+  eventEndDateAndTime: Date;
+
+  @Column({ nullable: true })
+  timeZone: string;
+
   //cascade true automatically saves tickets when an event is saved
   @OneToMany(() => Ticket, (ticket) => ticket.event, { cascade: true })
   tickets: Ticket[];
