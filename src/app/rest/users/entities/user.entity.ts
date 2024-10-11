@@ -95,7 +95,6 @@ export class User extends AbstractEntity<User> {
   })
   customerId?: string;
 
-
   @Column({ default: false })
   isOnboarded: boolean;
 
@@ -123,8 +122,7 @@ export class User extends AbstractEntity<User> {
     | 'paused'
     | null;
 
-
-  @Column({ nullable: true, default: "free" })
+  @Column({ nullable: true, default: 'free' })
   subscribedPlan?: string;
 
   @OneToMany(() => Event, (events) => events.user, { cascade: true })

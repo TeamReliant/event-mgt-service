@@ -78,7 +78,6 @@ export class CreateEventDto {
   @Type(() => Date)
   eventEndDateAndTime: Date;
 
-  
   @IsOptional()
   @IsString()
   timeZone: string;

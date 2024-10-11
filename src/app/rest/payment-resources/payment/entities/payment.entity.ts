@@ -1,8 +1,8 @@
-import { User } from "@app/rest/users/entities/user.entity";
+import { User } from '@app/rest/users/entities/user.entity';
 
 export class Payment {
-    user?: User;
-    planName?: string;
-    transactionObj?: any;
-    payout?: any;
+  user?: User;
+  planName?: string;
+  transactionObj?: any;
+  payout?: any;
 }

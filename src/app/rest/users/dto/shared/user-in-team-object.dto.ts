@@ -18,7 +18,7 @@ export class UserInTeamDto {
 
   @Expose()
   updatedAt: Date;
-  
+
   @Expose()
   stripeConnectedAccountId?: string;
 
@@ -32,7 +32,16 @@ export class UserInTeamDto {
   visibility: boolean;
 
   @Expose()
-  subscriptionStatus?: 'incomplete' | 'incomplete_expired' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'paused' | null;
+  subscriptionStatus?:
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'trialing'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'unpaid'
+    | 'paused'
+    | null;
 
   @Expose()
   subscribedPlan?: string;

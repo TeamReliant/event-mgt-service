@@ -11,14 +11,17 @@ export class PaymentsEmailService {
     private readonly configService: ConfigService,
   ) {}
 
-
-  private async sendEmail(paymentNotification: Payment, subject: string, template: string, additionalPayload: any = {})
-  {
+  private async sendEmail(
+    paymentNotification: Payment,
+    subject: string,
+    template: string,
+    additionalPayload: any = {},
+  ) {
     const { user } = paymentNotification;
     const payload = {
       appInfo,
       user,
-      ...additionalPayload
+      ...additionalPayload,
     };
 
     await this.emailEngineService.sendHtmlEmail(
@@ -46,7 +49,12 @@ export class PaymentsEmailService {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
     };
 
-    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+    await this.sendEmail(
+      paymentNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
   async sendCustomerCreatedMessage(paymentNotification: Payment) {
@@ -56,87 +64,118 @@ export class PaymentsEmailService {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
     };
 
-    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+    await this.sendEmail(
+      paymentNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
-  async sendStripePaymentOnboardingCompletedMessage(paymentNotification: Payment) {
+  async sendStripePaymentOnboardingCompletedMessage(
+    paymentNotification: Payment,
+  ) {
     const subject: string = `${appInfo.appName}: Stripe Payment Onboarding is Complete!`;
     const template = `payments/stripe-onboarding-completed`;
     await this.sendEmail(paymentNotification, subject, template);
   }
 
-  async sendPayoutSuccessMessage(payoutNotification: Payment)
-  {
+  async sendPayoutSuccessMessage(payoutNotification: Payment) {
     const subject: string = `${appInfo.appName}: Payout Success!`;
     const template = `payments/payout-success`;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
-      payoutAmount: ((payoutNotification.payout.amount) / 100).toFixed(2)
-    }
-    await this.sendEmail(payoutNotification, subject, template, additionalPayload);
+      payoutAmount: (payoutNotification.payout.amount / 100).toFixed(2),
+    };
+    await this.sendEmail(
+      payoutNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
-  async sendPayoutFailedMessage(payoutNotification: Payment)
-  {
+  async sendPayoutFailedMessage(payoutNotification: Payment) {
     const subject: string = `${appInfo.appName}: Payout Failed!`;
     const template = `payments/payout-success`;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
-      payoutAmount: ((payoutNotification.payout.amount) / 100).toFixed(2)
-    }
-    await this.sendEmail(payoutNotification, subject, template, additionalPayload);
+      payoutAmount: (payoutNotification.payout.amount / 100).toFixed(2),
+    };
+    await this.sendEmail(
+      payoutNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
-  async sendPaymentFailedMessage(paymentNotification: Payment)
-  {
+  async sendPaymentFailedMessage(paymentNotification: Payment) {
     const subject: string = `${appInfo.appName}: Payment Failed!`;
     const template = `payments/payment-failed`;
-    const {transactionObj} = paymentNotification;
+    const { transactionObj } = paymentNotification;
     await this.sendEmail(paymentNotification, subject, template);
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
-      ...transactionObj
-    }
+      ...transactionObj,
+    };
 
-    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+    await this.sendEmail(
+      paymentNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
-  async sendPaymentSuccessMessage(paymentNotification: Payment)
-  {
+  async sendPaymentSuccessMessage(paymentNotification: Payment) {
     const subject: string = `${appInfo.appName}: Payment Succeeded!`;
     const template = `payments/payment-succeeded`;
-    const {transactionObj} = paymentNotification;
+    const { transactionObj } = paymentNotification;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
-      ...transactionObj
-    }
+      ...transactionObj,
+    };
 
-    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+    await this.sendEmail(
+      paymentNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
-  async sendSubscriptionPaymentSuccessMessage(paymentNotification: Payment)
-  {
+  async sendSubscriptionPaymentSuccessMessage(paymentNotification: Payment) {
     const subject: string = `${appInfo.appName}: Subscription Payment Success!`;
     const template = `payments/subscription-payment-success`;
-    const {transactionObj} = paymentNotification;
+    const { transactionObj } = paymentNotification;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
-      ...transactionObj
-    }
+      ...transactionObj,
+    };
 
-    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+    await this.sendEmail(
+      paymentNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
-  async sendSubscriptionPaymentFailedMessage(paymentNotification: Payment)
-  {
+  async sendSubscriptionPaymentFailedMessage(paymentNotification: Payment) {
     const subject: string = `${appInfo.appName}: Subscription Payment Success!`;
     const template = `payments/subscription-payment-success`;
-    const {transactionObj} = paymentNotification;
+    const { transactionObj } = paymentNotification;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
-      ...transactionObj
-    }
+      ...transactionObj,
+    };
 
-    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+    await this.sendEmail(
+      paymentNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 }
