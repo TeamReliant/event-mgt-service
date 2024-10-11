@@ -21,10 +21,10 @@ export class Ticket extends AbstractEntity<Ticket> {
   @Column({ nullable: true })
   availableTickets: number;
 
-  @Column()
-  minNumberOfTicketsOrderable: number = 1;
+  @Column({default: 1})
+  minNumberOfTicketsOrderable: number;
 
-  @Column()
+  @Column({ nullable: true })
   maxNumberOfTicketsOrderable: number;
 
   @Column({ nullable: true })
