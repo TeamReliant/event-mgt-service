@@ -1,5 +1,5 @@
-import { Payment } from "../entities/payment.entity";
+import { Payment } from '../entities/payment.entity';
 
-export class PaymentEvent{
-    constructor(public readonly paymentNotification: Payment){}
+export class PaymentEvent {
+  constructor(public readonly paymentNotification: Payment) {}
 }

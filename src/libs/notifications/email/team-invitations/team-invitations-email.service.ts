@@ -17,8 +17,8 @@ export class TeamInvitationsEmailService {
 
     const payload = {
       invitation: invitation,
-      appInfo,
-      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}/invitation-reaction/${invitation.token}`,
+      appName: appName,
+      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}?token=${invitation.token}`,
     };
 
     const subject: string = `TEAM INVITATION ${appName}`;
@@ -36,7 +36,7 @@ export class TeamInvitationsEmailService {
 
     const payload = {
       invitation: invitation,
-      appInfo
+      appInfo,
     };
 
     const subject: string = `INVITATION ACCEPTED | ${appName}`;

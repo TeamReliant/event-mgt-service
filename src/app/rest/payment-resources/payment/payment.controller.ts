@@ -1,4 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, UseGuards, HttpStatus, Req, Res, RawBody, RawBodyRequest } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  HttpCode,
+  UseGuards,
+  HttpStatus,
+  Req,
+  Res,
+  RawBody,
+  RawBodyRequest,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
@@ -23,41 +39,65 @@ export class PaymentController {
   @Post('create-sessions')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  async createSessions(@CurrentUser() user: TJwtPayload, @Query('paymentMethod') paymentMethod: string) {
-    const clientSecret =  await this.paymentService.createSessions(user, paymentMethod);
-    return ResponseSerializer.data({clientSecret});
+  async createSessions(
+    @CurrentUser() user: TJwtPayload,
+    @Query('paymentMethod') paymentMethod: string,
+  ) {
+    const clientSecret = await this.paymentService.createSessions(
+      user,
+      paymentMethod,
+    );
+    return ResponseSerializer.data({ clientSecret });
   }
 
   @Post('create-subscription')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  async createSubscription(@Body() createSubDto: CreateSubscriptionDto , @CurrentUser() user: TJwtPayload, @Query('paymentMethod') paymentMethod: string) {
-    const {statusCode, sessionUrl} = await this.paymentService.createSubscription(user, createSubDto, paymentMethod);
-    return ResponseSerializer.data({statusCode, sessionUrl});
+  async createSubscription(
+    @Body() createSubDto: CreateSubscriptionDto,
+    @CurrentUser() user: TJwtPayload,
+    @Query('paymentMethod') paymentMethod: string,
+  ) {
+    const { statusCode, sessionUrl } =
+      await this.paymentService.createSubscription(
+        user,
+        createSubDto,
+        paymentMethod,
+      );
+    return ResponseSerializer.data({ statusCode, sessionUrl });
   }
 
   @Post('update-subscription')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  async createPortalSession(@CurrentUser() user: TJwtPayload, @Query('paymentMethod') paymentMethod: string) {
-    const {statusCode, sessionUrl} = await this.paymentService.updateSubscription(user, paymentMethod);
-    return ResponseSerializer.data({statusCode, sessionUrl});
+  async createPortalSession(
+    @CurrentUser() user: TJwtPayload,
+    @Query('paymentMethod') paymentMethod: string,
+  ) {
+    const { statusCode, sessionUrl } =
+      await this.paymentService.updateSubscription(user, paymentMethod);
+    return ResponseSerializer.data({ statusCode, sessionUrl });
   }
 
   @Post('stripe-webhooks')
-  async handleWebhooks(@Req() req: RawBodyRequest<Request>, @Res() res: Response) {
-
+  async handleWebhooks(
+    @Req() req: RawBodyRequest<Request>,
+    @Res() res: Response,
+  ) {
     let event = req.body;
     const signature = req.headers['stripe-signature'];
 
     try {
-      event = this.stripe.webhooks.constructEvent(req.rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
-
+      event = this.stripe.webhooks.constructEvent(
+        req.rawBody,
+        signature,
+        process.env.STRIPE_WEBHOOK_SECRET,
+      );
     } catch (error) {
       console.error('Error handling webhook signature:', error.message);
       return res.status(HttpStatus.BAD_REQUEST).send();
     }
-  
+
     switch (event.type) {
       case 'invoice.payment_succeeded':
       case 'invoice.payment_failed':

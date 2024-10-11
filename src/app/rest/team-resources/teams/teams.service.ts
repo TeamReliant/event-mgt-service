@@ -17,6 +17,7 @@ import { Request } from 'express';
 import { events } from '@config/app.config';
 import { TeamInvitationsEvent } from '@app/rest/team-resources/team-invitations/events/team-invitations.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
 
 @Injectable()
 export class TeamsService {
@@ -78,12 +79,14 @@ export class TeamsService {
       // save the team member data to database
       await manager.save<TeamMember>(teamMember);
 
-      // Create members invitations for members
-      this._teamInvitationsService.create(
-        { emails: members },
-        savedTeam.id,
-        userId,
-      );
+      if (members && members.length) {
+        // Create members invitations for members
+        this._teamInvitationsService.create(
+          { emails: members },
+          savedTeam.id,
+          userId,
+        );
+      }
 
       // return the saved team data
       return savedTeam;
@@ -140,6 +143,7 @@ export class TeamsService {
       .createQueryBuilder('team')
       .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.user', 'user')
       .where('team.id = :id', { id })
       .select([
@@ -156,6 +160,9 @@ export class TeamsService {
         'admin.numOfEventsCreated',
         'admin.numOfPrivateEventsCreated',
         'members',
+        'invitation.id',
+        'invitation.email',
+        'invitation.createdAt',
         'user.id',
         'user.firstname',
         'user.lastname',
@@ -311,7 +318,8 @@ export class TeamsService {
     const team = (await this._entityManager
       .createQueryBuilder(Team, 'team')
       .leftJoinAndSelect('team.members', 'members')
-      .leftJoinAndSelect('team.invitations', 'invitations')
+      .leftJoinAndSelect('team.invitation', 'invitations')
+      .leftJoinAndSelect('team.permissions', 'permissions')
       .where('team.id = :id', { id })
       .getOne()) as Team;
 
@@ -330,14 +338,17 @@ export class TeamsService {
     if (!adminMember)
       throw new NotFoundException('Only team admins can remove a team');
 
-    // remove the team invitations from the database
-    await this._entityManager.remove(TeamInvitation, team.invitations);
+    // remove the team permissions from the database
+    await this._entityManager.softRemove(Permission, team.permissions);
 
     // remove the team members from the database
-    await this._entityManager.remove(TeamMember, team.members);
+    await this._entityManager.softRemove(TeamMember, team.members);
+
+    // remove the team invitations from the database
+    await this._entityManager.softRemove(TeamInvitation, team.invitations);
 
     // remove the team from the database
-    await this._entityManager.remove(Team, team);
+    await this._entityManager.softRemove(Team, team);
     return true;
   }
 

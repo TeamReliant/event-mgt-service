@@ -41,7 +41,6 @@ export const events = {
   PAYOUT_ENABLED: 'PAYOUT_ENABLED',
   PAYOUT_SUCCESS: 'PAYOUT_SUCCESS',
   PAYOUT_FAILED: 'PAYOUT_FAILED',
-
 };
 
 export const appInfo = {

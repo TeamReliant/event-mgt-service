@@ -1,4 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
+import {
+  Column,
+  DeleteDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToOne,
+} from 'typeorm';
 import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
 import { User } from '@app/rest/users/entities/user.entity';
 import { AbstractEntity } from '@libs/database';
@@ -30,4 +37,7 @@ export class TeamInvitation extends AbstractEntity<TeamInvitation> {
 
   @OneToOne(() => TeamMember, (member) => member.invitation)
   member?: TeamMember;
+
+  @DeleteDateColumn({ nullable: true })
+  deletedAt?: Date;
 }

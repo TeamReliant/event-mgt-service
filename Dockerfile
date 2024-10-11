@@ -52,8 +52,8 @@ ENV NODE_ENV=production \
     AUTH_V1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1 \
     ORG_v1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1/em \
     STRIPE_SECRET_KEY=sk_test_51P2RdZP4Gkbi4QVGzhA52vb3Lr6URq1Lia8eW59EcBRN2sXDSKSJMvbGeZQg5kEyJ43ZdO8P3cXcYCNvgJFwlStI00CUXJIs9c \
-    STRIPE_WEBHOOK_SECRET=whsec_61d082f4dee8cb92537c33c24ae25a6fef6c28499f2269810382444031848b4b
-
+    STRIPE_WEBHOOK_SECRET=whsec_61d082f4dee8cb92537c33c24ae25a6fef6c28499f2269810382444031848b4b \
+    FRONTEND_URL="http://localhost:3000/invitation"
 
 # Create a "dist" folder with the production build
 RUN npm install -g @nestjs/cli@latest

@@ -10,6 +10,6 @@ import { UsersModule } from '@app/rest/users/users.module';
   controllers: [TransactionsController],
   providers: [TransactionsService],
   imports: [TypeOrmModule.forFeature([Transaction, User]), UsersModule],
-  exports: [TransactionsService]
+  exports: [TransactionsService],
 })
 export class TransactionsModule {}

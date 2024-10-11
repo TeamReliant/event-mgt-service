@@ -24,7 +24,7 @@ export class EventResponseDto {
 
   @Expose()
   description?: string;
-  
+
   @Expose()
   additionalInfo?: string;
 

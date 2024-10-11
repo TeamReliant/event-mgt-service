@@ -1,6 +1,7 @@
 import { User } from '@app/rest/users/entities/user.entity';
 import {
   Column,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -47,6 +48,8 @@ export class TeamMember extends AbstractEntity<TeamMember> {
   @OneToMany(() => Task, (task) => task.assignee)
   tasks: Task[];
 
+  @DeleteDateColumn({ nullable: true })
+  deletedAt?: Date;
   // @ManyToMany(() => Permission, (permission) => permission.teamMembers)
   // @JoinTable({
   //   name: 'team_members_permissions',
