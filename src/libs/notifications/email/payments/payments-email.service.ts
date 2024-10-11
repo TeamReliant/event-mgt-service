@@ -76,7 +76,7 @@ export class PaymentsEmailService {
     paymentNotification: Payment,
   ) {
     const subject: string = `${appInfo.appName}: Stripe Payment Onboarding is Complete!`;
-    const template = `payments/stripe-onboarding-completed`;
+    const template = `payments/connect-onboarding-complete`;
     await this.sendEmail(paymentNotification, subject, template);
   }
 
