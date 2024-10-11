@@ -34,6 +34,7 @@ export class CreateTicketDto {
 
   @IsNumber()
   @IsPositive()
+  @IsOptional()
   maxNumberOfTicketsOrderable: number;
 
   @IsString()
