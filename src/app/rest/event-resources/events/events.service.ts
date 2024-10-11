@@ -207,10 +207,12 @@ export class EventsService {
 
     //select event where user is the owner or a team member
     queryBuilder.andWhere(
-      new Brackets(qb => {
-        qb.where('event.user = :userId', { userId })
-          .orWhere('teamMember.user.id = :userId', { userId });
-      })
+      new Brackets((qb) => {
+        qb.where('event.user = :userId', { userId }).orWhere(
+          'teamMember.user.id = :userId',
+          { userId },
+        );
+      }),
     );
 
     if (name) {
@@ -242,9 +244,12 @@ export class EventsService {
     }
 
     if (eventStartDateAndTime) {
-      queryBuilder.andWhere('event.eventStartDateAndTime >= :eventStartDateAndTime', {
-        eventStartDateAndTime,
-      });
+      queryBuilder.andWhere(
+        'event.eventStartDateAndTime >= :eventStartDateAndTime',
+        {
+          eventStartDateAndTime,
+        },
+      );
     }
 
     return queryBuilder;

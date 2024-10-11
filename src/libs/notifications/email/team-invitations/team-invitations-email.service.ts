@@ -36,7 +36,7 @@ export class TeamInvitationsEmailService {
 
     const payload = {
       invitation: invitation,
-      appInfo
+      appInfo,
     };
 
     const subject: string = `INVITATION ACCEPTED | ${appName}`;

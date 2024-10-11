@@ -14,6 +14,10 @@ import { PaymentStrategyResolver } from './strategies/shared/payment-strategy.re
   controllers: [PaymentController],
   providers: [PaymentService, StripePaymentStrategy, PaymentStrategyResolver],
   exports: [PaymentService],
-  imports: [TypeOrmModule.forFeature([Payment, Transaction, User]), UsersModule, TransactionsModule]
+  imports: [
+    TypeOrmModule.forFeature([Payment, Transaction, User]),
+    UsersModule,
+    TransactionsModule,
+  ],
 })
 export class PaymentModule {}

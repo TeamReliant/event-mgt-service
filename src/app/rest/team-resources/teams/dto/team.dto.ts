@@ -16,7 +16,7 @@ export class TeamDto {
 
   @Expose()
   website?: string;
-  
+
   @Expose()
   @Type(() => TeamMemberDto)
   members?: TeamMemberDto[];

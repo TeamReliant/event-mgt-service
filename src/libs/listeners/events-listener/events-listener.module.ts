@@ -15,7 +15,7 @@ import { PaymentListener } from '../payments/payments-listener.module';
     TasksListener,
     TasksEmailService,
     PaymentsEmailService,
-    PaymentListener 
+    PaymentListener,
   ],
 })
 export class EventsListenerModule {}

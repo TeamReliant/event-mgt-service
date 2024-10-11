@@ -21,7 +21,7 @@ export class Ticket extends AbstractEntity<Ticket> {
   @Column({ nullable: true })
   availableTickets: number;
 
-  @Column({default: 1})
+  @Column({ default: 1 })
   minNumberOfTicketsOrderable: number;
 
   @Column({ nullable: true })

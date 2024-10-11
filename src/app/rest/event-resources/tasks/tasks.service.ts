@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotAcceptableException,
+  NotFoundException,
+} from '@nestjs/common';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -175,6 +179,8 @@ export class TasksService {
       .andWhere('task.eventId = :eventId', { eventId })
       .getOne();
 
+    if (!task) throw new NotFoundException(`Task with the id ${id} not found`);
+
     // check if the current user is the owner of the event
     if (task.event?.user?.id !== userId)
       throw new NotFoundException(
@@ -185,8 +191,22 @@ export class TasksService {
     if (!task.event?.team) throw new NotFoundException('Event has no team');
 
     await this._entityManager.transaction(async (manager) => {
+      if (assigneeId === 'unassigned') {
+        // unassign the task
+        task.assignee = null;
+
+        Object.assign(task, { title, description, dueDate, priority });
+        await manager.save(task);
+        return;
+      }
+
       let assignee: TeamMember;
       if (assigneeId && assigneeId !== task.assignee?.id) {
+        if (!this.isUUID(assigneeId))
+          throw new NotAcceptableException(
+            'assigneeId should either be a UUID or unassigned',
+          );
+
         // find the assignee from the team members
         assignee = event.team.members.find(
           (member) => member.id === assigneeId,
@@ -241,5 +261,11 @@ export class TasksService {
     }
 
     return taskId;
+  }
+
+  isUUID(str: string) {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
   }
 }

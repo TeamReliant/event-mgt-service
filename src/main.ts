@@ -11,7 +11,7 @@ async function bootstrap() {
     rawBody: true,
   });
   const configService = app.get(ConfigService);
-  
+
   // Custom exceptions filter
   app.useGlobalFilters(new CustomExceptionFilter());
 
@@ -25,8 +25,6 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1/em', {
     //exclude some routes
   });
-
-  
 
   // Attaching the validation piper at the global level
   app.useGlobalPipes(new CustomValidationPipe());
