@@ -10,7 +10,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import { EntityManager, Repository } from 'typeorm';
+import { Brackets, EntityManager, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -145,7 +145,7 @@ export class EventsService {
   //     address,
   //     eventVisibility,
   //     eventStatus,
-  //     eventStartDate,
+  //     eventStartDateAndTime,
   //   } = query;
 
   //   const queryBuilder = this.eventRepo.createQueryBuilder('event');
@@ -177,9 +177,9 @@ export class EventsService {
   //     });
   //   }
 
-  //   if (eventStartDate) {
-  //     queryBuilder.andWhere('event.eventDate >= :eventStartDate', {
-  //       eventStartDate,
+  //   if (eventStartDateAndTime) {
+  //     queryBuilder.andWhere('event.eventDate >= :eventStartDateAndTime', {
+  //       eventStartDateAndTime,
   //     });
   //   }
 
@@ -194,7 +194,7 @@ export class EventsService {
       address,
       eventVisibility,
       eventStatus,
-      eventStartDate,
+      eventStartDateAndTime,
     } = query;
 
     const userId = user.userId;
@@ -206,9 +206,12 @@ export class EventsService {
       .leftJoinAndSelect('team.members', 'teamMember');
 
     //select event where user is the owner or a team member
-    queryBuilder
-      .andWhere('event.user = :userId', { userId })
-      .orWhere('teamMember.user.id = :userId', { userId });
+    queryBuilder.andWhere(
+      new Brackets(qb => {
+        qb.where('event.user = :userId', { userId })
+          .orWhere('teamMember.user.id = :userId', { userId });
+      })
+    );
 
     if (name) {
       queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
@@ -238,9 +241,9 @@ export class EventsService {
       });
     }
 
-    if (eventStartDate) {
-      queryBuilder.andWhere('event.eventDate >= :eventStartDate', {
-        eventStartDate,
+    if (eventStartDateAndTime) {
+      queryBuilder.andWhere('event.eventStartDateAndTime >= :eventStartDateAndTime', {
+        eventStartDateAndTime,
       });
     }
 
