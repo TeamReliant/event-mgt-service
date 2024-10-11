@@ -394,6 +394,7 @@ export class PaymentService {
           new PaymentEvent(paymentNotification),
         );
       }
+
       if (account.charges_enabled && account.payouts_enabled) {
         user.isOnboarded = true;
         this.eventEmitter.emit(
@@ -401,7 +402,6 @@ export class PaymentService {
           new PaymentEvent(paymentNotification),
         );
       }
-
       await this.userService.findOneByIdAndUpdate(user.id, user);
     } catch (error) {
       if (error instanceof NotFoundException) {
