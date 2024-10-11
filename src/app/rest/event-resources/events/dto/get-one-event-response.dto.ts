@@ -41,16 +41,10 @@ export class GetOneEventResponseDto {
   updatedAt: Date;
 
   @Expose()
-  eventStartTime?: string;
+  eventStartDateAndTime?: string;
 
   @Expose()
-  eventEndTime?: string;
-
-  @Expose()
-  eventStartDate?: Date;
-
-  @Expose()
-  eventEndDate?: Date;
+  eventEndDateAndTime?: string;
 
   @Expose()
   isAvailable: boolean;
