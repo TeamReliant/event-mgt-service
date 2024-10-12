@@ -2,15 +2,17 @@ import { MaxArrayLength } from '@libs/decorators/max-array-length-validator';
 import {
   IsArray,
   IsDate,
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsTimeZone,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { EventStatus, EventVisibility } from '../enums';
-import { IsFutureDate } from '@libs/decorators/date-validator.decorator';
+import { IsDateAfter, IsFutureDate } from '@libs/decorators/date-validator.decorator';
 import { Type } from 'class-transformer';
 import { CreateTicketDto } from '@app/rest/ticket-resources/tickets/dto/create-ticket.dto';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
@@ -45,9 +47,8 @@ export class CreateEventDto {
   @IsString()
   additionalInfo: string;
 
-  // @IsNotEmpty()
-  // @IsFile()
-  // @MaxFileSize(2 * 1024 * 1024)
+  @IsOptional()
+  @FormatValidationException()
   eventCoverImage: any;
 
   @IsArray({ message: 'Field must be an array' })
@@ -65,17 +66,21 @@ export class CreateEventDto {
   @IsOptional()
   eventStatus: EventStatus;
 
-  @IsDate()
+  
+  @ValidateIf((o) => o.eventStartDateAndTime !== undefined)
   @IsNotEmpty()
-  @IsOptional()
+  @IsDateString()
   @IsFutureDate()
-  @Type(() => Date)
+  @FormatValidationException()
   eventStartDateAndTime: Date;
 
-  @IsDate()
-  @IsOptional()
-  @IsFutureDate()
-  @Type(() => Date)
+  @ValidateIf((o) => o.eventEndDateAndTime !== undefined)
+  @IsNotEmpty()
+  @IsDateString()
+  @IsDateAfter('eventStartDateAndTime',{
+    message: 'eventEndDateAndTime must be after eventStartDateAndTime',
+  })
+  @FormatValidationException()
   eventEndDateAndTime: Date;
 
   @IsOptional()

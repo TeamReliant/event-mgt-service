@@ -6,20 +6,21 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   Patch,
   Post,
   Req,
+  UnprocessableEntityException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
   UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
-import { ImageUploadInterceptor } from '@libs/interceptors/event-cover-image-interceptor';
-import { FileValidationPipe } from '@libs/pipes/file-validation.pipe';
 import { CurrentUser } from '@libs/decorators/current-user.decorator';
 import { TJwtPayload } from '@libs/types';
 import ResponseSerializer, {
@@ -35,23 +36,50 @@ import { AssignTeamParamsDto } from '@app/rest/event-resources/events/dto/assign
 import { AssignTeamDto } from '@app/rest/event-resources/events/dto/assign-team.dto';
 import { GetOneEventResponseDto } from './dto/get-one-event-response.dto';
 import { GetAllEventsResponseDto } from './dto/get-all-events-response.dto';
-import { plainToInstance } from 'class-transformer';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { extname } from 'path';
+
+const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
 @Controller('events')
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
-
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @UsePipes(new ValidationPipe({ transform: true }))
   @UseGuards(JwtAuthGuard)
   @SerializeResponse(EventResponseDto, 'data')
-  @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
+  @UseInterceptors(FileInterceptor('eventCoverImage', {
+    fileFilter: (req, file, callback) => {
+      const ext = extname(file.originalname).toLowerCase();
+      if (allowedFileTypes.includes(ext)) {
+        callback(null, true);
+      } else {
+        return callback(
+          new UnprocessableEntityException(
+            'Invalid file type, only .jpeg and .png files are allowed',
+          ),
+          false,
+        );
+      }
+    },
+  }),
+ )
   async create(
-    @Body() body: any,
-    @UploadedFile(FileValidationPipe) eventCoverImage: Express.Multer.File,
+    @Body() createEventDto: CreateEventDto,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addMaxSizeValidator({
+          maxSize: 3000000,
+          message: 'Max file size allowed is 3MB',
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+          fileIsRequired: false,
+        }),
+    ) eventCoverImage: Express.Multer.File,
     @CurrentUser() user: TJwtPayload,
   ) {
-    let createEventDto = plainToInstance(CreateEventDto, body);
     createEventDto.eventCoverImage = eventCoverImage;
     return await this.eventsService.create(createEventDto, user);
   }
@@ -95,12 +123,36 @@ export class EventsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @SerializeResponse(EventResponseDto)
-  @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
+  @UseInterceptors(FileInterceptor('eventCoverImage', {
+    fileFilter: (req, file, callback) => {
+      const ext = extname(file.originalname).toLowerCase();
+      if (allowedFileTypes.includes(ext)) {
+        callback(null, true);
+      } else {
+        return callback(
+          new UnprocessableEntityException(
+            'Invalid file type, only .jpeg and .png files are allowed',
+          ),
+          false,
+        );
+      }
+    },
+  }),)
   async update(
     @Param() params: UpdateEventParamsDto,
     @Body() updateEventDto: UpdateEventDto,
     @CurrentUser() user: TJwtPayload,
-    @UploadedFile(FileValidationPipe) eventCoverImage?: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addMaxSizeValidator({
+          maxSize: 3000000,
+          message: 'Max file size allowed is 3MB',
+        })
+        .build({
+          errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+          fileIsRequired: false,
+        }),
+    ) eventCoverImage?: Express.Multer.File,
   ) {
     if (eventCoverImage) {
       updateEventDto.eventCoverImage = eventCoverImage;
