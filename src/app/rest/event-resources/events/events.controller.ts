@@ -47,7 +47,7 @@ export class EventsController {
   @SerializeResponse(EventResponseDto, 'data')
   @UseInterceptors(ImageUploadInterceptor('eventCoverImage'))
   async create(
-    @Body() body: any,
+    @Body() body: CreateEventDto,
     @UploadedFile(FileValidationPipe) eventCoverImage: Express.Multer.File,
     @CurrentUser() user: TJwtPayload,
   ) {
