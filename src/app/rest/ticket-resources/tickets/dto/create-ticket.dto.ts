@@ -13,7 +13,7 @@ export class CreateTicketDto {
   @IsNotEmpty()
   name: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   @IsPositive()
   price: number;

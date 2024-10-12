@@ -87,9 +87,9 @@ export class CreateEventDto {
   @IsString()
   timeZone: string;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @IsOptional()
   @Type(() => CreateTicketDto)
   tickets?: CreateTicketDto[];
 }
