@@ -1,0 +1,45 @@
+{
+  "status": "UNPROCESSABLE_DATA_ERROR",
+  "errors": {
+    "eventStartDate": [
+      "property eventStartDate should not exist"
+    ],
+    "eventStartTime": [
+      "property eventStartTime should not exist"
+    ],
+    "eventEndTime": [
+      "property eventEndTime should not exist"
+    ],
+    "location": [
+      "property location should not exist"
+    ],
+    "googleMapUrl": [
+      "googleMapUrl must be a string",
+      "googleMapUrl should not be empty"
+    ],
+    "response": {
+      "status": "UNPROCESSABLE_DATA_ERROR",
+      "errors": {
+        "response": {
+          "status": "UNPROCESSABLE_DATA_ERROR",
+          "errors": {
+            "name": [
+              "name should not be empty",
+              "name must be a string"
+            ]
+          }
+        },
+        "status": 422,
+        "options": {},
+        "message": "Unprocessable Entity Exception",
+        "name": "UnprocessableEntityException"
+      }
+    },
+    "status": 422,
+    "options": {},
+    "message": "Unprocessable Entity Exception",
+    "name": "UnprocessableEntityException"
+  }
+}
+
+

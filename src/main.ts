@@ -5,6 +5,8 @@ import { CustomExceptionFilter } from '@libs/filters/custom-exception.filter';
 import { CustomValidationPipe } from '@libs/pipes/custom-validation.pipe';
 
 import * as bodyParser from 'body-parser';
+import { ValidationPipe } from '@nestjs/common';
+import { FormattedValidationPipe } from "@libs/pipes/formatted-validation-pipe";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -27,7 +29,20 @@ async function bootstrap() {
   });
 
   // Attaching the validation piper at the global level
-  app.useGlobalPipes(new CustomValidationPipe());
+  // app.useGlobalPipes(new CustomValidationPipe());
+
+  app.useGlobalPipes(new FormattedValidationPipe());
+
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     whitelist: true, // Strip properties that are not in the DTO
+  //     forbidNonWhitelisted: true, // Throw an error when an unknown property is provided
+  //     transform: true, // Automatically transform payloads to match DTO types
+  //     transformOptions: {
+  //       enableImplicitConversion: true, // Allow for implicit type conversion
+  //     },
+  //   }),
+  // );
 
   const port = configService.get<number>('PORT');
 

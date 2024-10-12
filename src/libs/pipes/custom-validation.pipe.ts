@@ -2,7 +2,6 @@ import {
   ArgumentMetadata,
   Injectable,
   PipeTransform,
-  BadRequestException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
@@ -16,28 +15,30 @@ export class CustomValidationPipe implements PipeTransform<any> {
       return value;
     }
 
-    const object = plainToInstance(metatype, value);
+    // Manually transform the plain object into an instance of the metatype
+    const object = plainToInstance(metatype, value, {
+      enableImplicitConversion: true, // Handle implicit type conversion here
+    });
 
-    // Proceed if the transformation produced a valid object
-    if (object) {
-      const validatorOptions: ValidatorOptions = {
-        validationError: {
-          target: false, // Exclude the object from the error message
-        },
-      };
+    const validatorOptions: ValidatorOptions = {
+      whitelist: true, // Strip properties that are not in the DTO
+      forbidNonWhitelisted: true, // Throw an error when an unknown property is provided
+      validationError: {
+        target: false, // Exclude the object from the error message
+      },
+    };
 
-      const errors = await validate(object, validatorOptions);
+    const errors = await validate(object, validatorOptions);
 
-      // If there are validation errors, handle them
-      if (errors.length > 0) {
-        throw new UnprocessableEntityException({
-          status: 'VALIDATION_ERROR',
-          errors: this.formatErrors(errors),
-        });
-      }
+    // If there are validation errors, handle them
+    if (errors.length > 0) {
+      throw new UnprocessableEntityException({
+        status: 'VALIDATION_ERROR',
+        errors: this.formatErrors(errors),
+      });
     }
 
-    return value;
+    return object; // Ensure transformed object is returned
   }
 
   // Determine if the type requires validation

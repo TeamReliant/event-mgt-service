@@ -1,0 +1,29 @@
+{
+  "status": "UNPROCESSABLE_DATA_ERROR",
+  "errors": {
+    "eventStartDate": [
+      "property eventStartDate should not exist"
+    ],
+    "eventStartTime": [
+      "property eventStartTime should not exist"
+    ],
+    "eventEndTime": [
+      "property eventEndTime should not exist"
+    ],
+    "location": [
+      "property location should not exist"
+    ],
+    "googleMapUrl": [
+      "googleMapUrl must be a string",
+      "googleMapUrl should not be empty"
+    ],
+    "tickets[0]": {
+      "name": [
+        "name should not be empty",
+        "name must be a string"
+      ]
+    }
+  }
+}
+
+
