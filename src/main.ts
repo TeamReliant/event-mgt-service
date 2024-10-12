@@ -33,16 +33,6 @@ async function bootstrap() {
 
   app.useGlobalPipes(new FormattedValidationPipe());
 
-  // app.useGlobalPipes(
-  //   new ValidationPipe({
-  //     whitelist: true, // Strip properties that are not in the DTO
-  //     forbidNonWhitelisted: true, // Throw an error when an unknown property is provided
-  //     transform: true, // Automatically transform payloads to match DTO types
-  //     transformOptions: {
-  //       enableImplicitConversion: true, // Allow for implicit type conversion
-  //     },
-  //   }),
-  // );
 
   const port = configService.get<number>('PORT');
 
