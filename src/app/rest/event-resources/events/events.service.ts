@@ -132,7 +132,7 @@ export class EventsService {
         throw error;
       }
       console.error('Error creating event:', error);
-      throw new BadRequestException('Error creating event');
+      throw new BadRequestException('Error creating event: ', error.message);
     }
   }
 
