@@ -1,11 +1,12 @@
 import {
+  IsDate,
   IsDateString,
   IsEnum,
   IsOptional,
   IsString,
   MaxLength,
-  MinLength,
-} from 'class-validator';
+  MinLength
+} from "class-validator";
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import { IsFutureDate } from '@libs/decorators/date-validator.decorator';
 
@@ -25,7 +26,7 @@ export class UpdateTaskDto {
   description: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsDate()
   @IsFutureDate()
   @FormatValidationException()
   dueDate: Date;
