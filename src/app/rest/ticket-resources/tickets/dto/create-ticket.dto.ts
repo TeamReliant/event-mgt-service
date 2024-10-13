@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Min,
 } from 'class-validator';
 import { TicketCategory } from '../enums';
 
@@ -15,29 +16,29 @@ export class CreateTicketDto {
 
   @IsOptional()
   @IsNumber()
-  @IsPositive()
-  price: number;
+  @Min(0)
+  price?: number;
 
   @IsEnum(TicketCategory)
   @IsOptional()
-  category: TicketCategory;
+  category?: TicketCategory;
 
   @IsOptional()
   @IsNumber()
-  @IsPositive()
-  availableTickets: number;
+  @Min(0)
+  availableTickets?: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @IsOptional()
-  minNumberOfTicketsOrderable: number;
+  minNumberOfTicketsOrderable?: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @IsOptional()
-  maxNumberOfTicketsOrderable: number;
+  maxNumberOfTicketsOrderable?: number;
 
   @IsString()
   @IsOptional()
-  description: string;
+  description?: string;
 }
