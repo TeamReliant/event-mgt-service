@@ -40,6 +40,15 @@ export class UpdateTaskDto {
   priority: string;
 
   @IsOptional()
+  @IsEnum(['pending', 'ongoing', 'completed'], {
+    message:
+      'status must be one of the following: pending, ongoing, completed',
+  })
+  @FormatValidationException()
+  status: string;
+
+
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(255)
