@@ -67,16 +67,15 @@ export class CreateEventDto {
   eventStatus: EventStatus;
 
   
-  @ValidateIf((o) => o.eventStartDateAndTime !== undefined)
+  @IsDate()
   @IsNotEmpty()
-  @IsDateString()
+  @IsOptional()
   @IsFutureDate()
   @FormatValidationException()
   eventStartDateAndTime: Date;
 
-  @ValidateIf((o) => o.eventEndDateAndTime !== undefined)
-  @IsNotEmpty()
-  @IsDateString()
+  @IsDate()
+  @IsOptional()
   @IsDateAfter('eventStartDateAndTime',{
     message: 'eventEndDateAndTime must be after eventStartDateAndTime',
   })

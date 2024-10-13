@@ -16,19 +16,19 @@ export class Ticket extends AbstractEntity<Ticket> {
     enum: TicketCategory,
     default: TicketCategory.PAID,
   })
-  category: TicketCategory;
+  category?: TicketCategory;
 
   @Column({ nullable: true })
-  availableTickets: number;
+  availableTickets?: number;
 
-  @Column({ default: 1 })
-  minNumberOfTicketsOrderable: number;
-
-  @Column({ nullable: true })
-  maxNumberOfTicketsOrderable: number;
+  @Column({ default: 1})
+  minNumberOfTicketsOrderable?: number;
 
   @Column({ nullable: true })
-  description: string;
+  maxNumberOfTicketsOrderable?: number;
+
+  @Column({ nullable: true })
+  description?: string;
 
   @Column({ default: 0 })
   numberOfTicketsSold: number;
