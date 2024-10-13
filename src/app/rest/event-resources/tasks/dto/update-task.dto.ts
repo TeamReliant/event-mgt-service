@@ -47,7 +47,6 @@ export class UpdateTaskDto {
   @FormatValidationException()
   status: string;
 
-
   @IsOptional()
   @IsString()
   @MinLength(1)

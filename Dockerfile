@@ -44,9 +44,9 @@ ENV NODE_ENV=production \
     REQUEST_RATE_LIMIT=100 \
     REDIS_HOST=redis \
     REDIS_PORT=6379 \
-    AZURE_BLOB_STORAGE_CONNECTION_STRING="ntSuffix=core.windows.net" \
-    AZURE_BLOB_STORAGE_CONTAINER_NAME=plaventi \
-    AZURE_BLOB_STORAGE_URL="https://plaventi.blob.core.windows.net/plaventi/" \
+    AZURE_BLOB_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=plaventi;AccountKey=YhqZXgXHYlgHo5+7PCT8MbHatgWV6ddeCFVbT8s+fAGNAwXt1kcJVWZq64thgayS8ABjirJkkEcT+AStg+pqUQ==;EndpointSuffix=core.windows.net" \
+    AZURE_BLOB_STORAGE_CONTAINER_NAME=plaventi-blob \
+    AZURE_BLOB_STORAGE_URL="plaventi.blob.core.windows.net/plaventi-blob" \
     GOOGLE_CLIENT_ID=558851748808-5ra3edjtmn6qmiivpfckb1h8narcp8uf.apps.googleusercontent.com \
     GOOGLE_CLIENT_SECRET=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 \
     AUTH_V1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1 \
