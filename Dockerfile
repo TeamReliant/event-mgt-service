@@ -47,8 +47,8 @@ ENV NODE_ENV=production \
     AZURE_BLOB_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=https;AccountName=plaventi;AccountKey=YhqZXgXHYlgHo5+7PCT8MbHatgWV6ddeCFVbT8s+fAGNAwXt1kcJVWZq64thgayS8ABjirJkkEcT+AStg+pqUQ==;EndpointSuffix=core.windows.net" \
     AZURE_BLOB_STORAGE_CONTAINER_NAME=plaventi-blob \
     AZURE_BLOB_STORAGE_URL="plaventi.blob.core.windows.net/plaventi-blob" \
-    GOOGLE_CLIENT_ID=558851748808-5ra3edjtmn6qmiivpfckb1h8narcp8uf.apps.googleusercontent.com \
-    GOOGLE_CLIENT_SECRET=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 \
+    GOOGLE_CLIENT_ID=872959448201-13gs723gl47ogl4luk3e1dkkn06k897o.apps.googleusercontent.com \
+    GOOGLE_CLIENT_SECRET=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 \
     AUTH_V1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1 \
     ORG_v1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1/em \
     STRIPE_SECRET_KEY=sk_test_51P2RdZP4Gkbi4QVGzhA52vb3Lr6URq1Lia8eW59EcBRN2sXDSKSJMvbGeZQg5kEyJ43ZdO8P3cXcYCNvgJFwlStI00CUXJIs9c \
