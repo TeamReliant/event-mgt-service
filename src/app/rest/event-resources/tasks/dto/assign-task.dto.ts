@@ -41,7 +41,7 @@ export class AssignTaskDto {
   @FormatValidationException()
   priority: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(255)
