@@ -91,7 +91,6 @@ export class TasksService {
       .createQueryBuilder('tasks')
       .leftJoinAndSelect('tasks.assignee', 'assignee')
       .leftJoinAndSelect('assignee.user', 'user')
-      .leftJoinAndSelect('assignee.user', 'user')
       .where('tasks.eventId = :eventId', { eventId })
       .select([
         'tasks',
