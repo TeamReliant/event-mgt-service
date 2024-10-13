@@ -2,11 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { CustomExceptionFilter } from '@libs/filters/custom-exception.filter';
-import { CustomValidationPipe } from '@libs/pipes/custom-validation.pipe';
-
-import * as bodyParser from 'body-parser';
-import { ValidationPipe } from '@nestjs/common';
-import { FormattedValidationPipe } from "@libs/pipes/formatted-validation-pipe";
+import { FormattedValidationPipe } from '@libs/pipes/formatted-validation-pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -32,7 +28,6 @@ async function bootstrap() {
   // app.useGlobalPipes(new CustomValidationPipe());
 
   app.useGlobalPipes(new FormattedValidationPipe());
-
 
   const port = configService.get<number>('PORT');
 
