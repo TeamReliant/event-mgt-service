@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PaymentStrategy } from './interfaces/payment-strategy.interface';
 import Stripe from 'stripe';
 
@@ -143,23 +143,55 @@ export class StripePaymentStrategy implements PaymentStrategy {
     return session;
   }
 
-  async updateSubscription(sessionId: string) {
-    const checkoutSession =
-      await this.stripe.checkout.sessions.retrieve(sessionId);
+  async updateSubscription(subscriptionId: string, planName: string) {
+    try {
+      // Retrieve the subscription using the subscriptionId
+      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+  
+      if (!subscription) {
+        throw new BadRequestException('No subscription found for the subscriptionId');
+      }
 
-    if (!checkoutSession.customer) {
-      throw new Error('No customer found');
+      const products = await this.stripe.products.list({
+        active: true,
+      });
+  
+      // Find the product that matches the given planName
+      const product = products.data.find(product => product.name.toLowerCase() === planName);
+  
+      if (!product) {
+        throw new BadRequestException(`No product found for the plan name: ${planName}`);
+      }
+  
+      // Retrieve the prices associated with the found product
+      const prices = await this.stripe.prices.list({
+        product: product.id,
+        active: true,
+      });
+  
+      if (prices.data.length === 0) {
+        throw new BadRequestException(`No prices found for the product: ${product.name}`);
+      }
+
+      const priceId = prices.data[0].id;
+  
+      // Update the subscription with the new plan
+      const updatedSubscription = await this.stripe.subscriptions.update(subscriptionId, {
+        items: [
+          {
+            id: subscription.items.data[0].id,
+            price: priceId,
+          },
+        ],
+        proration_behavior: 'create_prorations', // Prorate changes
+      });
+  
+      
+  
+      return updatedSubscription;
+    } catch (error) {
+      throw new BadRequestException(`Failed to update subscription: ${error.message}`);
     }
-
-    const portalSession = await this.stripe.billingPortal.sessions.create({
-      customer:
-        typeof checkoutSession.customer === 'string'
-          ? checkoutSession.customer
-          : checkoutSession.customer.id,
-      return_url: process.env.STRIPE_PORTAL_RETURN_URI,
-    });
-
-    return portalSession;
   }
 
   handleWebHook(eventData: any): Promise<any> {
