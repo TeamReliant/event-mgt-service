@@ -1,23 +1,16 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
   Query,
   HttpCode,
   UseGuards,
   HttpStatus,
   Req,
   Res,
-  RawBody,
   RawBodyRequest,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { CurrentUser } from '@libs/decorators/current-user.decorator';
 import { TJwtPayload } from '@libs/types';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
@@ -58,26 +51,13 @@ export class PaymentController {
     @CurrentUser() user: TJwtPayload,
     @Query('paymentMethod') paymentMethod: string,
   ) {
-    const { statusCode, sessionUrl } =
+    const { statusCode, data } =
       await this.paymentService.createSubscription(
         user,
         createSubDto,
         paymentMethod,
       );
-    return ResponseSerializer.data({ statusCode, sessionUrl });
-  }
-
-  @Post('update-subscription')
-  @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard)
-  async updateSubscription(
-    @CurrentUser() user: TJwtPayload,
-    @Query('paymentMethod') paymentMethod: string,
-    @Body() createSubDto: CreateSubscriptionDto
-  ) {
-    const updatedSubscription =
-      await this.paymentService.updateSubscription(user, paymentMethod, createSubDto);
-    return ResponseSerializer.data(updatedSubscription);
+    return ResponseSerializer.data({ statusCode, data });
   }
 
   @Post('stripe-webhooks')
