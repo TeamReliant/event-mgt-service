@@ -83,7 +83,6 @@ export class PaymentService {
   }
 
   async createSessions(user: TJwtPayload, paymentMethod: string) {
-    try {
       const paymentStrategy =
         this.paymentStrategyResolver.getStrategy(paymentMethod);
       const currUser = await this.validateUserType(user, 'organizer');
@@ -106,21 +105,9 @@ export class PaymentService {
       );
 
       return clientSecret;
-    } catch (error) {
-      if (
-        error instanceof UnauthorizedException ||
-        error instanceof BadRequestException
-      ) {
-        console.error(error.message);
-        throw error;
-      }
-      console.error(error.message);
-      throw new Error('Error creating connected account');
-    }
   }
 
   async createCustomer(user: TJwtPayload, method: string) {
-    try {
       const currUser = await this.validateUserType(user, 'organizer');
 
       const paymentStrategy = this.paymentStrategyResolver.getStrategy(method);
@@ -131,15 +118,8 @@ export class PaymentService {
       );
       currUser.customerId = customer.id;
       await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        console.error(error.message);
-        throw error;
-      }
-      console.error(error.message);
-      throw new Error('Error creating customer account');
-    }
-  }
+    } 
+  
 
   
 
@@ -160,31 +140,26 @@ export class PaymentService {
         await this.createStripeConnectedAccountId(currUser);
       }
 
-      if (currUser.subscriptionStatus === 'active' || currUser.subscriptionStatus === 'trialing') throw new BadRequestException("User has an active subcription");
+      if (currUser.subscriptionStatus === 'active' || currUser.subscriptionStatus === 'trialing')
+      {
+        const updatedUser = await this.updateSubscription(currUser, paymentMethod, createSubDto);
+        return { statusCode: 200, data: updatedUser }
+      }else {
+        const session = await paymentStrategy.createSubscription(
+          currUser.customerId,
+          createSubDto.plan,);
+          return { statusCode: 303, data: session.url };
+      }
 
-      const session = await paymentStrategy.createSubscription(
-        currUser.customerId,
-        createSubDto.plan,
-      );
-
-      return { statusCode: 303, sessionUrl: session.url };
+      
   }
 
-  async updateSubscription(user: TJwtPayload, paymentMethod: string, createSubDto: CreateSubscriptionDto) {
-    try {
+  async updateSubscription(currUser: User, paymentMethod: string, createSubDto: CreateSubscriptionDto) {
       const paymentStrategy = await this.paymentStrategyResolver.getStrategy(paymentMethod);
-      const currUser = await this.validateUserType(user, 'organizer');
-  
-      if (currUser.subscriptionStatus !== 'active' && currUser.subscriptionStatus !== 'trialing') {
-        throw new NotFoundException('No active subscription found');
-      }
   
       // Assuming you have the subscription ID stored in currUser.subscriptionId
       const updatedSubscription = await paymentStrategy.updateSubscription(currUser.subscriptionId, createSubDto.plan);
-      if (!updatedSubscription)
-      {
-        throw new InternalServerErrorException("An Error occured while updating subscription");
-      }
+      if (!updatedSubscription) throw new InternalServerErrorException("An Error occured while updating subscription");
 
       const subscriptionEndDate = new Date(updatedSubscription.current_period_end * 1000);
       const subscriptionEndDateISO = subscriptionEndDate.toISOString();
@@ -194,18 +169,9 @@ export class PaymentService {
       const updatedUser = await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
       if (!updatedUser) throw new InternalServerErrorException("User could not be updated with latest subscription data");
       return updatedUser;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        console.error(error.message);
-        throw error;
-      }
-      console.error(error.message);
-      throw new Error('Error updating subscription');
-    }
   }
 
   async handlePayment(event: Stripe.Event) {
-    try {
       let { invoice, user } =
         await this.getInvoiceAndUserFromStripeEvent(event);
       if (invoice.subscription) {
@@ -221,17 +187,6 @@ export class PaymentService {
           user,
         );
       }
-    } catch (error) {
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        console.error(error.message);
-        throw error;
-      } else {
-      }
-      console.error('Error handling payment succeeded event', error.message);
-    }
   }
 
   private async handleSubscriptionPayment(
@@ -244,7 +199,7 @@ export class PaymentService {
 
     const subscription =
       await this.stripe.subscriptions.retrieve(subscriptionId);
-      
+
 
     if (
       !subscription.items ||
@@ -398,7 +353,6 @@ export class PaymentService {
   }
 
   async handleAccountUpdated(event: Stripe.Event) {
-    try {
       const account = event.data.object as Stripe.Account;
       const user = await this.checkUserExists(account.email);
 
@@ -428,18 +382,9 @@ export class PaymentService {
         );
       }
       await this.userService.findOneByIdAndUpdate(user.id, user);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        console.error(error.message);
-        throw error;
-      }
-      console.error('Error handling account updated event', error.message);
-      throw error;
-    }
   }
 
   async handleCustomerCreated(event: Stripe.Event) {
-    try {
       const customer = event.data.object as Stripe.Customer;
       if (!customer.email) {
         console.error('Customer email is null or undefined');
@@ -455,18 +400,9 @@ export class PaymentService {
         events.CUSTOMER_CREATED,
         new PaymentEvent(notification),
       );
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        console.error(error.message);
-        throw error;
-      }
-      console.error(error.message);
-      throw error;
-    }
   }
 
   async handlePayout(event: Stripe.Event, eventType: string) {
-    try {
       const connectedAccountId = event.account;
       const user =
         await this.userService.findOneByConnectedAccountId(connectedAccountId);
@@ -483,13 +419,5 @@ export class PaymentService {
       };
 
       this.eventEmitter.emit(eventType, new PaymentEvent(payoutNotification));
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        console.error(error.message);
-        throw Error;
-      }
-      console.error('Something went wrong while handling payout success event');
-      throw error;
-    }
   }
 }
