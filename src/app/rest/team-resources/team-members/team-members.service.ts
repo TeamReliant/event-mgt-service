@@ -4,6 +4,7 @@ import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
 import { Permission } from '@app/rest/team-resources/permissions/entities/permission.entity';
+import { Request } from 'express';
 
 @Injectable()
 export class TeamMembersService {
@@ -13,8 +14,10 @@ export class TeamMembersService {
     private readonly _entityManager: EntityManager,
   ) {}
 
-  findAll(teamId: string): SelectQueryBuilder<TeamMember> {
-    return this._repo
+  findAll(teamId: string, req: Request): SelectQueryBuilder<TeamMember> {
+    const { query } = req;
+
+    const queryBuilder = this._repo
       .createQueryBuilder('members')
       .leftJoinAndSelect('members.user', 'user')
       .where('members.teamId = :teamId', { teamId })
@@ -26,6 +29,31 @@ export class TeamMembersService {
         'user.email',
         'user.picture',
       ]);
+
+    if (query.search) {
+      const search = query.search as string;
+      const searchTerms = search.trim().split(' ');
+
+      if (searchTerms.length === 1) {
+        // Single term search: match either firstname or lastname (case-insensitive)
+        queryBuilder.andWhere(
+          `(user.firstname ILIKE :search OR user.lastname ILIKE :search)`,
+          { search: `%${search}%` },
+        );
+      }
+
+      if (searchTerms.length === 2) {
+        // Two terms: match both firstname and lastname in sequence (case-insensitive)
+        const [firstName, lastName] = searchTerms;
+        queryBuilder.andWhere(
+          `((user.firstname ILIKE :firstName AND user.lastname ILIKE :lastName) 
+          OR (user.firstname ILIKE :lastName AND user.lastname ILIKE :firstName))`,
+          { firstName: `%${firstName}%`, lastName: `%${lastName}%` },
+        );
+      }
+    }
+
+    return queryBuilder;
   }
 
   async findOne(

@@ -303,51 +303,51 @@ export class EventsService {
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
-      // check if event exists and belongs to authenticated user
-      const event = await this.findOne(id, user);
-      // check if update has image.
-      //upload image
-      let eventImageURL = event.eventImageURL;
-      if (updateEventDto.eventCoverImage) {
-        eventImageURL = await this.uploadImage(updateEventDto.eventCoverImage);
-        await this.deleteImage(event.eventImageURL);
-      }
+    // check if event exists and belongs to authenticated user
+    const event = await this.findOne(id, user);
+    // check if update has image.
+    //upload image
+    let eventImageURL = event.eventImageURL;
+    if (updateEventDto.eventCoverImage) {
+      eventImageURL = await this.uploadImage(updateEventDto.eventCoverImage);
+      await this.deleteImage(event.eventImageURL);
+    }
 
-      // update event
-      const updatedEvent = await this.entityManager.transaction(
-        async (manager) => {
-          const { eventCoverImage, tickets, ...rest } = updateEventDto;
-          const updatedFields = {
-            ...rest,
-            eventImageURL,
-          };
+    // update event
+    const updatedEvent = await this.entityManager.transaction(
+      async (manager) => {
+        const { eventCoverImage, tickets, ...rest } = updateEventDto;
+        const updatedFields = {
+          ...rest,
+          eventImageURL,
+        };
 
-          Object.assign(event, updatedFields);
+        Object.assign(event, updatedFields);
 
-          //preserve existing tickets and user
-          event.tickets = event.tickets;
-          event.user = event.user;
-          return await manager.save<Event>(event);
-        },
-      );
-      // return updated event
-      return updatedEvent;
+        //preserve existing tickets and user
+        event.tickets = event.tickets;
+        event.user = event.user;
+        return await manager.save<Event>(event);
+      },
+    );
+    // return updated event
+    return updatedEvent;
   }
 
   async remove(id: string, user: TJwtPayload) {
-      //check if event exists and belongs to authenticated user
-      const event = await this.findOne(id, user);
-      const userEntity = await this.userService.findOne(user.userId);
+    //check if event exists and belongs to authenticated user
+    const event = await this.findOne(id, user);
+    const userEntity = await this.userService.findOne(user.userId);
 
-      //delete event and it's related tickets
-      await this.entityManager.transaction(async (manager) => {
-        await manager.delete(Ticket, { event: { id: event.id } });
-        await manager.delete(Event, id);
-        userEntity.numOfEventsCreated--;
-        await manager.save(User, userEntity);
-        await this.deleteImage(event.eventImageURL);
-      });
-      return;
+    //delete event and it's related tickets
+    await this.entityManager.transaction(async (manager) => {
+      await manager.delete(Ticket, { event: { id: event.id } });
+      await manager.delete(Event, id);
+      userEntity.numOfEventsCreated--;
+      await manager.save(User, userEntity);
+      await this.deleteImage(event.eventImageURL);
+    });
+    return;
   }
 
   async assignTeam(body: AssignTeamDto, eventId: string, userId: string) {
