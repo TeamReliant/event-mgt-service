@@ -195,6 +195,8 @@ export class EventsService {
       eventVisibility,
       eventStatus,
       eventStartDateAndTime,
+      dateRangeStart,
+      dateRangeEnd,
     } = query;
 
     const userId = user.userId;
@@ -249,6 +251,13 @@ export class EventsService {
         {
           eventStartDateAndTime,
         },
+      );
+    }
+
+    if (dateRangeStart && dateRangeEnd) {
+      queryBuilder.andWhere(
+        'event.createdAt BETWEEN :dateRangeStart AND :dateRangeEnd',
+        { dateRangeStart, dateRangeEnd },
       );
     }
 

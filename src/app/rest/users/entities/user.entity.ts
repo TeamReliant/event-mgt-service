@@ -106,7 +106,7 @@ export class User extends AbstractEntity<User> {
 
   @Column({ nullable: true })
   subscriptionStatus?:
-   'incomplete'
+    | 'incomplete'
     | 'incomplete_expired'
     | 'trialing'
     | 'active'
@@ -121,6 +121,20 @@ export class User extends AbstractEntity<User> {
 
   @Column({ nullable: true })
   subscriptionEndDate?: string;
+
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  sessionId?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  updateSessionId?: string;
+
 
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];

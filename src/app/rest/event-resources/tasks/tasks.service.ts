@@ -91,7 +91,6 @@ export class TasksService {
       .createQueryBuilder('tasks')
       .leftJoinAndSelect('tasks.assignee', 'assignee')
       .leftJoinAndSelect('assignee.user', 'user')
-      .leftJoinAndSelect('assignee.user', 'user')
       .where('tasks.eventId = :eventId', { eventId })
       .select([
         'tasks',
@@ -153,7 +152,7 @@ export class TasksService {
     body: UpdateTaskDto,
   ) {
     // destructuring the body
-    const { title, description, dueDate, priority, assigneeId } = body;
+    const { title, description, dueDate, priority, status, assigneeId } = body;
 
     // // find the event, team and its members with the provided
     const event = await this._entityManager
@@ -195,7 +194,7 @@ export class TasksService {
         // unassign the task
         task.assignee = null;
 
-        Object.assign(task, { title, description, dueDate, priority });
+        Object.assign(task, { title, description, status, dueDate, priority });
         await manager.save(task);
         return;
       }
@@ -222,7 +221,7 @@ export class TasksService {
         this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
       }
 
-      Object.assign(task, { title, description, dueDate, priority });
+      Object.assign(task, { title, description, status, dueDate, priority });
       await manager.save(task);
     });
 

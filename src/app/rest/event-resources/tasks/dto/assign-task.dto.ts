@@ -1,11 +1,9 @@
 import {
   IsDate,
-  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -20,15 +18,15 @@ export class AssignTaskDto {
   @FormatValidationException()
   title: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(100000)
   @FormatValidationException()
   description: string;
 
-  @IsNotEmpty()
-  @IsDateString()
+  @IsOptional()
+  @IsDate()
   @IsFutureDate()
   @FormatValidationException()
   dueDate: Date;
@@ -44,7 +42,6 @@ export class AssignTaskDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @IsUUID()
   @MaxLength(255)
   @FormatValidationException()
   assigneeId: string;

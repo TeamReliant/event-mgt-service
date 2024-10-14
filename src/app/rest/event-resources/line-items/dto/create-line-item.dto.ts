@@ -4,8 +4,8 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  MaxLength,
-} from 'class-validator';
+  MaxLength, Min
+} from "class-validator";
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 
 export class CreateLineItemDto {
@@ -23,13 +23,13 @@ export class CreateLineItemDto {
 
   @IsNotEmpty()
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @FormatValidationException()
   intendedBudget: number;
 
   @IsOptional()
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @FormatValidationException()
   amountSpent: number;
 }

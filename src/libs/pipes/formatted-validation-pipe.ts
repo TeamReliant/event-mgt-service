@@ -15,7 +15,8 @@ export class FormattedValidationPipe extends ValidationPipe {
       transformOptions: {
         enableImplicitConversion: true,
       },
-      exceptionFactory: (errors: ValidationError[]) => this.formatErrors(errors),
+      exceptionFactory: (errors: ValidationError[]) =>
+        this.formatErrors(errors),
     });
   }
 
