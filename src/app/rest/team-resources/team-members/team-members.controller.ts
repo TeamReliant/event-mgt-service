@@ -36,7 +36,7 @@ export class TeamMembersController {
     @Param() params: FetchTeamMembersParamsDto,
     @Req() req: Request,
   ) {
-    const queryBuilder = this.teamMembersService.findAll(params.teamId);
+    const queryBuilder = this.teamMembersService.findAll(params.teamId, req);
     return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 

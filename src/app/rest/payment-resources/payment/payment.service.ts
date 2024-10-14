@@ -71,8 +71,7 @@ export class PaymentService {
     return { invoice, user };
   }
 
-  private async createStripeConnectedAccountId(user: User)
-  {
+  private async createStripeConnectedAccountId(user: User) {
     const account = await this.stripe.accounts.create({
       type: 'express',
       email: user.email,
@@ -83,110 +82,130 @@ export class PaymentService {
   }
 
   async createSessions(user: TJwtPayload, paymentMethod: string) {
-      const paymentStrategy =
-        this.paymentStrategyResolver.getStrategy(paymentMethod);
-      const currUser = await this.validateUserType(user, 'organizer');
+    const paymentStrategy =
+      this.paymentStrategyResolver.getStrategy(paymentMethod);
+    const currUser = await this.validateUserType(user, 'organizer');
 
-      console.log(currUser.stripeConnectedAccountId);
-      if (!currUser.stripeConnectedAccountId) {
-        const { accountId, clientSecret } =
-          await paymentStrategy.createSessions(currUser.email);
-
-        currUser.stripeConnectedAccountId = accountId;
-        await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
-
-        return clientSecret;
-      }
-
-      //if the user already has a connected account, create account link
-      const { clientSecret } = await paymentStrategy.createSessions(
+    console.log(currUser.stripeConnectedAccountId);
+    if (!currUser.stripeConnectedAccountId) {
+      const { accountId, clientSecret } = await paymentStrategy.createSessions(
         currUser.email,
-        currUser.stripeConnectedAccountId,
       );
 
+      currUser.stripeConnectedAccountId = accountId;
+      await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
+
       return clientSecret;
+    }
+
+    //if the user already has a connected account, create account link
+    const { clientSecret } = await paymentStrategy.createSessions(
+      currUser.email,
+      currUser.stripeConnectedAccountId,
+    );
+
+    return clientSecret;
   }
 
   async createCustomer(user: TJwtPayload, method: string) {
-      const currUser = await this.validateUserType(user, 'organizer');
+    const currUser = await this.validateUserType(user, 'organizer');
 
-      const paymentStrategy = this.paymentStrategyResolver.getStrategy(method);
+    const paymentStrategy = this.paymentStrategyResolver.getStrategy(method);
 
-      const customer = await paymentStrategy.createCustomer(
-        currUser.email,
-        `${currUser.firstname} ${currUser.lastname}`,
-      );
-      currUser.customerId = customer.id;
-      await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
-    } 
-  
-
-  
+    const customer = await paymentStrategy.createCustomer(
+      currUser.email,
+      `${currUser.firstname} ${currUser.lastname}`,
+    );
+    currUser.customerId = customer.id;
+    await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
+  }
 
   async createSubscription(
     user: TJwtPayload,
     createSubDto: CreateSubscriptionDto,
     paymentMethod: string,
   ) {
-      const paymentStrategy =
-        this.paymentStrategyResolver.getStrategy(paymentMethod);
-      const currUser = await this.validateUserType(user, 'organizer');
-      if (!currUser.customerId) {
-        await this.createCustomer(user, paymentMethod);
-      }
+    const paymentStrategy =
+      this.paymentStrategyResolver.getStrategy(paymentMethod);
+    const currUser = await this.validateUserType(user, 'organizer');
+    if (!currUser.customerId) {
+      await this.createCustomer(user, paymentMethod);
+    }
 
-      if (!currUser.stripeConnectedAccountId)
-      {
-        await this.createStripeConnectedAccountId(currUser);
-      }
+    if (!currUser.stripeConnectedAccountId) {
+      await this.createStripeConnectedAccountId(currUser);
+    }
 
-      if (currUser.subscriptionStatus === 'active' || currUser.subscriptionStatus === 'trialing')
-      {
-        const updatedUser = await this.updateSubscription(currUser, paymentMethod, createSubDto);
-        return { statusCode: 200, data: updatedUser }
-      }else {
-        const session = await paymentStrategy.createSubscription(
-          currUser.customerId,
-          createSubDto.plan,);
-          return { statusCode: 303, data: session.url };
-      }
-
-      
+    if (
+      currUser.subscriptionStatus === 'active' ||
+      currUser.subscriptionStatus === 'trialing'
+    ) {
+      const updatedUser = await this.updateSubscription(
+        currUser,
+        paymentMethod,
+        createSubDto,
+      );
+      return { statusCode: 200, data: updatedUser };
+    } else {
+      const session = await paymentStrategy.createSubscription(
+        currUser.customerId,
+        createSubDto.plan,
+      );
+      return { statusCode: 303, data: session.url };
+    }
   }
 
-  async updateSubscription(currUser: User, paymentMethod: string, createSubDto: CreateSubscriptionDto) {
-      const paymentStrategy = await this.paymentStrategyResolver.getStrategy(paymentMethod);
-  
-      // Assuming you have the subscription ID stored in currUser.subscriptionId
-      const updatedSubscription = await paymentStrategy.updateSubscription(currUser.subscriptionId, createSubDto.plan);
-      if (!updatedSubscription) throw new InternalServerErrorException("An Error occured while updating subscription");
+  async updateSubscription(
+    currUser: User,
+    paymentMethod: string,
+    createSubDto: CreateSubscriptionDto,
+  ) {
+    const paymentStrategy =
+      await this.paymentStrategyResolver.getStrategy(paymentMethod);
 
-      const subscriptionEndDate = new Date(updatedSubscription.current_period_end * 1000);
-      const subscriptionEndDateISO = subscriptionEndDate.toISOString();
-      currUser.subscriptionEndDate = subscriptionEndDateISO;
-      currUser.subscribedPlan = createSubDto.plan;
+    // Assuming you have the subscription ID stored in currUser.subscriptionId
+    const updatedSubscription = await paymentStrategy.updateSubscription(
+      currUser.subscriptionId,
+      createSubDto.plan,
+    );
+    if (!updatedSubscription)
+      throw new InternalServerErrorException(
+        'An Error occured while updating subscription',
+      );
 
-      const updatedUser = await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
-      if (!updatedUser) throw new InternalServerErrorException("User could not be updated with latest subscription data");
-      return updatedUser;
+    const subscriptionEndDate = new Date(
+      updatedSubscription.current_period_end * 1000,
+    );
+    const subscriptionEndDateISO = subscriptionEndDate.toISOString();
+    currUser.subscriptionEndDate = subscriptionEndDateISO;
+    currUser.subscribedPlan = createSubDto.plan;
+
+    const updatedUser = await this.userService.findOneByIdAndUpdate(
+      currUser.id,
+      currUser,
+    );
+    if (!updatedUser)
+      throw new InternalServerErrorException(
+        'User could not be updated with latest subscription data',
+      );
+    return updatedUser;
   }
 
   async handlePayment(event: Stripe.Event) {
-      let { invoice, user } =
-        await this.getInvoiceAndUserFromStripeEvent(event);
-      if (invoice.subscription) {
-        this.handleSubscriptionPayment(
-          event.type === 'invoice.payment_failed' ? 'failed' : 'succeeded',
-          invoice,
-          user,
-        );
-      } else {
-        this.handleNormalPayment(
-          event.type === 'invoice.payment_failed' ? 'failed' : 'succeeded',
-          invoice,
-          user,
-        );
-      }
+    let { invoice, user } = await this.getInvoiceAndUserFromStripeEvent(event);
+    if (invoice.subscription) {
+      this.handleSubscriptionPayment(
+        event.type === 'invoice.payment_failed' ? 'failed' : 'succeeded',
+        invoice,
+        user,
+      );
+    } else {
+      this.handleNormalPayment(
+        event.type === 'invoice.payment_failed' ? 'failed' : 'succeeded',
+        invoice,
+        user,
+      );
+    }
   }
 
   private async handleSubscriptionPayment(
@@ -199,7 +218,6 @@ export class PaymentService {
 
     const subscription =
       await this.stripe.subscriptions.retrieve(subscriptionId);
-
 
     if (
       !subscription.items ||
@@ -224,10 +242,11 @@ export class PaymentService {
       planName = product.name;
     }
 
-    const subscriptionEndDate = new Date(subscription.current_period_end * 1000);
+    const subscriptionEndDate = new Date(
+      subscription.current_period_end * 1000,
+    );
     const subscriptionEndDateISO = subscriptionEndDate.toISOString();
     user.subscriptionEndDate = subscriptionEndDateISO;
-
 
     //update the status of the user and the plan subscribed for
     user.subscriptionStatus = subscription.status;
@@ -353,71 +372,71 @@ export class PaymentService {
   }
 
   async handleAccountUpdated(event: Stripe.Event) {
-      const account = event.data.object as Stripe.Account;
-      const user = await this.checkUserExists(account.email);
+    const account = event.data.object as Stripe.Account;
+    const user = await this.checkUserExists(account.email);
 
-      const paymentNotification: Payment = {
-        user,
-      };
-      if (account.charges_enabled) {
-        //TODO notify user of charges enabled and encourage them to enable payouts
-        this.eventEmitter.emit(
-          events.CHARGES_ENABLED,
-          new PaymentEvent(paymentNotification),
-        );
-      }
-      if (account.payouts_enabled) {
-        //TODO notify user of payouts enabled
-        this.eventEmitter.emit(
-          events.PAYOUT_ENABLED,
-          new PaymentEvent(paymentNotification),
-        );
-      }
+    const paymentNotification: Payment = {
+      user,
+    };
+    if (account.charges_enabled) {
+      //TODO notify user of charges enabled and encourage them to enable payouts
+      this.eventEmitter.emit(
+        events.CHARGES_ENABLED,
+        new PaymentEvent(paymentNotification),
+      );
+    }
+    if (account.payouts_enabled) {
+      //TODO notify user of payouts enabled
+      this.eventEmitter.emit(
+        events.PAYOUT_ENABLED,
+        new PaymentEvent(paymentNotification),
+      );
+    }
 
-      if (account.charges_enabled && account.payouts_enabled) {
-        user.isOnboarded = true;
-        this.eventEmitter.emit(
-          events.STRIPE_PAYMENT_ONBOARDING_COMPLETED,
-          new PaymentEvent(paymentNotification),
-        );
-      }
-      await this.userService.findOneByIdAndUpdate(user.id, user);
+    if (account.charges_enabled && account.payouts_enabled) {
+      user.isOnboarded = true;
+      this.eventEmitter.emit(
+        events.STRIPE_PAYMENT_ONBOARDING_COMPLETED,
+        new PaymentEvent(paymentNotification),
+      );
+    }
+    await this.userService.findOneByIdAndUpdate(user.id, user);
   }
 
   async handleCustomerCreated(event: Stripe.Event) {
-      const customer = event.data.object as Stripe.Customer;
-      if (!customer.email) {
-        console.error('Customer email is null or undefined');
-        return;
-      }
-      const user = await this.checkUserExists(customer.email);
+    const customer = event.data.object as Stripe.Customer;
+    if (!customer.email) {
+      console.error('Customer email is null or undefined');
+      return;
+    }
+    const user = await this.checkUserExists(customer.email);
 
-      const notification: Payment = {
-        user,
-      };
+    const notification: Payment = {
+      user,
+    };
 
-      this.eventEmitter.emit(
-        events.CUSTOMER_CREATED,
-        new PaymentEvent(notification),
-      );
+    this.eventEmitter.emit(
+      events.CUSTOMER_CREATED,
+      new PaymentEvent(notification),
+    );
   }
 
   async handlePayout(event: Stripe.Event, eventType: string) {
-      const connectedAccountId = event.account;
-      const user =
-        await this.userService.findOneByConnectedAccountId(connectedAccountId);
+    const connectedAccountId = event.account;
+    const user =
+      await this.userService.findOneByConnectedAccountId(connectedAccountId);
 
-      if (!user)
-        throw new NotFoundException(
-          `User with Stripe Connect account: ${connectedAccountId} not found`,
-        );
+    if (!user)
+      throw new NotFoundException(
+        `User with Stripe Connect account: ${connectedAccountId} not found`,
+      );
 
-      const payout = event.data.object as Stripe.Payout;
-      const payoutNotification: Payment = {
-        user,
-        payout,
-      };
+    const payout = event.data.object as Stripe.Payout;
+    const payoutNotification: Payment = {
+      user,
+      payout,
+    };
 
-      this.eventEmitter.emit(eventType, new PaymentEvent(payoutNotification));
+    this.eventEmitter.emit(eventType, new PaymentEvent(payoutNotification));
   }
 }

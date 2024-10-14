@@ -51,12 +51,11 @@ export class PaymentController {
     @CurrentUser() user: TJwtPayload,
     @Query('paymentMethod') paymentMethod: string,
   ) {
-    const { statusCode, data } =
-      await this.paymentService.createSubscription(
-        user,
-        createSubDto,
-        paymentMethod,
-      );
+    const { statusCode, data } = await this.paymentService.createSubscription(
+      user,
+      createSubDto,
+      paymentMethod,
+    );
     return ResponseSerializer.data({ statusCode, data });
   }
 
