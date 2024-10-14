@@ -303,7 +303,6 @@ export class EventsService {
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
-    try {
       // check if event exists and belongs to authenticated user
       const event = await this.findOne(id, user);
       // check if update has image.
@@ -333,14 +332,9 @@ export class EventsService {
       );
       // return updated event
       return updatedEvent;
-    } catch (error) {
-      console.error('Error updating event: ', error.message);
-      throw new BadRequestException('Error updating event');
-    }
   }
 
   async remove(id: string, user: TJwtPayload) {
-    try {
       //check if event exists and belongs to authenticated user
       const event = await this.findOne(id, user);
       const userEntity = await this.userService.findOne(user.userId);
@@ -354,10 +348,6 @@ export class EventsService {
         await this.deleteImage(event.eventImageURL);
       });
       return;
-    } catch (error) {
-      console.error('Error deleting event: ', error.message);
-      throw new BadRequestException('Error deleting event. Please try again');
-    }
   }
 
   async assignTeam(body: AssignTeamDto, eventId: string, userId: string) {
