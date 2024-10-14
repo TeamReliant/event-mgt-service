@@ -73,10 +73,13 @@ export class PaymentController {
   async updateSubscription(
     @CurrentUser() user: TJwtPayload,
     @Query('paymentMethod') paymentMethod: string,
-    @Body() createSubDto: CreateSubscriptionDto
+    @Body() createSubDto: CreateSubscriptionDto,
   ) {
-    const updatedSubscription =
-      await this.paymentService.updateSubscription(user, paymentMethod, createSubDto);
+    const updatedSubscription = await this.paymentService.updateSubscription(
+      user,
+      paymentMethod,
+      createSubDto,
+    );
     return ResponseSerializer.data(updatedSubscription);
   }
 

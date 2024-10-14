@@ -48,7 +48,7 @@ export class UserDto {
 
   @Expose()
   subscriptionStatus?:
-      'incomplete'
+    | 'incomplete'
     | 'incomplete_expired'
     | 'trialing'
     | 'active'

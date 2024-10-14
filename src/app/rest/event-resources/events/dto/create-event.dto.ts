@@ -12,7 +12,10 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { EventStatus, EventVisibility } from '../enums';
-import { IsDateAfter, IsFutureDate } from '@libs/decorators/date-validator.decorator';
+import {
+  IsDateAfter,
+  IsFutureDate,
+} from '@libs/decorators/date-validator.decorator';
 import { Type } from 'class-transformer';
 import { CreateTicketDto } from '@app/rest/ticket-resources/tickets/dto/create-ticket.dto';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
@@ -66,7 +69,6 @@ export class CreateEventDto {
   @IsOptional()
   eventStatus: EventStatus;
 
-  
   @IsDate()
   @IsNotEmpty()
   @IsOptional()
@@ -76,7 +78,7 @@ export class CreateEventDto {
 
   @IsDate()
   @IsOptional()
-  @IsDateAfter('eventStartDateAndTime',{
+  @IsDateAfter('eventStartDateAndTime', {
     message: 'eventEndDateAndTime must be after eventStartDateAndTime',
   })
   @FormatValidationException()

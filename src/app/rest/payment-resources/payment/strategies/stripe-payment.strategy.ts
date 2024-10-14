@@ -146,51 +146,63 @@ export class StripePaymentStrategy implements PaymentStrategy {
   async updateSubscription(subscriptionId: string, planName: string) {
     try {
       // Retrieve the subscription using the subscriptionId
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
-  
+      const subscription =
+        await this.stripe.subscriptions.retrieve(subscriptionId);
+
       if (!subscription) {
-        throw new BadRequestException('No subscription found for the subscriptionId');
+        throw new BadRequestException(
+          'No subscription found for the subscriptionId',
+        );
       }
 
       const products = await this.stripe.products.list({
         active: true,
       });
-  
+
       // Find the product that matches the given planName
-      const product = products.data.find(product => product.name.toLowerCase() === planName);
-  
+      const product = products.data.find(
+        (product) => product.name.toLowerCase() === planName,
+      );
+
       if (!product) {
-        throw new BadRequestException(`No product found for the plan name: ${planName}`);
+        throw new BadRequestException(
+          `No product found for the plan name: ${planName}`,
+        );
       }
-  
+
       // Retrieve the prices associated with the found product
       const prices = await this.stripe.prices.list({
         product: product.id,
         active: true,
       });
-  
+
       if (prices.data.length === 0) {
-        throw new BadRequestException(`No prices found for the product: ${product.name}`);
+        throw new BadRequestException(
+          `No prices found for the product: ${product.name}`,
+        );
       }
 
       const priceId = prices.data[0].id;
-  
+
       // Update the subscription with the new plan
-      const updatedSubscription = await this.stripe.subscriptions.update(subscriptionId, {
-        items: [
-          {
-            id: subscription.items.data[0].id,
-            price: priceId,
-          },
-        ],
-        proration_behavior: 'create_prorations', // Prorate changes
-      });
-  
-      
-  
+      const updatedSubscription = await this.stripe.subscriptions.update(
+        subscriptionId,
+        {
+          items: [
+            {
+              id: subscription.items.data[0].id,
+              price: priceId,
+            },
+          ],
+          proration_behavior: 'create_prorations', // Prorate changes
+        },
+      );
+
       return updatedSubscription;
     } catch (error) {
-      throw new BadRequestException(`Failed to update subscription: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to update subscription: ${error.message}`,
+      );
     }
   }
 

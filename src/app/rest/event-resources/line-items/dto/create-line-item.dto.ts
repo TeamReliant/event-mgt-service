@@ -4,8 +4,9 @@ import {
   IsOptional,
   IsPositive,
   IsString,
-  MaxLength, Min
-} from "class-validator";
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 
 export class CreateLineItemDto {

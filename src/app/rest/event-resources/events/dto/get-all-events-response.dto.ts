@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { EventStatus, EventVisibility } from '../enums';
 import { TicketDto } from '@app/rest/ticket-resources/tickets/dto/ticket.dto';
 import { UserDto } from '@app/rest/users/dto/shared/user.dto';
+import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
 
 export class GetAllEventsResponseDto {
   @Expose()
@@ -33,6 +34,9 @@ export class GetAllEventsResponseDto {
 
   @Expose()
   eventStatus: EventStatus;
+
+  @Expose()
+  tickets: Ticket[];
 
   @Expose()
   createdAt: Date;
