@@ -256,7 +256,7 @@ export class EventsService {
 
     if (dateRangeStart && dateRangeEnd) {
       queryBuilder.andWhere(
-        'event.eventStartDateAndTime BETWEEN :dateRangeStart AND :dateRangeEnd',
+        'event.createdAt BETWEEN :dateRangeStart AND :dateRangeEnd',
         { dateRangeStart, dateRangeEnd },
       );
     }
