@@ -48,7 +48,7 @@ export class UserDto {
 
   @Expose()
   subscriptionStatus?:
-    | 'incomplete'
+      'incomplete'
     | 'incomplete_expired'
     | 'trialing'
     | 'active'
@@ -57,6 +57,9 @@ export class UserDto {
     | 'unpaid'
     | 'paused'
     | null;
+
+  @Expose()
+  subscriptionEndDate?: string;
 
   @Expose()
   subscribedPlan?: string;

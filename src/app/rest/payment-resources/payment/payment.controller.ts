@@ -70,13 +70,14 @@ export class PaymentController {
   @Post('update-subscription')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
-  async createPortalSession(
+  async updateSubscription(
     @CurrentUser() user: TJwtPayload,
     @Query('paymentMethod') paymentMethod: string,
+    @Body() createSubDto: CreateSubscriptionDto
   ) {
-    const { statusCode, sessionUrl } =
-      await this.paymentService.updateSubscription(user, paymentMethod);
-    return ResponseSerializer.data({ statusCode, sessionUrl });
+    const updatedSubscription =
+      await this.paymentService.updateSubscription(user, paymentMethod, createSubDto);
+    return ResponseSerializer.data(updatedSubscription);
   }
 
   @Post('stripe-webhooks')

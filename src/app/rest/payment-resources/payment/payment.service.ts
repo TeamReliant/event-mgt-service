@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -70,6 +71,17 @@ export class PaymentService {
     return { invoice, user };
   }
 
+  private async createStripeConnectedAccountId(user: User)
+  {
+    const account = await this.stripe.accounts.create({
+      type: 'express',
+      email: user.email,
+    });
+
+    user.stripeConnectedAccountId = account.id;
+    await this.userService.findOneByIdAndUpdate(user.id, user);
+  }
+
   async createSessions(user: TJwtPayload, paymentMethod: string) {
     try {
       const paymentStrategy =
@@ -129,12 +141,13 @@ export class PaymentService {
     }
   }
 
+  
+
   async createSubscription(
     user: TJwtPayload,
     createSubDto: CreateSubscriptionDto,
     paymentMethod: string,
   ) {
-    try {
       const paymentStrategy =
         this.paymentStrategyResolver.getStrategy(paymentMethod);
       const currUser = await this.validateUserType(user, 'organizer');
@@ -142,40 +155,45 @@ export class PaymentService {
         await this.createCustomer(user, paymentMethod);
       }
 
+      if (!currUser.stripeConnectedAccountId)
+      {
+        await this.createStripeConnectedAccountId(currUser);
+      }
+
+      if (currUser.subscriptionStatus === 'active' || currUser.subscriptionStatus === 'trialing') throw new BadRequestException("User has an active subcription");
+
       const session = await paymentStrategy.createSubscription(
         currUser.customerId,
         createSubDto.plan,
       );
 
-      currUser.sessionId = session.id;
-      await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
       return { statusCode: 303, sessionUrl: session.url };
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        console.error(error.message);
-        throw error;
-      }
-      console.error(error.message);
-      throw new Error('Error creating subscription');
-    }
   }
 
-  async updateSubscription(user: TJwtPayload, paymentMethod: string) {
+  async updateSubscription(user: TJwtPayload, paymentMethod: string, createSubDto: CreateSubscriptionDto) {
     try {
-      const paymentStrategy =
-        await this.paymentStrategyResolver.getStrategy(paymentMethod);
+      const paymentStrategy = await this.paymentStrategyResolver.getStrategy(paymentMethod);
       const currUser = await this.validateUserType(user, 'organizer');
-
-      if (!currUser.sessionId) {
+  
+      if (currUser.subscriptionStatus !== 'active' && currUser.subscriptionStatus !== 'trialing') {
         throw new NotFoundException('No active subscription found');
       }
+  
+      // Assuming you have the subscription ID stored in currUser.subscriptionId
+      const updatedSubscription = await paymentStrategy.updateSubscription(currUser.subscriptionId, createSubDto.plan);
+      if (!updatedSubscription)
+      {
+        throw new InternalServerErrorException("An Error occured while updating subscription");
+      }
 
-      const session = await paymentStrategy.updateSubscription(
-        currUser.sessionId,
-      );
-      currUser.updateSessionId = session.id;
-      await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
-      return { statusCode: 303, sessionUrl: session.url };
+      const subscriptionEndDate = new Date(updatedSubscription.current_period_end * 1000);
+      const subscriptionEndDateISO = subscriptionEndDate.toISOString();
+      currUser.subscriptionEndDate = subscriptionEndDateISO;
+      currUser.subscribedPlan = createSubDto.plan;
+
+      const updatedUser = await this.userService.findOneByIdAndUpdate(currUser.id, currUser);
+      if (!updatedUser) throw new InternalServerErrorException("User could not be updated with latest subscription data");
+      return updatedUser;
     } catch (error) {
       if (error instanceof NotFoundException) {
         console.error(error.message);
@@ -223,8 +241,10 @@ export class PaymentService {
   ) {
     //get the subscription details from the invoice
     const subscriptionId = invoice.subscription as string;
+
     const subscription =
       await this.stripe.subscriptions.retrieve(subscriptionId);
+      
 
     if (
       !subscription.items ||
@@ -249,10 +269,15 @@ export class PaymentService {
       planName = product.name;
     }
 
+    const subscriptionEndDate = new Date(subscription.current_period_end * 1000);
+    const subscriptionEndDateISO = subscriptionEndDate.toISOString();
+    user.subscriptionEndDate = subscriptionEndDateISO;
+
+
     //update the status of the user and the plan subscribed for
     user.subscriptionStatus = subscription.status;
     user.subscribedPlan = planName !== null ? planName : 'free';
-    user.sessionId = null;
+    user.subscriptionId = subscriptionId;
 
     let failureReason = null;
     if (status == 'failed') {
@@ -422,13 +447,10 @@ export class PaymentService {
       }
       const user = await this.checkUserExists(customer.email);
 
-      console.log('<<<<<<<<<<<USSSSSSSEEEEEEEEERRRRRRRRRRR>>>>>>', user);
-
       const notification: Payment = {
         user,
       };
 
-      console.log('>>>>>>>>>>>>>>>>>>>>> GOT HERE <<<<<<<<<<<<<<<<<<<<<<<<<<<');
       this.eventEmitter.emit(
         events.CUSTOMER_CREATED,
         new PaymentEvent(notification),
