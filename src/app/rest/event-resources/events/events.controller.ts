@@ -49,22 +49,23 @@ export class EventsController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @UseGuards(JwtAuthGuard)
   @SerializeResponse(EventResponseDto, 'data')
-  @UseInterceptors(FileInterceptor('eventCoverImage', {
-    fileFilter: (req, file, callback) => {
-      const ext = extname(file.originalname).toLowerCase();
-      if (allowedFileTypes.includes(ext)) {
-        callback(null, true);
-      } else {
-        return callback(
-          new UnprocessableEntityException(
-            'Invalid file type, only .jpeg and .png files are allowed',
-          ),
-          false,
-        );
-      }
-    },
-  }),
- )
+  @UseInterceptors(
+    FileInterceptor('eventCoverImage', {
+      fileFilter: (req, file, callback) => {
+        const ext = extname(file.originalname).toLowerCase();
+        if (allowedFileTypes.includes(ext)) {
+          callback(null, true);
+        } else {
+          return callback(
+            new UnprocessableEntityException(
+              'Invalid file type, only .jpeg and .png files are allowed',
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
   async create(
     @Body() createEventDto: CreateEventDto,
     @UploadedFile(
@@ -77,7 +78,8 @@ export class EventsController {
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
           fileIsRequired: false,
         }),
-    ) eventCoverImage: Express.Multer.File,
+    )
+    eventCoverImage: Express.Multer.File,
     @CurrentUser() user: TJwtPayload,
   ) {
     createEventDto.eventCoverImage = eventCoverImage;
@@ -96,16 +98,36 @@ export class EventsController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  async findMyEvents(
-    @Req() req: Request,
-    @CurrentUser() user: TJwtPayload,
-  ): Promise<IResponseWithData> {
+  async findMyEvents(@Req() req: Request, @CurrentUser() user: TJwtPayload) {
     const queryBuilder = this.eventsService.findMyEvents(req, user);
-    return await ResponseSerializer.applyHTEAOSWithDtoFormatter<GetAllEventsResponseDto>(
-      req,
-      queryBuilder,
-      GetAllEventsResponseDto,
-    );
+    // const response = await ResponseSerializer.applyHTEAOSWithDtoFormatter<GetAllEventsResponseDto>(
+    //   req,
+    //   queryBuilder,
+    //   GetAllEventsResponseDto,
+    // );
+
+    const response = await ResponseSerializer.applyHTEAOS(req, queryBuilder);
+    const { data } = response;
+    response.data = data.map((event) => {
+      let totalAvailableTickets = 0;
+      let totalTicketSold = 0;
+      event.tickets.forEach((ticket) => {
+        totalAvailableTickets += ticket.availableTickets;
+        totalTicketSold += ticket.numberOfTicketsSold;
+      });
+
+      event.totalTickets = totalAvailableTickets;
+      event.totalTicketSold = totalTicketSold;
+      delete event.tickets;
+      delete event.team;
+      delete event.user.password;
+      delete event.user.refreshToken;
+      delete event.user.passwordResetToken;
+      delete event.user.magicSignInToken;
+      return event;
+    });
+
+    return response;
   }
 
   @Get(':id')
@@ -123,21 +145,23 @@ export class EventsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @SerializeResponse(EventResponseDto)
-  @UseInterceptors(FileInterceptor('eventCoverImage', {
-    fileFilter: (req, file, callback) => {
-      const ext = extname(file.originalname).toLowerCase();
-      if (allowedFileTypes.includes(ext)) {
-        callback(null, true);
-      } else {
-        return callback(
-          new UnprocessableEntityException(
-            'Invalid file type, only .jpeg and .png files are allowed',
-          ),
-          false,
-        );
-      }
-    },
-  }),)
+  @UseInterceptors(
+    FileInterceptor('eventCoverImage', {
+      fileFilter: (req, file, callback) => {
+        const ext = extname(file.originalname).toLowerCase();
+        if (allowedFileTypes.includes(ext)) {
+          callback(null, true);
+        } else {
+          return callback(
+            new UnprocessableEntityException(
+              'Invalid file type, only .jpeg and .png files are allowed',
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
   async update(
     @Param() params: UpdateEventParamsDto,
     @Body() updateEventDto: UpdateEventDto,
@@ -152,7 +176,8 @@ export class EventsController {
           errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
           fileIsRequired: false,
         }),
-    ) eventCoverImage?: Express.Multer.File,
+    )
+    eventCoverImage?: Express.Multer.File,
   ) {
     if (eventCoverImage) {
       updateEventDto.eventCoverImage = eventCoverImage;

@@ -5,8 +5,8 @@ import {
   IsOptional,
   IsString,
   MaxLength,
-  MinLength
-} from "class-validator";
+  MinLength,
+} from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import { IsFutureDate } from '@libs/decorators/date-validator.decorator';
 
@@ -41,8 +41,7 @@ export class UpdateTaskDto {
 
   @IsOptional()
   @IsEnum(['pending', 'ongoing', 'completed'], {
-    message:
-      'status must be one of the following: pending, ongoing, completed',
+    message: 'status must be one of the following: pending, ongoing, completed',
   })
   @FormatValidationException()
   status: string;

@@ -203,7 +203,7 @@ export class EventsService {
     const queryBuilder = this.eventRepo.createQueryBuilder('event');
     queryBuilder
       .leftJoinAndSelect('event.user', 'user')
-      .leftJoinAndSelect('event.tickets', 'ticket')
+      .leftJoinAndSelect('event.tickets', 'tickets')
       .leftJoinAndSelect('event.team', 'team')
       .leftJoinAndSelect('team.members', 'teamMember');
 
@@ -217,49 +217,42 @@ export class EventsService {
       }),
     );
 
-    if (name) {
+    if (name)
       queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
-    }
 
-    if (locationName) {
+    if (locationName)
       queryBuilder.andWhere('event.locationName ILIKE :locationName', {
         locationName: `%${locationName}%`,
       });
-    }
 
-    if (address) {
+    if (address)
       queryBuilder.andWhere('event.address ILIKE :address', {
         address: `%${address}%`,
       });
-    }
 
-    if (eventVisibility) {
+    if (eventVisibility)
       queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
         eventVisibility,
       });
-    }
 
-    if (eventStatus) {
+    if (eventStatus)
       queryBuilder.andWhere('event.eventStatus = :eventStatus', {
         eventStatus,
       });
-    }
 
-    if (eventStartDateAndTime) {
+    if (eventStartDateAndTime)
       queryBuilder.andWhere(
         'event.eventStartDateAndTime >= :eventStartDateAndTime',
         {
           eventStartDateAndTime,
         },
       );
-    }
 
-    if (dateRangeStart && dateRangeEnd) {
+    if (dateRangeStart && dateRangeEnd)
       queryBuilder.andWhere(
         'event.createdAt BETWEEN :dateRangeStart AND :dateRangeEnd',
         { dateRangeStart, dateRangeEnd },
       );
-    }
 
     return queryBuilder;
   }
