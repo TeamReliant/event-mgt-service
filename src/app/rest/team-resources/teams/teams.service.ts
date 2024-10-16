@@ -337,7 +337,7 @@ export class TeamsService {
     const team = (await this._entityManager
       .createQueryBuilder(Team, 'team')
       .leftJoinAndSelect('team.members', 'members')
-      .leftJoinAndSelect('team.invitation', 'invitations')
+      .leftJoinAndSelect('team.invitations', 'invitations')
       .leftJoinAndSelect('team.permissions', 'permissions')
       .where('team.id = :id', { id })
       .getOne()) as Team;
