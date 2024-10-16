@@ -160,7 +160,7 @@ export class LineItemsService {
 
     if (query.search) {
       const search = query.search as string;
-      queryBuilder.andWhere(`lineItems.name LIKE :search`, {
+      queryBuilder.andWhere(`lineItems.name ILIKE :search`, {
         search: `%${search}%`,
       });
     }
