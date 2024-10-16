@@ -14,6 +14,8 @@ export class TeamInvitationsListener {
   @OnEvent(events.TEAM_MEMBER_INVITED)
   async dispatchInvitationNotification(payload: TeamInvitationsEvent) {
     const { invitation } = payload;
+    console.log(payload);
+
     await this._teamInvitationsEmailService.sendInvitationMessage(invitation);
 
     // Remove the event from the queue  when done
