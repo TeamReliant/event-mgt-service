@@ -74,6 +74,7 @@ export class TeamsService {
       const teamMember = manager.create(TeamMember, {
         team: savedTeam,
         user,
+        status: 'active',
         isAdmin: true,
       }) as TeamMember;
       // save the team member data to database
@@ -87,6 +88,22 @@ export class TeamsService {
           userId,
         );
       }
+
+      const permissionEntities = [
+        'analytics',
+        'budgeting',
+        'event builder',
+        'task',
+        'ticket scanning',
+      ].map(
+        (permission) =>
+          manager.create(Permission, {
+            name: permission,
+            team,
+            member: teamMember,
+          }) as Permission,
+      );
+      await manager.save<Permission>(permissionEntities);
 
       // return the saved team data
       return savedTeam;
@@ -143,6 +160,7 @@ export class TeamsService {
       .createQueryBuilder('team')
       .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.user', 'user')
       .where('team.id = :id', { id })
@@ -160,6 +178,7 @@ export class TeamsService {
         'admin.numOfEventsCreated',
         'admin.numOfPrivateEventsCreated',
         'members',
+        'permissions',
         'invitation.id',
         'invitation.email',
         'invitation.createdAt',

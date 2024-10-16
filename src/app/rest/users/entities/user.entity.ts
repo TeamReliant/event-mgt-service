@@ -27,6 +27,15 @@ export class User extends AbstractEntity<User> {
   @Column({ name: 'picture', type: 'text', nullable: true })
   picture?: string;
 
+  @Column({ name: 'team_name', type: 'varchar', length: 255, nullable: true })
+  teamName?: string;
+
+  @Column({ name: 'website', type: 'varchar', length: 1000, nullable: true })
+  website?: string;
+
+  @Column({ name: 'bio', type: 'text', nullable: true })
+  bio?: string;
+
   @Column({
     name: 'user_type',
     type: 'varchar',
@@ -102,7 +111,13 @@ export class User extends AbstractEntity<User> {
     type: 'text',
     nullable: true,
   })
-  subscriptionId?: string;
+  sessionId?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  updateSessionId?: string;
 
   @Column({ nullable: true })
   subscriptionStatus?:
@@ -119,20 +134,14 @@ export class User extends AbstractEntity<User> {
   @Column({ nullable: true, default: 'free' })
   subscribedPlan?: string;
 
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  subscriptionId?: string;
+
   @Column({ nullable: true })
   subscriptionEndDate?: string;
-
-  @Column({
-    type: 'text',
-    nullable: true,
-  })
-  sessionId?: string;
-
-  @Column({
-    type: 'text',
-    nullable: true,
-  })
-  updateSessionId?: string;
 
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];
