@@ -91,16 +91,22 @@ export class LineItemsService {
         totalBudget: currentBudget,
         totalExpenses: currentExpenses,
         availableBudget: currentAvailableBudget,
+        grossIncome: 0,
+        netIncome: 0,
       },
       previous: {
         totalBudget: previousBudget,
         totalExpenses: previousExpenses,
         availableBudget: previousAvailableBudget,
+        grossIncome: 0,
+        netIncome: 0,
       },
       percentageChange: {
         budgetChange,
         expensesChange,
         availableBudgetChange,
+        grossIncome: 0,
+        netIncome: 0,
       },
     };
   }
@@ -158,6 +164,26 @@ export class LineItemsService {
         search: `%${search}%`,
       });
     }
+
+    const { status, category } = query;
+
+    if (category)
+      queryBuilder.andWhere('LOWER(lineItems.category) = LOWER(:category)', {
+        category,
+      });
+
+    if (status === 'near-budget')
+      queryBuilder.andWhere(
+        'lineItems.amountSpent BETWEEN lineItems.intendedBudget * 0.9 AND lineItems.intendedBudget',
+      );
+
+    if (status === 'on-track')
+      queryBuilder.andWhere(
+        'lineItems.amountSpent < lineItems.intendedBudget * 0.9',
+      );
+
+    if (status === 'over-budget')
+      queryBuilder.andWhere('lineItems.amountSpent > lineItems.intendedBudget');
 
     return queryBuilder;
   }
