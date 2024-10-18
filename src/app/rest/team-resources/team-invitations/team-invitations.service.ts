@@ -41,6 +41,7 @@ export class TeamInvitationsService {
     const team = await this._entityManager.findOneBy<Team>(Team, {
       id: teamId,
     });
+
     if (!team) throw new NotFoundException(`Team with id ${teamId} not found`);
 
     // find the team member where the userId is an admin and the teamId is the teamId
@@ -91,6 +92,11 @@ export class TeamInvitationsService {
 
           const invitation = await manager.save(invitationEntity);
 
+          this._eventEmitter.emit(
+            events.TEAM_MEMBER_INVITED,
+            new TeamInvitationsEvent(invitation),
+          );
+
           // push the invitation to invitations array.
           invitations.push(invitation);
 
@@ -108,13 +114,13 @@ export class TeamInvitationsService {
       },
     );
 
-    // emit the event for the invitations
-    for (const invitation of invitations) {
-      this._eventEmitter.emit(
-        events.TEAM_MEMBER_INVITED,
-        new TeamInvitationsEvent(invitation),
-      );
-    }
+    // // emit the event for the invitations
+    // for (const invitation of invitations) {
+    //   this._eventEmitter.emit(
+    //     events.TEAM_MEMBER_INVITED,
+    //     new TeamInvitationsEvent(invitation),
+    //   );
+    // }
     // remove sensitive user and invitation data
     return invitations.map((invitation) => {
       delete invitation.token;
