@@ -80,15 +80,6 @@ export class TeamsService {
       // save the team member data to database
       await manager.save<TeamMember>(teamMember);
 
-      if (members && members.length) {
-        // Create members invitations for members
-        this._teamInvitationsService.create(
-          { emails: members },
-          savedTeam.id,
-          userId,
-        );
-      }
-
       const permissionEntities = [
         'analytics',
         'budgeting',
@@ -109,6 +100,14 @@ export class TeamsService {
       return savedTeam;
     });
 
+    if (members && members.length) {
+      // Create members invitations for members
+      await this._teamInvitationsService.create(
+        { emails: members },
+        team.id,
+        userId,
+      );
+    }
     return this.findOne(team.id, true);
   }
 
