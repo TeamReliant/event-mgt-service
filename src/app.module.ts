@@ -19,6 +19,7 @@ import { PaymentModule } from './app/rest/payment-resources/payment/payment.modu
 import { TransactionsModule } from './app/rest/transaction-resources/transactions/transactions.module';
 import { TasksModule } from '@app/rest/event-resources/tasks/tasks.module';
 import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items.module';
+import { OrganizerDashboardModule } from './app/rest/analytics-resources/organizer-dashboard/organizer-dashboard.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items
     LineItemsModule,
     PaymentModule,
     TransactionsModule,
+    OrganizerDashboardModule,
   ],
   providers: [JwtStrategy],
 })

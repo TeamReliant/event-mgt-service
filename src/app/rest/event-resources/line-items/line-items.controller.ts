@@ -10,6 +10,7 @@ import {
   HttpStatus,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import { LineItemsService } from './line-items.service';
 import { CreateLineItemDto } from './dto/create-line-item.dto';
@@ -28,6 +29,7 @@ import { DeleteLineItemParamsDto } from '@app/rest/event-resources/line-items/dt
 import { FetchAnalyticsParamsDto } from '@app/rest/event-resources/line-items/dto/fetch-analytics-params.dto';
 import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
 import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
+import { Request } from 'express';
 
 @UseGuards(JwtAuthGuard, SubscriptionPlanGuard)
 @RestrictedPlans('free')
@@ -67,9 +69,10 @@ export class LineItemsController {
   findAll(
     @Param() params: FetchLineItemsParamsDto,
     @Query() query: FetchLineItemsQueriesDto,
+    @Req() req: Request,
   ) {
     const queryBuilder = this.lineItemsService.findAll(params.eventId, query);
-    return this.paginationProvider.applyHTEAOS<LineItem>(queryBuilder);
+    return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 
   @Get('categories/all')

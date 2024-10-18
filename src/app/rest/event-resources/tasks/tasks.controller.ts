@@ -10,6 +10,7 @@ import {
   HttpStatus,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { AssignTaskDto } from './dto/assign-task.dto';
@@ -29,6 +30,7 @@ import { UpdateTaskParamsDto } from '@app/rest/event-resources/tasks/dto/update-
 import { DeleteTaskParamsDto } from '@app/rest/event-resources/tasks/dto/delete-task-params.dto';
 import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
 import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
+import { Request } from 'express';
 
 @UseGuards(JwtAuthGuard, SubscriptionPlanGuard)
 @RestrictedPlans(['free', 'pro'])
@@ -56,9 +58,10 @@ export class TasksController {
   findAll(
     @Param() params: FetchTasksParamsDto,
     @Query() query: FetchTasksQueriesDto,
+    @Req() req: Request,
   ): Promise<IResponseWithData> {
     const queryBuilder = this.tasksService.findAll(params.eventId, query);
-    return this.paginationProvider.applyHTEAOS<Task>(queryBuilder);
+    return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 
   @Get(':id')

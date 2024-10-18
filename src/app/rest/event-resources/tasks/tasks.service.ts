@@ -86,6 +86,8 @@ export class TasksService {
   }
 
   findAll(eventId: string, { ...query }) {
+    const { search, startDate, endDate, status, priority } = query;
+
     // find the tasks with the provided event id
     const queryBuilder = this._repo
       .createQueryBuilder('tasks')
@@ -101,12 +103,27 @@ export class TasksService {
         'user.email',
       ]);
 
-    if (query.search) {
+    if (search) {
       const search = query.search as string;
       queryBuilder.andWhere(
-        `tasks.title LIKE :search OR tasks.description LIKE :search OR user.lastname LIKE :search OR user.firstname LIKE :search`,
+        `tasks.title LIKE :search OR tasks.description ILIKE :search`,
         { search: `%${search}%` },
       );
+    }
+
+    if (status)
+      queryBuilder.andWhere('LOWER(tasks.status) = LOWER(:status)', { status });
+
+    if (priority)
+      queryBuilder.andWhere('LOWER(tasks.priority) = LOWER(:prioriy)', {
+        priority,
+      });
+
+    if (startDate && endDate) {
+      queryBuilder.andWhere('tasks.createdAt BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
+      });
     }
 
     queryBuilder.select(['tasks', 'assignee']);
