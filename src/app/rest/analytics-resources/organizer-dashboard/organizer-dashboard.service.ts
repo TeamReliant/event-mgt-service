@@ -7,28 +7,38 @@ export class OrganizerDashboardService {
   constructor(private readonly entityManager: EntityManager) {}
 
   public async getAnalytics(userId: string) {
-    // Base query for events, joining necessary relationships
+    // Base query for current events, joining necessary relationships
     const queryBuilder = this.entityManager
       .createQueryBuilder(Event, 'events')
       .leftJoinAndSelect('events.tickets', 'tickets')
       .where('events.eventStatus = :status', { status: 'published' })
       .andWhere('events.userId = :userId', { userId });
 
-    // Fetching all published events for the user and the total count
+    // Fetch current published events and total count
     const [events, totalEvents] = await queryBuilder.getManyAndCount();
 
-    // Calculate total tickets sold and total revenue
+    // Calculate current total tickets sold and total revenue
     const { totalTicketSold, totalRevenue } =
       this.calculateEventMetrics(events);
 
     // Fetch the 5 most recent events
     const recentEvents = await this.getRecentEvents(queryBuilder);
 
+    // Fetch past records for comparison (e.g., last month)
+    const pastMetrics = await this.getPastAnalytics(userId);
+
+    // Calculate percentage changes based on past data
+    const percentageChange = this.calculatePercentageChange(
+      { totalTicketSold, totalRevenue, totalEvents },
+      pastMetrics,
+    );
+
     return {
       totalRevenue,
       ticketsSold: totalTicketSold,
       publishedEvents: totalEvents,
       attendanceRate: 0, // Placeholder for future calculation
+      percentageChange, // Include percentage changes in the result
       recentEvents,
       usefulResources: [
         {
@@ -43,6 +53,64 @@ export class OrganizerDashboardService {
         },
       ],
     };
+  }
+
+  // Helper to fetch past analytics (e.g., for the last month)
+  private async getPastAnalytics(userId: string) {
+    const pastQueryBuilder = this.entityManager
+      .createQueryBuilder(Event, 'events')
+      .leftJoinAndSelect('events.tickets', 'tickets')
+      .where('events.eventStatus = :status', { status: 'published' })
+      .andWhere('events.userId = :userId', { userId })
+      .andWhere('events.createdAt < :date', { date: new Date() }); // Define your time range for past data
+
+    const pastEvents = await pastQueryBuilder.getMany();
+
+    const { totalTicketSold, totalRevenue } =
+      this.calculateEventMetrics(pastEvents);
+
+    return {
+      totalTicketSold,
+      totalRevenue,
+      totalEvents: pastEvents.length,
+    };
+  }
+
+  // Helper to calculate percentage increase/decrease
+  private calculatePercentageChange(
+    currentMetrics: {
+      totalTicketSold: number;
+      totalRevenue: number;
+      totalEvents: number;
+    },
+    pastMetrics: {
+      totalTicketSold: number;
+      totalRevenue: number;
+      totalEvents: number;
+    },
+  ) {
+    return {
+      totalTicketSoldChange: this.getPercentageChange(
+        currentMetrics.totalTicketSold,
+        pastMetrics.totalTicketSold,
+      ),
+      totalRevenueChange: this.getPercentageChange(
+        currentMetrics.totalRevenue,
+        pastMetrics.totalRevenue,
+      ),
+      totalEventsChange: this.getPercentageChange(
+        currentMetrics.totalEvents,
+        pastMetrics.totalEvents,
+      ),
+    };
+  }
+
+  // Helper to calculate percentage change between two numbers
+  private getPercentageChange(current: number, past: number): number {
+    if (past === 0) {
+      return current === 0 ? 0 : 100; // If there's no past data, return 100% if there's current data
+    }
+    return ((current - past) / past) * 100;
   }
 
   // Helper to calculate metrics such as total tickets sold and revenue
