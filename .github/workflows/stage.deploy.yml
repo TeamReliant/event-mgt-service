@@ -24,7 +24,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: teamreliant/plaventi-event-management:latest
+          tags: teamreliant/plaventi-organizer-service:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -33,14 +33,15 @@ jobs:
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 40.67.241.162
+          host: 20.115.86.176
           username: plaventi
-          password: "Josh1.$ua1234567"
+          password: "youCanNeverGuess!Right@vm"
           port: 22
           timeout: '60s'
           command_timeout: '5m'
           script: |
-            sudo docker image pull teamreliant/plaventi-event-management:latest
-            sudo docker stop plaventi-event-management || true
-            sudo docker container rm plaventi-event-management || true
-            sudo docker run -d --name plaventi-event-management -p 5001:5001 teamreliant/plaventi-event-management:latest
+            sudo docker image pull teamreliant/plaventi-organizer-service:latest
+            sudo docker stop plaventi-organizer-service || true
+            sudo docker container prune -f || true
+            sudo docker image prune -a -f || true
+            sudo docker run -d --name plaventi-organizer-service -p 5001:5001 teamreliant/plaventi-organizer-service:latest
