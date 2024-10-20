@@ -19,6 +19,7 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { events } from '@config/app.config';
+import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -59,6 +60,22 @@ export class PaymentController {
     return ResponseSerializer.data({ statusCode, data });
   }
 
+  @Post('cancel-subscription')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async cancelSubscription(
+    @Body() cancelSubDto: CancelSubscriptionDto,
+    @CurrentUser() user: TJwtPayload,
+    @Query('paymentMethod') paymentMethod: string,
+  ) {
+    await this.paymentService.cancelSubscription(
+      user,
+      cancelSubDto,
+      paymentMethod,
+    );
+    return ResponseSerializer.message("Subscription cancelled successfully");
+  }
+
   @Post('stripe-webhooks')
   async handleWebhooks(
     @Req() req: RawBodyRequest<Request>,
@@ -92,6 +109,9 @@ export class PaymentController {
         break;
       case 'customer.created':
         await this.paymentService.handleCustomerCreated(event);
+        break;
+      case 'customer.subscription.deleted':
+        await this.paymentService.handleSubscriptionDeleted(event);
         break;
       default:
         console.warn(`Unhandled event type: ${event.type}`);
