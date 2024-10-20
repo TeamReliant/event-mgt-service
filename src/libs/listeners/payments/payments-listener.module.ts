@@ -143,4 +143,18 @@ export class PaymentListener {
       this.dispatchSubscriptionPaymentFailedMessage,
     );
   }
+
+  @OnEvent(events.SUBSCRIPTION_CANCELED)
+  async dispatchSubscriptionCanceledNotification(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendSubscriptionCanceledMessage(
+      paymentNotification,
+    );
+
+    // Remove the event from the queue  when done
+    this.eventEmitter.removeListener(
+      events.SUBSCRIPTION_CANCELED,
+      this.dispatchSubscriptionCanceledNotification,
+    );
+  }
 }
