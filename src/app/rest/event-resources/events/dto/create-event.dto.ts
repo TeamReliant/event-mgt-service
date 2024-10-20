@@ -34,7 +34,7 @@ export class CreateEventDto {
   @IsString()
   locationPlaceId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   address: string;
 
