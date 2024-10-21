@@ -50,6 +50,10 @@ export class UsersService {
     });
   }
 
+  async findOneBySubscriptionId(subscriptionId: string) {
+    return this.repo.findOneBy({ subscriptionId: subscriptionId });
+  }
+
   async findOneByEmailExceptCurrentUser(
     email: string,
     userId: number,

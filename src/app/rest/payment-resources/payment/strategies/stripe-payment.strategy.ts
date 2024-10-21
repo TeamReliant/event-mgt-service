@@ -126,7 +126,7 @@ export class StripePaymentStrategy implements PaymentStrategy {
         priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
         break;
       default:
-        throw new Error('Invalid plan');
+        throw new BadRequestException('Invalid plan');
     }
     const session = await this.stripe.checkout.sessions.create({
       customer: customerId,

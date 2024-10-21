@@ -5,7 +5,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { EntityManager } from 'typeorm';
 import { UsersService } from '@app/rest/users/users.service';
 import { TJwtPayload } from '@libs/types';
@@ -20,6 +19,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { events } from '@config/app.config';
 import { Payment } from './entities/payment.entity';
 import { PaymentEvent } from './events/payment.event';
+import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 
 @Injectable()
 export class PaymentService {
@@ -155,11 +155,31 @@ export class PaymentService {
     }
   }
 
+  async cancelSubscription(user: TJwtPayload, cancelSubDto: CancelSubscriptionDto, paymentMethod: string) {
+    const paymentStrategy =
+      this.paymentStrategyResolver.getStrategy(paymentMethod);
+    const currUser = await this.validateUserType(user, 'organizer');
+
+    if (currUser.subscriptionId !== cancelSubDto.subscriptionId) {
+      throw new BadRequestException('Subscription ID does not belong to currently logged in user');
+    }
+
+    await this.stripe.subscriptions.update(cancelSubDto.subscriptionId, {
+      cancel_at_period_end: true,
+    });
+
+    this.eventEmitter.emit(events.SUBSCRIPTION_CANCELED, new PaymentEvent({ user: currUser }));
+    return;
+
+  }
   async updateSubscription(
     currUser: User,
     paymentMethod: string,
     createSubDto: CreateSubscriptionDto,
   ) {
+    if (currUser.subscribedPlan.toLowerCase() === createSubDto.plan.toLowerCase()) {
+      throw new BadRequestException('User is already subscribed to this plan');
+    }
     const paymentStrategy =
       await this.paymentStrategyResolver.getStrategy(paymentMethod);
 
@@ -262,7 +282,7 @@ export class PaymentService {
           : 'Payment failed';
     }
 
-    let paymentMethod = 'unknown';
+    let paymentMethod = 'card';
     if (invoice.payment_intent) {
       const paymentIntent = await this.stripe.paymentIntents.retrieve(
         invoice.payment_intent as string,
@@ -371,9 +391,33 @@ export class PaymentService {
     }
   }
 
+  async handleSubscriptionDeleted(event: Stripe.Event) {
+    const subscription = event.data.object as Stripe.Subscription;
+    const user = await this.userService.findOneBySubscriptionId(
+      subscription.id,
+    );
+
+    if(!user) {
+      throw new NotFoundException(`User with subcriptionId: ${subscription.id} not found`);
+    }
+
+    user.subscriptionStatus = 'canceled';
+    user.subscriptionEndDate = new Date().toISOString();
+    user.subscribedPlan = 'free';
+    user.subscriptionId = null;
+
+    await this.userService.findOneByIdAndUpdate(user.id, user);
+
+    //TODO notify user of subscription cancellation
+  }
+
   async handleAccountUpdated(event: Stripe.Event) {
-    const account = event.data.object as Stripe.Account;
-    const user = await this.checkUserExists(account.email);
+      const account = event.data.object as Stripe.Account;
+      const user = await this.checkUserExists(account.email);
+
+      if (!user.stripeConnectedAccountId) user.stripeConnectedAccountId = account.id;
+
+      await this.userService.findOneByIdAndUpdate(user.id, user);
 
     const paymentNotification: Payment = {
       user,
@@ -404,12 +448,12 @@ export class PaymentService {
   }
 
   async handleCustomerCreated(event: Stripe.Event) {
-    const customer = event.data.object as Stripe.Customer;
-    if (!customer.email) {
-      console.error('Customer email is null or undefined');
-      return;
-    }
-    const user = await this.checkUserExists(customer.email);
+      const customer = event.data.object as Stripe.Customer;
+      if (!customer.email) {
+        console.error('Customer email is null or undefined');
+        return;
+      }
+      const user = await this.checkUserExists(customer.email);
 
     const notification: Payment = {
       user,

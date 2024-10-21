@@ -42,6 +42,15 @@ export class EventsService {
     }
   }
 
+  private getEventCreatedThisMonth(user: User) {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    return user.events.filter(event => {
+      const eventDate = new Date(event.createdAt);
+      return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
+  }).length;
+  }
+
   private validateEventCreation(user: User, eventVisibility: string) {
     const { subscribedPlan, numOfEventsCreated, numOfPrivateEventsCreated } =
       user;
@@ -51,11 +60,13 @@ export class EventsService {
 
     const planRestrictions = {
       free: { maxEvents: 4, maxPrivateEvents: 0 },
-      pro: { maxEvents: 8, maxPrivateEvents: 8 },
+      pro: { maxEvents: 8, maxPrivateEvents: 5 },
       premium: { maxEvents: Infinity, maxPrivateEvents: Infinity },
     };
 
     const { maxEvents, maxPrivateEvents } = planRestrictions[plan];
+    const eventsCreatedThisMonth = this.getEventCreatedThisMonth(user);
+
     if (plan === 'free' && visibility === 'private') {
       throw new UnauthorizedException(
         'Free plan users cannot create private events',
@@ -71,9 +82,9 @@ export class EventsService {
       );
     }
 
-    if (numOfEventsCreated >= maxEvents) {
+    if (eventsCreatedThisMonth >= maxEvents) {
       throw new UnauthorizedException(
-        'Event creation limit exceeded for this user',
+        'Monthly event creation limit exceeded for this user',
       );
     }
 
@@ -324,14 +335,11 @@ export class EventsService {
 
         Object.assign(event, updatedFields);
 
-        //preserve existing tickets and user
-        event.tickets = event.tickets;
-        event.user = event.user;
-        return await manager.save<Event>(event);
-      },
-    );
-    // return updated event
-    return updatedEvent;
+          return await manager.save<Event>(event);
+        },
+      );
+      // return updated event
+      return updatedEvent;
   }
 
   async remove(id: string, user: TJwtPayload) {

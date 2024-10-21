@@ -32,8 +32,14 @@ export class PaymentsEmailService {
     );
   }
 
-  async sendPaymentConfirmationMessage() {
-    // Send payment confirmation message
+  async sendSubscriptionCanceledMessage(paymentNotification: Payment) {
+    const subject: string = `${appInfo.appName}: Subscription Canceled!`;
+    const template = `payments/subscription-canceled`;
+    const additionalPayload = {
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      formLink: `${this.configService.get<string>('FORM_URL')}`,
+    };
+    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
   }
 
   async sendChargesEnabledMessage(paymentNotification: Payment) {
