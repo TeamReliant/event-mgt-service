@@ -35,7 +35,7 @@ jobs:
         with:
           host: 20.115.86.176
           username: plaventi
-          password: "youCanNeverGuess!Right@vm"
+          password: 'youCanNeverGuess!Right@vm'
           port: 22
           timeout: '60s'
           command_timeout: '5m'
