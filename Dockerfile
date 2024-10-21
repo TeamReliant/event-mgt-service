@@ -52,12 +52,12 @@ ENV NODE_ENV=production \
     AUTH_V1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1 \
     ORG_v1_SERVICE_URL=https://api-dev.plaventi.dev/api/v1/em \
     STRIPE_SECRET_KEY=sk_test_51P2RdZP4Gkbi4QVGzhA52vb3Lr6URq1Lia8eW59EcBRN2sXDSKSJMvbGeZQg5kEyJ43ZdO8P3cXcYCNvgJFwlStI00CUXJIs9c \
-    STRIPE_WEBHOOK_SECRET=whsec_aIOBPeLzfHFMCAJOjdIvSG3GsBoSllnT \
+    STRIPE_WEBHOOK_SECRET=whsec_aRAJo9RcOrwEYTp5ZDVbyF5fG5acmyC0 \
     STRIPE_REDIRECT_URI="http://localhost:3000" \
     STRIPE_PRO_PRICE_ID=price_1PzIaLP4Gkbi4QVGJIZyh90i \
     STRIPE_PREMIUM_PRICE_ID=price_1PzIckP4Gkbi4QVG4arwRvz6 \
-    STRIPE_SUBSCRIPTION_SUCCESS_URI="http://localhost:3000/subscription_success.html" \
-    STRIPE_SUBSCRIPTION_CANCEL_URI="http://localhost:3000/subscription_cancel.html" \
+    STRIPE_SUBSCRIPTION_SUCCESS_URI="http://localhost:3000/organizer" \
+    STRIPE_SUBSCRIPTION_CANCEL_URI="http://localhost:3000/organizer" \
     FRONTEND_URL="http://localhost:3000/invitation" \
     FORM_URL="https://google.com"
 
