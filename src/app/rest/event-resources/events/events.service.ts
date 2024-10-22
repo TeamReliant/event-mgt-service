@@ -1,10 +1,8 @@
 import {
   BadRequestException,
   Injectable,
-  InternalServerErrorException,
   NotAcceptableException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -54,7 +52,7 @@ export class EventsService {
   }
 
   private validateEventCreation(user: User, eventVisibility: string) {
-    const { subscribedPlan, numOfEventsCreated, numOfPrivateEventsCreated } =
+    const { subscribedPlan, numOfPrivateEventsCreated } =
       user;
 
     const plan = subscribedPlan.toLowerCase();
@@ -70,7 +68,7 @@ export class EventsService {
     const eventsCreatedThisMonth = this.getEventCreatedThisMonth(user);
 
     if (plan === 'free' && visibility === 'private') {
-      throw new UnauthorizedException(
+      throw new BadRequestException(
         'Free plan users cannot create private events',
       );
     }
@@ -79,13 +77,13 @@ export class EventsService {
       visibility === 'private' &&
       numOfPrivateEventsCreated >= maxPrivateEvents
     ) {
-      throw new UnauthorizedException(
+      throw new BadRequestException(
         'Private event limit exceeded for this user',
       );
     }
 
     if (eventsCreatedThisMonth >= maxEvents) {
-      throw new UnauthorizedException(
+      throw new BadRequestException(
         'Monthly event creation limit exceeded for this user',
       );
     }
@@ -138,7 +136,7 @@ export class EventsService {
       await this.deleteImage(eventImageURL);
 
       if (
-        error instanceof UnauthorizedException ||
+        error instanceof BadRequestException ||
         error instanceof NotFoundException
       ) {
         console.error(error.message);
@@ -271,7 +269,6 @@ export class EventsService {
   }
 
   async findOne(id: string, user: TJwtPayload) {
-    try {
       const event = await this.entityManager.findOne(Event, {
         where: { id },
         relations: [
@@ -294,25 +291,11 @@ export class EventsService {
 
       //check if event belongs to existing user
       if (!isOwner && !isTeamMember) {
-        throw new UnauthorizedException(
+        throw new BadRequestException(
           'User is neither the event owner nor a team member',
         );
       }
       return event;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        console.error('Error retrieving event: ', error.message);
-        throw error;
-      }
-      if (error instanceof UnauthorizedException) {
-        console.error('Error retrieving event: ', error.message);
-        throw error;
-      }
-      console.error('Unexpected error retrieving event: ', error.message);
-      throw new InternalServerErrorException(
-        'Unexpected error occurred while retrieving event',
-      );
-    }
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
@@ -376,7 +359,7 @@ export class EventsService {
 
     // check if the event belongs to the user
     if (event.user.id !== userId)
-      throw new UnauthorizedException(
+      throw new BadRequestException(
         'Event does not belong to authenticated user',
       );
 
