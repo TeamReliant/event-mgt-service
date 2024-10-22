@@ -3,7 +3,6 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { UsersService } from '@app/rest/users/users.service';
@@ -38,7 +37,7 @@ export class PaymentService {
   private async validateUserType(user: TJwtPayload, userType: string) {
     const currUser = await this.userService.findOne(user.userId);
     if (currUser.userType !== userType) {
-      throw new UnauthorizedException(
+      throw new BadRequestException(
         `Only ${userType}s can perform this action`,
       );
     }
@@ -269,7 +268,7 @@ export class PaymentService {
 
     //update the status of the user and the plan subscribed for
     user.subscriptionStatus = subscription.status;
-    user.subscribedPlan = planName !== null ? planName : 'free';
+    user.subscribedPlan = planName !== null ? planName.toLowerCase() : 'free';
     user.subscriptionId = subscriptionId;
 
     let failureReason = null;
