@@ -183,7 +183,6 @@ export class PaymentService {
     const paymentStrategy =
       await this.paymentStrategyResolver.getStrategy(paymentMethod);
 
-    // Assuming you have the subscription ID stored in currUser.subscriptionId
     const updatedSubscription = await paymentStrategy.updateSubscription(
       currUser.subscriptionId,
       createSubDto.plan,
