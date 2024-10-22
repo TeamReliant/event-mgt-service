@@ -88,12 +88,17 @@ export class EventsService {
       );
     }
 
+  }
+
+  private updateUserEventCounts(user: User, eventVisibility: string) {
+    const visibility = eventVisibility.toLowerCase();
+
     if (visibility === 'private') {
-      user.numOfPrivateEventsCreated++;
+        user.numOfPrivateEventsCreated++;
     }
 
     user.numOfEventsCreated++;
-  }
+}
 
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
@@ -113,6 +118,7 @@ export class EventsService {
           }
 
           this.validateEventCreation(eventCreator, eventVisibility);
+          this.updateUserEventCounts(eventCreator, eventVisibility);
 
           const eventInstance = manager.create(Event, {
             ...rest,
@@ -317,6 +323,9 @@ export class EventsService {
           ...rest,
           eventImageURL,
         };
+
+
+        this.validateEventCreation(event.user, updatedFields.eventVisibility ? updatedFields.eventVisibility : event.eventVisibility);
 
         Object.assign(event, updatedFields);
 
