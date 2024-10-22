@@ -45,6 +45,8 @@ export class EventsService {
   private getEventCreatedThisMonth(user: User) {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
+
+    if (!user.events) return 0;
     return user.events.filter(event => {
       const eventDate = new Date(event.createdAt);
       return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
