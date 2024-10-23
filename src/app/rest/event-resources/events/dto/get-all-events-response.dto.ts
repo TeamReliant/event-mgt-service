@@ -64,5 +64,5 @@ export class GetAllEventsResponseDto {
 
   @Expose()
   @Type(() => TeamDto)
-   team?: TeamDto;
+  team?: TeamDto;
 }
