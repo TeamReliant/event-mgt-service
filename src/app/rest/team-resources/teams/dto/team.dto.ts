@@ -9,7 +9,10 @@ export class TeamDto {
   name: string;
 
   @Expose()
-  color?: string;
+  primaryColor?: string;
+
+  @Expose()
+  secondaryColor?: string;
 
   @Expose()
   bio?: string;
@@ -26,4 +29,7 @@ export class TeamDto {
 
   @Expose()
   updatedAt: Date;
+
+  @Expose()
+  deletedAt: Date;
 }

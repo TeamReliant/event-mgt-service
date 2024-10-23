@@ -106,7 +106,7 @@ export class EventsController {
     //   GetAllEventsResponseDto,
     // );
 
-    const response = await ResponseSerializer.applyHTEAOS(req, queryBuilder);
+    const response = await ResponseSerializer.applyHTEAOSWithDtoFormatter<GetAllEventsResponseDto>(req, queryBuilder, GetAllEventsResponseDto);
     const { data } = response;
     response.data = data.map((event) => {
       let totalAvailableTickets = 0;
@@ -119,7 +119,6 @@ export class EventsController {
       event.totalTickets = totalAvailableTickets;
       event.totalTicketSold = totalTicketSold;
       delete event.tickets;
-      delete event.team;
       delete event.user.password;
       delete event.user.refreshToken;
       delete event.user.passwordResetToken;

@@ -5,24 +5,26 @@ import { UserInTeamDto } from '@app/rest/users/dto/shared/user-in-team-object.dt
 export class TeamMemberDto {
   @Expose()
   id: number;
+  @Expose()
+  createdAt: Date;
+
+  @Expose()
+  updatedAt: Date;
 
   @Expose()
   @Type(() => TeamDto)
   team: TeamDto;
 
   @Expose()
-  @Type(() => UserInTeamDto)
-  user: UserInTeamDto;
-
-  @Expose()
   isAdmin?: boolean;
 
   @Expose()
   status?: string;
+  
+  @Expose()
+  deletedAt: Date;
 
   @Expose()
-  createdAt: Date;
-
-  @Expose()
-  updatedAt: Date;
+  @Type(() => UserInTeamDto)
+  user: UserInTeamDto;
 }

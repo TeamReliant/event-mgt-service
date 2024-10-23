@@ -8,7 +8,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import { Brackets, EntityManager, Repository } from 'typeorm';
+import { Brackets, EntityManager, FindRelationsNotFoundError, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -40,18 +40,20 @@ export class EventsService {
     }
   }
 
-  private getEventCreatedThisMonth(user: User) {
+  private getCountOfPublishedEventCreatedThisMonth(user: User) {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
 
     if (!user.events) return 0;
     return user.events.filter(event => {
       const eventDate = new Date(event.createdAt);
-      return eventDate.getMonth() === currentMonth && eventDate.getFullYear() === currentYear;
-  }).length;
-  }
+      return eventDate.getMonth() === currentMonth &&
+             eventDate.getFullYear() === currentYear &&
+             event.eventStatus === 'published';
+    }).length;
+}
 
-  private validateEventCreation(user: User, eventVisibility: string) {
+  private validateEventCreation(user: User, eventVisibility: string, eventStatus: string) {
     const { subscribedPlan, numOfPrivateEventsCreated } =
       user;
 
@@ -59,17 +61,17 @@ export class EventsService {
     const visibility = eventVisibility.toLowerCase();
 
     const planRestrictions = {
-      free: { maxEvents: 4, maxPrivateEvents: 0 },
-      pro: { maxEvents: 8, maxPrivateEvents: 5 },
-      premium: { maxEvents: Infinity, maxPrivateEvents: Infinity },
+      free: { maxPublishableEvents: 4, maxPrivateEvents: 0 },
+      pro: { maxPublishableEvents: 8, maxPrivateEvents: 5 },
+      premium: { maxPublishableEvents: Infinity, maxPrivateEvents: Infinity },
     };
 
-    const { maxEvents, maxPrivateEvents } = planRestrictions[plan];
-    const eventsCreatedThisMonth = this.getEventCreatedThisMonth(user);
+    const { maxPublishableEvents, maxPrivateEvents } = planRestrictions[plan];
+    const publishedEventsCreatedThisMonthCount = this.getCountOfPublishedEventCreatedThisMonth(user);
 
     if (plan === 'free' && visibility === 'private') {
       throw new BadRequestException(
-        'Free plan users cannot create private events',
+        'Users on the free plan cannot create private events',
       );
     }
 
@@ -82,9 +84,10 @@ export class EventsService {
       );
     }
 
-    if (eventsCreatedThisMonth >= maxEvents) {
+
+    if (eventStatus === 'published' && publishedEventsCreatedThisMonthCount >= maxPublishableEvents) {
       throw new BadRequestException(
-        'Monthly event creation limit exceeded for this user',
+        'Monthly limit for creating publishable events exceeded for this user',
       );
     }
 
@@ -103,27 +106,32 @@ export class EventsService {
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
     try {
-      const { eventCoverImage, tickets, eventVisibility, ...rest } =
+      const { eventCoverImage, tickets, eventVisibility, eventStatus, ...rest } =
         createEventDto;
       if (eventCoverImage) {
         eventImageURL = await this.uploadImage(eventCoverImage);
       }
+
+       //eventCreator: user creating the event
+       const eventCreator = await this.entityManager.findOne(User, {
+        where: {id: user.userId},
+        relations: ['events'],
+      });
+
+      if (!eventCreator) {
+        throw new NotFoundException('User not found');
+      }
+
+      this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
+      this.updateUserEventCounts(eventCreator, eventVisibility);
+
       const createdEvent = await this.entityManager.transaction(
         async (manager) => {
-          //eventCreator: user creating the event
-          const eventCreator = await this.userService.findOne(user.userId);
-
-          if (!eventCreator) {
-            throw new NotFoundException('User not found');
-          }
-
-          this.validateEventCreation(eventCreator, eventVisibility);
-          this.updateUserEventCounts(eventCreator, eventVisibility);
-
           const eventInstance = manager.create(Event, {
             ...rest,
             eventImageURL,
             eventVisibility,
+            eventStatus,
             user: eventCreator,
           });
           if (tickets && tickets.length > 0) {
@@ -222,13 +230,14 @@ export class EventsService {
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.tickets', 'tickets')
       .leftJoinAndSelect('event.team', 'team')
-      .leftJoinAndSelect('team.members', 'teamMember');
+      .leftJoinAndSelect('team.members', 'teamMembers')
+      .leftJoinAndSelect('teamMembers.user', 'teamMember');
 
     //select event where user is the owner or a team member
     queryBuilder.andWhere(
       new Brackets((qb) => {
         qb.where('event.user = :userId', { userId }).orWhere(
-          'teamMember.user.id = :userId',
+          'teamMember.id = :userId',
           { userId },
         );
       }),
@@ -325,7 +334,11 @@ export class EventsService {
         };
 
 
-        this.validateEventCreation(event.user, updatedFields.eventVisibility ? updatedFields.eventVisibility : event.eventVisibility);
+        this.validateEventCreation(
+          event.user, 
+          updatedFields.eventVisibility ? updatedFields.eventVisibility : event.eventVisibility,
+          updatedFields.eventStatus ? updatedFields.eventStatus : event.eventStatus,
+        );
 
         Object.assign(event, updatedFields);
 
