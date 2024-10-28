@@ -1,4 +1,4 @@
-import { PaymentEvent } from '@app/rest/payment-resources/payment/events/payment.event';
+import { PaymentEvent } from '@app/rest/organizer/payment-resources/payment/events/payment.event';
 import { events } from '@config/app.config';
 import { PaymentsEmailService } from '@libs/notifications/email/payments/payments-email.service';
 import { Injectable } from '@nestjs/common';

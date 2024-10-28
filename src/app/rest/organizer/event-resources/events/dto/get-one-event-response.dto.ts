@@ -1,0 +1,59 @@
+import { TicketDto } from '@app/rest/organizer/ticket-resources/tickets/dto/ticket.dto';
+import { Expose, Type } from 'class-transformer';
+import { EventStatus, EventVisibility } from '../enums';
+import { TeamDto } from '@app/rest/organizer/team-resources/teams/dto/team.dto';
+
+export class GetOneEventResponseDto {
+  @Expose()
+  id: number;
+
+  @Expose()
+  name: string;
+
+  @Expose()
+  locationPlaceId: string;
+
+  @Expose()
+  locationName: string;
+
+  @Expose()
+  address: string;
+
+  @Expose()
+  description?: string;
+
+  @Expose()
+  tags?: string[];
+
+  @Expose()
+  eventImageURL?: string;
+
+  @Expose()
+  eventVisibility: EventVisibility;
+
+  @Expose()
+  eventStatus: EventStatus;
+
+  @Expose()
+  createdAt: Date;
+
+  @Expose()
+  updatedAt: Date;
+
+  @Expose()
+  eventStartDateAndTime?: string;
+
+  @Expose()
+  eventEndDateAndTime?: string;
+
+  @Expose()
+  isAvailable: boolean;
+
+  @Expose()
+  @Type(() => TicketDto)
+  tickets?: TicketDto;
+
+  @Expose()
+  @Type(() => TeamDto)
+  team?: TeamDto;
+}

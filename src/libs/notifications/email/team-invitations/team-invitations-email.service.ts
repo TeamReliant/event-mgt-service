@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EmailEngineService } from '../email-engine/email-engine.service';
 import { appInfo } from '@config/app.config';
-import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
+import { TeamInvitation } from '@app/rest/organizer/team-resources/team-invitations/entities/team-invitation.entity';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()

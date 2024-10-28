@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EmailEngineService } from '../email-engine/email-engine.service';
 import { appInfo } from '@config/app.config';
-import { Payment } from '@app/rest/payment-resources/payment/entities/payment.entity';
+import { Payment } from '@app/rest/organizer/payment-resources/payment/entities/payment.entity';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -39,7 +39,12 @@ export class PaymentsEmailService {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
       formLink: `${this.configService.get<string>('FORM_URL')}`,
     };
-    await this.sendEmail(paymentNotification, subject, template, additionalPayload);
+    await this.sendEmail(
+      paymentNotification,
+      subject,
+      template,
+      additionalPayload,
+    );
   }
 
   async sendChargesEnabledMessage(paymentNotification: Payment) {

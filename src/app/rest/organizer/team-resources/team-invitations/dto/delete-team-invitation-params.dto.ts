@@ -1,0 +1,11 @@
+import { CreateTeamInvitationParamsDto } from '@app/rest/organizer/team-resources/team-invitations/dto/create-team-invitation-params.dto';
+import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
+
+export class DeleteTeamInvitationParamsDto extends CreateTeamInvitationParamsDto {
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  @FormatValidationException()
+  id: string;
+}

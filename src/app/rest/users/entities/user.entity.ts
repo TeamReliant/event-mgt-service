@@ -1,9 +1,9 @@
-import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
+import { TeamInvitation } from '@app/rest/organizer/team-resources/team-invitations/entities/team-invitation.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
-import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
+import { TeamMember } from '@app/rest/organizer/team-resources/team-members/entities/team-member.entity';
 import { AbstractEntity } from '@libs/database';
-import { Event } from '@app/rest/event-resources/events/entities/event.entity';
-import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
+import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {

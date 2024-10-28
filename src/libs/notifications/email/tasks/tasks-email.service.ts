@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EmailEngineService } from '../email-engine/email-engine.service';
 import { appInfo } from '@config/app.config';
-import { Task } from '@app/rest/event-resources/tasks/entities/task.entity';
+import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 
 @Injectable()
 export class TasksEmailService {

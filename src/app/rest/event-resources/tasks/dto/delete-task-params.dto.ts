@@ -1,3 +1,0 @@
-import { ShowTaskParamsDto } from '@app/rest/event-resources/tasks/dto/show-task-params.dto';
-
-export class DeleteTaskParamsDto extends ShowTaskParamsDto {}
