@@ -1,7 +1,7 @@
 import { events } from '@config/app.config';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { TaskEvent } from '@app/rest/event-resources/tasks/events/task.event';
+import { TaskEvent } from '@app/rest/organizer/event-resources/tasks/events/task.event';
 import { TasksEmailService } from '@libs/notifications/email/tasks/tasks-email.service';
 
 @Injectable()
