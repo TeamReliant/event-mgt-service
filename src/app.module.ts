@@ -25,6 +25,7 @@ import { GeneralEventAnalyticsModule } from '@app/rest/organizer/analytics-resou
 import { MarketplaceModule } from '@app/rest/attendee/marketplace/marketplace.module';
 import { NewsletterModule } from '@app/rest/attendee/newsletter/newsletter.module';
 import { SubscribersModule } from './app/rest/attendee/subscribers/subscribers.module';
+import { BookingsModule } from './app/rest/attendee/bookings/bookings.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { SubscribersModule } from './app/rest/attendee/subscribers/subscribers.m
     MarketplaceModule,
     NewsletterModule,
     SubscribersModule,
+    BookingsModule,
   ],
   providers: [JwtStrategy],
 })

@@ -1,7 +1,8 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { TicketCategory } from '../enums';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { AbstractEntity } from '@libs/database';
+import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 
 @Entity()
 export class Ticket extends AbstractEntity<Ticket> {
@@ -39,6 +40,9 @@ export class Ticket extends AbstractEntity<Ticket> {
 
   @ManyToOne(() => Event, (event) => event.tickets)
   event: Event;
+
+  @OneToMany(() => Booking, (booking) => booking.ticket, { cascade: true })
+  bookings: Booking[];
 
   constructor(ticket: Partial<Ticket>) {
     super(ticket);

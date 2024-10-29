@@ -6,6 +6,7 @@ import { AbstractEntity } from '@libs/database';
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { LineItem } from '@app/rest/organizer/event-resources/line-items/entities/line-item.entity';
+import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 
 @Entity({ name: 'events' })
 export class Event extends AbstractEntity<Event> {
@@ -82,6 +83,9 @@ export class Event extends AbstractEntity<Event> {
 
   @ManyToOne(() => Team, (team) => team.events)
   team: Team;
+
+  @OneToMany(() => Booking, (booking) => booking.event, { cascade: true })
+  bookings: Booking[];
 
   constructor(event: Partial<Event>) {
     super(event);

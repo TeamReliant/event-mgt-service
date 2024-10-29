@@ -2,13 +2,10 @@ import { MaxArrayLength } from '@libs/decorators/max-array-length-validator';
 import {
   IsArray,
   IsDate,
-  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsTimeZone,
-  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { EventStatus, EventVisibility } from '../enums';
