@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/index';
 import { MulterModule } from '@nestjs/platform-express';
@@ -23,6 +23,8 @@ import { OrganizerDashboardModule } from '@app/rest/organizer/analytics-resource
 import { EventAnalyticsModule } from '@app/rest/organizer/analytics-resources/event-analytics/event-analytics.module';
 import { GeneralEventAnalyticsModule } from '@app/rest/organizer/analytics-resources/general-event-analytics/general-event-analytics.module';
 import { MarketplaceModule } from '@app/rest/attendee/marketplace/marketplace.module';
+import { NewsletterModule } from '@app/rest/attendee/newsletter/newsletter.module';
+import { SubscribersModule } from './app/rest/attendee/subscribers/subscribers.module';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { MarketplaceModule } from '@app/rest/attendee/marketplace/marketplace.mo
     EventAnalyticsModule,
     GeneralEventAnalyticsModule,
     MarketplaceModule,
+    NewsletterModule,
+    SubscribersModule,
   ],
   providers: [JwtStrategy],
 })
