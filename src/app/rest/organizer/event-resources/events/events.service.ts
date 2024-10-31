@@ -79,7 +79,7 @@ export class EventsService {
     const { maxPublishableEvents, maxPrivateEvents } = planRestrictions[plan];
     const publishedEventsCreatedThisMonthCount =
       this.getCountOfPublishedEventCreatedThisMonth(user);
-
+      
     if (plan === 'free' && visibility === 'private') {
       throw new BadRequestException(
         'Users on the free plan cannot create private events',
@@ -239,6 +239,7 @@ export class EventsService {
       eventStartDateAndTime,
       dateRangeStart,
       dateRangeEnd,
+      pastPublishedEvents
     } = query;
 
     const userId = user.userId;
@@ -296,6 +297,17 @@ export class EventsService {
         'event.createdAt BETWEEN :dateRangeStart AND :dateRangeEnd',
         { dateRangeStart, dateRangeEnd },
       );
+
+      if (pastPublishedEvents) {
+        const currentDate = new Date();
+        queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
+          currentDate,
+        });
+
+        queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
+          publishedStatus: 'published',
+        });
+      }
 
     return queryBuilder;
   }
