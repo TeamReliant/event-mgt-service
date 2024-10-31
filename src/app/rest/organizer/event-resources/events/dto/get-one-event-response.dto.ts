@@ -20,6 +20,15 @@ export class GetOneEventResponseDto {
   address: string;
 
   @Expose()
+  googleMapUrl?: string;
+
+  @Expose()
+  latitude?: string;
+
+  @Expose()
+  longitude?: string;
+
+  @Expose()
   description?: string;
 
   @Expose()
