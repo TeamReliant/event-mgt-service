@@ -19,6 +19,7 @@ import { PaginationService } from '@libs/helpers/pagination/pagination.service';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { ShowBookingParamsDto } from '@app/rest/attendee/bookings/dto/show-booking-params.dto';
 import { DeleteBookingParamsDto } from '@app/rest/attendee/bookings/dto/delete-booking-params.dto';
+import { ProcessBookingDto } from '@app/rest/attendee/bookings/dto/process-booking.dto';
 
 @Controller()
 export class BookingsController {
@@ -64,5 +65,16 @@ export class BookingsController {
   ) {
     await this._bookingsService.remove(id, userId);
     return ResponseSerializer.message('Booking removed successfully');
+  }
+
+  @Post('events/:eventId/bookings/process')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async processBooking(
+    @GetCurrentUserId() userId: string,
+    @Body() body: ProcessBookingDto,
+  ) {
+    const response = await this._bookingsService.processBookings(body, userId);
+    return ResponseSerializer.data(response);
   }
 }

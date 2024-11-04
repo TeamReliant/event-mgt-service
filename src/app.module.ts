@@ -26,6 +26,7 @@ import { MarketplaceModule } from '@app/rest/attendee/marketplace/marketplace.mo
 import { NewsletterModule } from '@app/rest/attendee/newsletter/newsletter.module';
 import { SubscribersModule } from './app/rest/attendee/subscribers/subscribers.module';
 import { BookingsModule } from './app/rest/attendee/bookings/bookings.module';
+import { BookingsTransactionsModule } from './app/rest/attendee/bookings-transactions/bookings-transactions.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { BookingsModule } from './app/rest/attendee/bookings/bookings.module';
     NewsletterModule,
     SubscribersModule,
     BookingsModule,
+    BookingsTransactionsModule,
   ],
   providers: [JwtStrategy],
 })

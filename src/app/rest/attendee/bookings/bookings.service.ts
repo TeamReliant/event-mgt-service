@@ -1,10 +1,10 @@
 import {
   Injectable,
+  InternalServerErrorException,
   NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
@@ -12,6 +12,10 @@ import { User } from '@app/rest/users/entities/user.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
+import { ProcessBookingDto } from '@app/rest/attendee/bookings/dto/process-booking.dto';
+import { PaymentService } from '@app/rest/organizer/payment-resources/payment/payment.service';
+import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class BookingsService {
@@ -19,6 +23,8 @@ export class BookingsService {
     @InjectRepository(Booking)
     private readonly _repo: Repository<Booking>,
     private readonly _entityManager: EntityManager,
+    private readonly _paymentService: PaymentService,
+    private readonly _configService: ConfigService,
   ) {}
 
   async create(
@@ -76,6 +82,25 @@ export class BookingsService {
           `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}`,
         );
 
+      // find if the user has a booking
+      const existingBooking = await this._repo.findOneBy({
+        user: { id: userId },
+        ticket: { id: ticketId },
+      });
+
+      if (existingBooking && !existingBooking.processed)
+        await this._repo.remove(existingBooking);
+
+      // Prevent user from going beyond allowed limit.
+      if (
+        existingBooking &&
+        existingBooking.processed &&
+        existingBooking.quantity + quantity > ticket.maxNumberOfTicketsOrderable
+      )
+        throw new NotFoundException(
+          `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
+        );
+
       if (quantity > ticket.availableTickets - ticket.numberOfTicketsSold)
         throw new NotFoundException(
           `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
@@ -85,6 +110,7 @@ export class BookingsService {
         quantity,
         category,
         reaction,
+        unitAmount: ticket.price,
         email,
         firstName,
         lastName,
@@ -148,5 +174,90 @@ export class BookingsService {
 
     await this._repo.remove(booking);
     return true;
+  }
+
+  async processBookings(body: ProcessBookingDto, userId: string) {
+    // Check if percentage cut is configured properly
+    const percentage = this._configService.get<number>('TICKET_PERCENTAGE_CUT');
+    if (!percentage || percentage < 0 || percentage > 100)
+      throw new InternalServerErrorException(
+        'Ticket percentage cut not configured properly',
+      );
+
+    const { bookings } = body;
+    const invalidBookings: string[] = [];
+    const validBookings: Booking[] = [];
+
+    for (const id of bookings) {
+      const booking = await this._repo
+        .createQueryBuilder('booking')
+        .leftJoinAndSelect('booking.ticket', 'ticket')
+        .leftJoinAndSelect('booking.event', 'event')
+        .where('booking.userId = :userId', { userId })
+        .andWhere('booking.id = :id', { id })
+        .getOne();
+
+      if (!booking) {
+        invalidBookings.push(id);
+        continue;
+      }
+
+      if (booking.processed)
+        throw new NotAcceptableException(
+          `Booking with id ${id} has already been processed`,
+        );
+
+      const {
+        ticket: { availableTickets, numberOfTicketsSold },
+      } = booking;
+      const unsoldTickets = availableTickets - numberOfTicketsSold;
+      if (booking?.quantity > unsoldTickets)
+        throw new NotFoundException(
+          `Only ${booking?.ticket.availableTickets - booking?.ticket.numberOfTicketsSold} tickets are available for ${id}`,
+        );
+
+      // push to valid bookings
+      validBookings.push(booking);
+    }
+
+    if (invalidBookings.length)
+      throw new NotFoundException(
+        `The following bookings are invalid: ${invalidBookings.join(', ')}`,
+      );
+
+    if (!validBookings.length)
+      throw new NotAcceptableException(
+        `Please supply at least one valid booking`,
+      );
+
+    return await this._entityManager.transaction(async (manager) => {
+      // find the user with the userId
+      const user = await manager.findOneBy(User, {
+        id: userId,
+      });
+
+      // process stripe auth url here
+      const response = await this._paymentService.createCheckoutSession(
+        validBookings,
+        user,
+      );
+
+      // Check if the checkout session creation failed
+      if (!response?.url) throw new NotAcceptableException(response?.message);
+
+      // Save the transaction details
+      const transaction = manager.create(BookingsTransaction, {
+        stripeCheckoutId: response?.id,
+        stripeCheckoutUrl: response?.url,
+        totalAmount: response?.amount_total / 100,
+        currency: response?.currency,
+        user,
+        bookings: validBookings,
+      });
+
+      await manager.save(BookingsTransaction, transaction);
+      // Return the checkout URL for payment.
+      if (response?.url) return { checkoutUrl: response };
+    });
   }
 }

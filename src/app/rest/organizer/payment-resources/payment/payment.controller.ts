@@ -113,6 +113,9 @@ export class PaymentController {
       case 'customer.subscription.deleted':
         await this.paymentService.handleSubscriptionDeleted(event);
         break;
+      case 'checkout.session.completed':
+        await this.paymentService.handleBookingsCheckoutSessionCompleted(event);
+        break;
       default:
         console.warn(`Unhandled event type: ${event.type}`);
     }
