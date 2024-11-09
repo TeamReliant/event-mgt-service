@@ -23,6 +23,12 @@ export class EventResponseDto {
   googleMapUrl?: string;
 
   @Expose()
+  latitude?: string;
+
+  @Expose()
+  longitude?: string;
+  
+  @Expose()
   description?: string;
 
   @Expose()

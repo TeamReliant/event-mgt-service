@@ -3,6 +3,8 @@ import {
   IsArray,
   IsDate,
   IsEnum,
+  IsLatitude,
+  IsLongitude,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -30,6 +32,14 @@ export class CreateEventDto {
   @IsNotEmpty()
   @IsString()
   locationPlaceId: string;
+
+  @IsOptional()
+  @IsLatitude()
+  latitude: string;
+
+  @IsOptional()
+  @IsLongitude()
+  longitude: string;
 
   @IsOptional()
   @IsString()
