@@ -12,6 +12,7 @@ import {
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateUserDto } from '@app/rest/users/dto/shared/create-user.dto';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 export class UpdateTeamInvitationDto extends PartialType(CreateUserDto) {
   @IsOptional()
@@ -24,12 +25,12 @@ export class UpdateTeamInvitationDto extends PartialType(CreateUserDto) {
 
   @IsString()
   @MaxLength(255)
-  @IsEnum(['organizer', 'attendee', 'admin'], {
+  @IsEnum(UserType, {
     message: 'User type must be either organizer, attendee, or admin',
   })
   @ValidateIf((object) => object.account === 'not-registered')
   @FormatValidationException()
-  userType: string;
+  userType: UserType;
 
   @IsString()
   @MaxLength(255)

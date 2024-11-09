@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToOne } from 'typeorm';
 import { AbstractEntity } from '@libs/database';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
@@ -6,9 +6,13 @@ import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticke
 import { User } from '@app/rest/users/entities/user.entity';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 
 @Entity({ name: 'bookings' })
 export class Booking extends AbstractEntity<Booking> {
+  @Column({ name: 'bookingId', nullable: true, type: 'varchar' })
+  bookingId: string;
+
   @Column({ name: 'quantity', nullable: false, type: 'int' })
   quantity: number;
 
@@ -53,6 +57,15 @@ export class Booking extends AbstractEntity<Booking> {
   })
   paid: boolean;
 
+  @Column({
+    name: 'status',
+    type: 'enum',
+    enum: BookingStatus,
+    nullable: true,
+    default: BookingStatus.PENDING,
+  })
+  status: BookingStatus;
+
   @Column({ name: 'email', nullable: false, type: 'varchar' })
   email: string;
 
@@ -61,6 +74,18 @@ export class Booking extends AbstractEntity<Booking> {
 
   @Column({ name: 'last_name', nullable: false, type: 'varchar' })
   lastName: string;
+
+  @Column({ name: 'transferred_in', type: 'boolean', default: false })
+  transferredIn: boolean;
+
+  @Column({ name: 'transferred_out', type: 'boolean', default: false })
+  transferredOut: boolean;
+
+  @OneToOne(() => Booking, (booking) => booking.transferredFrom)
+  transferredTo: Booking;
+
+  @OneToOne(() => Booking, (booking) => booking.transferredTo)
+  transferredFrom: Booking;
 
   @ManyToOne(() => Ticket, (ticket) => ticket.bookings)
   ticket: Ticket;

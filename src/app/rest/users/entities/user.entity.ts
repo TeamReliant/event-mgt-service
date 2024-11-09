@@ -6,6 +6,7 @@ import { Event } from '@app/rest/organizer/event-resources/events/entities/event
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -43,9 +44,9 @@ export class User extends AbstractEntity<User> {
     type: 'varchar',
     length: 255,
     nullable: true,
-    default: 'attendee',
+    default: UserType.ATTENDEE,
   })
-  userType?: string; // could be an organizer, attendee, or admin
+  userType?: UserType; // could be an organizer, attendee, or admin
 
   @Column({
     name: 'visibility',
@@ -162,6 +163,16 @@ export class User extends AbstractEntity<User> {
 
   @OneToMany(() => Booking, (booking) => booking.user, { cascade: true })
   bookings?: Booking[];
+
+  // @OneToMany(() => Booking, (booking) => booking.transferredTo, {
+  //   cascade: true,
+  // })
+  // bookingsTransferredTo?: Booking[];
+  //
+  // @OneToMany(() => Booking, (booking) => booking.transferredFrom, {
+  //   cascade: true,
+  // })
+  // bookingsTransferredFrom?: Booking[];
 
   @OneToMany(() => BookingsTransaction, (trans) => trans.user, {
     cascade: true,

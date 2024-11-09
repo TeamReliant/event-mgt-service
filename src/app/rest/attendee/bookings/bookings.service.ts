@@ -16,6 +16,10 @@ import { ProcessBookingDto } from '@app/rest/attendee/bookings/dto/process-booki
 import { PaymentService } from '@app/rest/organizer/payment-resources/payment/payment.service';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { ConfigService } from '@nestjs/config';
+import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
 export class BookingsService {
@@ -82,8 +86,10 @@ export class BookingsService {
           `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}`,
         );
 
-      // find if the user has a booking
+      // find if the user has a pending booking of same ticket
       const existingBooking = await this._repo.findOneBy({
+        status: BookingStatus.PENDING,
+        processed: false,
         user: { id: userId },
         ticket: { id: ticketId },
       });
@@ -111,6 +117,7 @@ export class BookingsService {
         category,
         reaction,
         unitAmount: ticket.price,
+        status: BookingStatus.PENDING,
         email,
         firstName,
         lastName,
@@ -144,7 +151,17 @@ export class BookingsService {
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('bookings.userId = :userId', { userId });
+      .where('bookings.userId = :userId', { userId })
+      .orderBy('bookings.createdAt', 'DESC')
+      .select([
+        'bookings.id',
+        'bookings.bookingId',
+        'bookings.status',
+        'bookings.createdAt',
+        'ticket.name',
+        'event.name',
+        'event.eventStartDateAndTime',
+      ]);
   }
 
   async findOne(id: string, throwError: boolean = true): Promise<Booking> {
@@ -153,6 +170,18 @@ export class BookingsService {
       .leftJoinAndSelect('booking.ticket', 'ticket')
       .leftJoinAndSelect('booking.event', 'event')
       .where('booking.id = :id', { id })
+      .select([
+        'booking.id',
+        'booking.bookingId',
+        'booking.status',
+        'booking.firstName',
+        'booking.lastName',
+        'booking.processed',
+        'booking.paid',
+        'ticket.name',
+        'event.name',
+        'event.eventStartDateAndTime',
+      ])
       .getOne();
 
     if (!booking && throwError)
@@ -188,6 +217,7 @@ export class BookingsService {
     const invalidBookings: string[] = [];
     const validBookings: Booking[] = [];
 
+    let foundPaid: boolean = false;
     for (const id of bookings) {
       const booking = await this._repo
         .createQueryBuilder('booking')
@@ -216,6 +246,7 @@ export class BookingsService {
           `Only ${booking?.ticket.availableTickets - booking?.ticket.numberOfTicketsSold} tickets are available for ${id}`,
         );
 
+      if (booking.category === TicketCategory.PAID) foundPaid = true;
       // push to valid bookings
       validBookings.push(booking);
     }
@@ -230,6 +261,17 @@ export class BookingsService {
         `Please supply at least one valid booking`,
       );
 
+    // check if booking has no paid ticket
+    if (!foundPaid) return this.processFreeBookings(validBookings);
+
+    // if bookings contains paid
+    return this.processMixedBookings(validBookings, userId);
+  }
+
+  private async processMixedBookings(
+    bookings: Booking[],
+    userId: string,
+  ): Promise<any> {
     return await this._entityManager.transaction(async (manager) => {
       // find the user with the userId
       const user = await manager.findOneBy(User, {
@@ -238,7 +280,7 @@ export class BookingsService {
 
       // process stripe auth url here
       const response = await this._paymentService.createCheckoutSession(
-        validBookings,
+        bookings,
         user,
       );
 
@@ -252,12 +294,189 @@ export class BookingsService {
         totalAmount: response?.amount_total / 100,
         currency: response?.currency,
         user,
-        bookings: validBookings,
+        bookings,
       });
 
       await manager.save(BookingsTransaction, transaction);
       // Return the checkout URL for payment.
-      if (response?.url) return { checkoutUrl: response };
+      if (response?.url) return { checkoutUrl: response.url };
     });
+  }
+
+  private async processFreeBookings(bookings: Booking[]): Promise<any> {
+    const newBookings: Booking[] = [];
+    await this._entityManager.transaction(async (manager) => {
+      for (const booking of bookings) {
+        // spread the booking based on the quantity
+        for (let i = 1; i <= booking.quantity; i++) {
+          const newBooking = manager.create(Booking, {
+            quantity: 1,
+            category: booking.category,
+            reaction: booking.reaction,
+            unitAmount: booking.unitAmount,
+            email: booking.email,
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            user: booking.user,
+            event: booking.event,
+            ticket: booking.ticket,
+            bookingId: await this.generateBookingId(),
+            processed: true,
+            status: BookingStatus.VALID,
+          });
+
+          if (
+            booking.ticket.numberOfTicketsSold ===
+            booking.ticket.availableTickets
+          ) {
+            booking.ticket.isAvailable = false;
+          }
+
+          // increase the number of tickets sold for the ticket
+          booking.ticket.numberOfTicketsSold += 1;
+          await manager.save(Ticket, booking.ticket);
+          // push the new booking to the list to be saved
+          newBookings.push(newBooking);
+        }
+
+        // remove the initial booking
+        await manager.remove(Booking, booking);
+      }
+      // save the newly generated bookings
+      await manager.save(Booking, newBookings);
+    });
+
+    return { checkoutUrl: null, bookings: newBookings };
+  }
+
+  async transferBooking(body: TransferBookingDto, userId: string) {
+    const { bookingId, email, firstName, lastName } = body;
+    const booking = await this._repo
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.ticket', 'ticket')
+      .leftJoinAndSelect('booking.event', 'event')
+      .where('booking.userId = :userId', { userId })
+      .andWhere('booking.bookingId = :bookingId', { bookingId })
+      .getOne();
+
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (!booking.processed)
+      throw new NotAcceptableException(
+        'Only processed bookings can be transferred',
+      );
+
+    if (booking.category === TicketCategory.PAID && !booking.paid)
+      throw new NotAcceptableException(
+        `Paid ticket's payment must be processed before transfer`,
+      );
+
+    // check if the destination user is a registered attendee
+    const user = await this._entityManager.findOneBy(User, { email });
+    if (!user || user.userType !== UserType.ATTENDEE)
+      throw new NotFoundException(
+        `User with email ${email} is not a registered attendee`,
+      );
+
+    // transfer the booking to the user
+    return await this._entityManager.transaction(async (manager) => {
+      const newBooking = manager.create(Booking, {
+        bookingId: booking.bookingId,
+        quantity: 1,
+        category: booking.category,
+        reaction: booking.reaction,
+        unitAmount: booking.unitAmount,
+        processed: booking.processed,
+        status: BookingStatus.TRANSFERRED_IN,
+        email: email,
+        firstName: firstName,
+        lastName: lastName,
+        transferredFrom: booking,
+        user,
+        event: booking.event,
+        ticket: booking.ticket,
+      });
+      const savedBooking = await manager.save(Booking, newBooking);
+
+      booking.status = BookingStatus.TRANSFERRED_OUT;
+      booking.transferredTo = savedBooking;
+      await manager.save(Booking, booking);
+      return booking;
+    });
+  }
+
+  /**
+   * @param transactionId
+   * @param userId
+   * For cases where the service webhook wasn't reachable
+   * for transaction verification from stripe.
+   * This function verifies the transaction from the stripe checkout session id
+   * manually and returns the transaction details
+   */
+  async verifyBooking(transactionId: string, userId: string) {
+    const selectedFields = [
+      'transaction.id',
+      'transaction.stripeCheckoutId',
+      'transaction.totalAmount',
+      'transaction.currency',
+      'transaction.processed',
+      'bookings.id',
+      'bookings.bookingId',
+      'bookings.status',
+      'bookings.processed',
+      'event.id',
+      'event.name',
+      'ticket.id',
+      'ticket.name',
+    ];
+
+    // find the session from the transaction
+    const transaction = await this._entityManager
+      .createQueryBuilder(BookingsTransaction, 'transaction')
+      .leftJoinAndSelect('transaction.bookings', 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .leftJoinAndSelect('bookings.ticket', 'ticket')
+      .where('transaction.id = :transactionId', {
+        transactionId,
+      })
+      .andWhere('transaction.userId = :userId', { userId })
+      .select(selectedFields)
+      .getOne();
+
+    if (!transaction) throw new NotFoundException('Transaction not found');
+    if (transaction.processed) return transaction;
+
+    // check and verify the checkout session
+    const newTransaction =
+      await this._paymentService.verifyBookingsCheckoutSession(
+        transaction.stripeCheckoutId,
+      );
+
+    // return the transaction record if the verification succeeds
+    if (newTransaction)
+      return await this._entityManager
+        .createQueryBuilder(BookingsTransaction, 'transaction')
+        .leftJoinAndSelect('transaction.bookings', 'bookings')
+        .leftJoinAndSelect('bookings.event', 'event')
+        .leftJoinAndSelect('bookings.ticket', 'ticket')
+        .where('transaction.id = :transactionId', {
+          transactionId: newTransaction.id,
+        })
+        .andWhere('transaction.userId = :userId', { userId })
+        .select(selectedFields)
+        .getOne();
+
+    // if the session is not verified, return error verifying transaction
+    throw new InternalServerErrorException('Error verifying transaction');
+  }
+
+  async generateBookingId(): Promise<string> {
+    const randNum = Math.floor(10000 + Math.random() * 90000);
+    const bookingId = `#${randNum}`;
+    // check if the booking number already exists
+    const booking = await this._repo.findOneBy({ bookingId });
+    if (booking) return this.generateBookingId();
+
+    return bookingId;
   }
 }

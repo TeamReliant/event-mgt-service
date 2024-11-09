@@ -20,6 +20,8 @@ import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { ShowBookingParamsDto } from '@app/rest/attendee/bookings/dto/show-booking-params.dto';
 import { DeleteBookingParamsDto } from '@app/rest/attendee/bookings/dto/delete-booking-params.dto';
 import { ProcessBookingDto } from '@app/rest/attendee/bookings/dto/process-booking.dto';
+import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
+import { VerifyBookingsTransactionDto } from '@app/rest/attendee/bookings/dto/verify-bookings-transaction.dto';
 
 @Controller()
 export class BookingsController {
@@ -43,17 +45,43 @@ export class BookingsController {
   @Get('bookings')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
-  findAll(@GetCurrentUserId() userId: string) {
+  async findAll(@GetCurrentUserId() userId: string) {
     const response = this._bookingsService.findAll(userId);
-    return this._paginationService.applyHTEAOS<Booking>(response);
+    const paginatedData =
+      await this._paginationService.applyHTEAOS<Booking>(response);
+    paginatedData.data = paginatedData.data.map((booking: Booking) => {
+      return {
+        id: booking.id,
+        eventName: booking.event.name,
+        ticketType: booking.ticket.name,
+        ticketNumber: booking.bookingId,
+        date: booking.event.eventStartDateAndTime,
+        status: booking.status,
+      } as unknown as Booking;
+    });
+
+    return paginatedData;
   }
 
   @Get('bookings/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async findOne(@Param() { id }: ShowBookingParamsDto) {
-    const response = await this._bookingsService.findOne(id);
-    return ResponseSerializer.data(response);
+    let booking = await this._bookingsService.findOne(id);
+    if (booking) {
+      booking = {
+        id: booking.id,
+        ticketNumber: booking.bookingId,
+        ticketType: booking.ticket.name,
+        guestName: `${booking.firstName} ${booking.lastName}`,
+        status: booking.status,
+        paid: booking.paid,
+        processed: booking.processed,
+        eventName: booking.event.name,
+      } as unknown as Booking;
+    }
+
+    return ResponseSerializer.data(booking);
   }
 
   @Delete('bookings/:id')
@@ -76,5 +104,30 @@ export class BookingsController {
   ) {
     const response = await this._bookingsService.processBookings(body, userId);
     return ResponseSerializer.data(response);
+  }
+
+  @Post('bookings/transfer')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async transfer(
+    @Body() body: TransferBookingDto,
+    @GetCurrentUserId() userId: string,
+  ) {
+    await this._bookingsService.transferBooking(body, userId);
+    return ResponseSerializer.message('Booking transferred successfully');
+  }
+
+  @Post('bookings/verify')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async verify(
+    @Body() { transactionId }: VerifyBookingsTransactionDto,
+    @GetCurrentUserId() userId: string,
+  ) {
+    const data = await this._bookingsService.verifyBooking(
+      transactionId,
+      userId,
+    );
+    return ResponseSerializer.data(data);
   }
 }

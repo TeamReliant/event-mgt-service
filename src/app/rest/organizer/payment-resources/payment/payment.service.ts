@@ -26,6 +26,7 @@ import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/en
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 
 @Injectable()
 export class PaymentService {
@@ -575,6 +576,12 @@ export class PaymentService {
 
   async handleBookingsCheckoutSessionCompleted(event: Stripe.Event) {
     const session = event.data.object as Stripe.Checkout.Session;
+    return this.verifyBookingsCheckoutSession(session.id);
+  }
+
+  async verifyBookingsCheckoutSession(sessionId: string): Promise<any> {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+    if (!session) throw new NotFoundException('Session not found');
 
     return await this.entityManager.transaction(async (manager) => {
       // find the booking transaction with the checkout id that is not processed yet
@@ -601,23 +608,47 @@ export class PaymentService {
 
         // Keep track of total revenue and event
         let totalRevenue: number = 0.0;
+        const bookings: Booking[] = [];
         let event: Event = undefined;
 
         // loop through the bookings and update
         for (const booking of transaction.bookings) {
-          booking.processed = true;
-          if (booking.category === TicketCategory.PAID) booking.paid = true;
-          await manager.save(Booking, booking);
+          // spread the booking based on the quantity
+          for (let i = 1; i <= booking.quantity; i++) {
+            const newBooking = manager.create(Booking, {
+              quantity: 1,
+              category: booking.category,
+              reaction: booking.reaction,
+              unitAmount: booking.unitAmount,
+              email: booking.email,
+              firstName: booking.firstName,
+              lastName: booking.lastName,
+              user: booking.user,
+              event: booking.event,
+              ticket: booking.ticket,
+              bookingId: await this.generateBookingId(),
+              processed: true,
+              status: BookingStatus.VALID,
+            });
 
-          // increase the number of tickets sold for the ticket
-          booking.ticket.numberOfTicketsSold += booking.quantity;
-          if (
-            booking.ticket.numberOfTicketsSold ===
-            booking.ticket.availableTickets
-          )
-            booking.ticket.isAvailable = false;
+            if (booking.category === TicketCategory.PAID) {
+              newBooking.paid = true;
+              newBooking.transaction = transaction;
+            }
 
-          await manager.save(Ticket, booking.ticket);
+            if (
+              booking.ticket.numberOfTicketsSold ===
+              booking.ticket.availableTickets
+            ) {
+              booking.ticket.isAvailable = false;
+            }
+
+            // increase the number of tickets sold for the ticket
+            booking.ticket.numberOfTicketsSold += 1;
+            await manager.save(Ticket, booking.ticket);
+            // push the booking to list to be saved
+            bookings.push(newBooking);
+          }
 
           if (booking.category === TicketCategory.PAID) {
             // update the event's revenue
@@ -632,6 +663,12 @@ export class PaymentService {
             if (!event) event = booking.event;
             totalRevenue += revenue;
           }
+
+          // save the newly generated bookings
+          await manager.save(Booking, bookings);
+
+          // remove the initial booking
+          await manager.remove(Booking, booking);
         }
 
         if (event) {
@@ -639,10 +676,24 @@ export class PaymentService {
           await manager.save(Event, event);
         }
 
+        // delete old transactions from memory
+        delete transaction.bookings;
         // Save the transaction details
-        await manager.save(BookingsTransaction, transaction);
+        return await manager.save(BookingsTransaction, transaction);
       }
+
+      throw new NotAcceptableException('Payment not completed');
     });
+  }
+
+  async generateBookingId(): Promise<string> {
+    const randNum = Math.floor(10000 + Math.random() * 90000);
+    const bookingId = `#${randNum}`;
+    // check if the booking number already exists
+    const booking = await this.entityManager.findOneBy(Booking, { bookingId });
+    if (booking) return this.generateBookingId();
+
+    return bookingId;
   }
 
   async retrieveCheckoutSession(sessionId: string): Promise<any> {
