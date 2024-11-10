@@ -589,6 +589,7 @@ export class PaymentService {
         .createQueryBuilder(BookingsTransaction, 'transaction')
         .leftJoinAndSelect('transaction.bookings', 'bookings')
         .leftJoinAndSelect('bookings.event', 'event')
+        .leftJoinAndSelect('bookings.user', 'user')
         .leftJoinAndSelect('bookings.ticket', 'ticket')
         .where('transaction.stripeCheckoutId = :stripeCheckoutId', {
           stripeCheckoutId: session.id,

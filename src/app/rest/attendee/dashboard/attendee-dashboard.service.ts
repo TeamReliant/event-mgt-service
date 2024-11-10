@@ -22,13 +22,14 @@ export class AttendeeDashboardService {
       })
       .andWhere('booking.processed = :processed', { processed: true })
       .andWhere('booking.paid = :paid', { paid: true })
-      .groupBy('booking.event');
+      .orderBy('event.eventStartDateAndTime', 'ASC');
 
     // Main query to get bookings with the unique event IDs
-    const upcomingEvents = await this._entityManager
+    const upcomingEventBookings = await this._entityManager
       .createQueryBuilder(Booking, 'booking')
       .innerJoinAndSelect('booking.event', 'event')
       .where(`booking.event IN (${subQuery.getQuery()})`)
+      .andWhere('booking.userId = :userId', { userId })
       .setParameters(subQuery.getParameters())
       .getMany();
 
@@ -47,9 +48,22 @@ export class AttendeeDashboardService {
       .getMany();
 
     return {
-      upcomingEvents: upcomingEvents.map((booking) => booking.event),
+      upcomingEvents: this.sortUpcomingEvents(upcomingEventBookings),
       recentlyViewedEvents: recentlyViewedEvents.map((view) => view.event),
       recommendedEvents,
     };
+  }
+
+  sortUpcomingEvents(bookings: Booking[]) {
+    const events = [];
+    const found = [];
+
+    for (const booking of bookings) {
+      if (found.includes(booking.event.id)) continue;
+      found.push(booking.event.id);
+      events.push(booking.event);
+    }
+
+    return events;
   }
 }
