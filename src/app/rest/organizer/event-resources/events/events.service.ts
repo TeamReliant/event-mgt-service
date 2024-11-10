@@ -8,12 +8,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import {
-  Brackets,
-  EntityManager,
-  FindRelationsNotFoundError,
-  Repository,
-} from 'typeorm';
+import { Brackets, EntityManager, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -22,6 +17,7 @@ import { Request } from 'express';
 import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/assign-team.dto';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { UsersService } from '@app/rest/users/users.service';
+import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 
 @Injectable()
 export class EventsService {
@@ -79,7 +75,7 @@ export class EventsService {
     const { maxPublishableEvents, maxPrivateEvents } = planRestrictions[plan];
     const publishedEventsCreatedThisMonthCount =
       this.getCountOfPublishedEventCreatedThisMonth(user);
-      
+
     if (plan === 'free' && visibility === 'private') {
       throw new BadRequestException(
         'Users on the free plan cannot create private events',
@@ -239,7 +235,7 @@ export class EventsService {
       eventStartDateAndTime,
       dateRangeStart,
       dateRangeEnd,
-      pastPublishedEvents
+      pastPublishedEvents,
     } = query;
 
     const userId = user.userId;
@@ -298,16 +294,16 @@ export class EventsService {
         { dateRangeStart, dateRangeEnd },
       );
 
-      if (pastPublishedEvents) {
-        const currentDate = new Date();
-        queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
-          currentDate,
-        });
+    if (pastPublishedEvents) {
+      const currentDate = new Date();
+      queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
+        currentDate,
+      });
 
-        queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
-          publishedStatus: 'published',
-        });
-      }
+      queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
+        publishedStatus: 'published',
+      });
+    }
 
     return queryBuilder;
   }
@@ -339,7 +335,49 @@ export class EventsService {
         'User is neither the event owner nor a team member',
       );
     }
+
     return event;
+  }
+
+  async findOneForAttendee(id: string, userId: string) {
+    const event = await this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .where('event.id = :id', { id })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('event.eventStatus = :publishedStatus', {
+            publishedStatus: 'published',
+          });
+        }),
+      )
+      .getOne();
+
+    if (!event) throw new NotFoundException('Event not found');
+
+    // update the views
+    await this.updateView(event, userId);
+    // return the found event
+    return event;
+  }
+
+  async updateView(event: Event, userId: string) {
+    const user = await this.userService.findOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    // check if the view already exist
+    const existingView = await this.entityManager.findOne(EventView, {
+      where: { event: { id: event.id }, user: { id: user.id } },
+    });
+    if (existingView) {
+      existingView.updatedAt = new Date();
+      await this.entityManager.save(EventView, existingView);
+      return;
+    }
+
+    const view = this.entityManager.create(EventView, { user, event });
+    await this.entityManager.save(EventView, view);
+    return;
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {

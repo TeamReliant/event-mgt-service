@@ -27,7 +27,7 @@ export class EventResponseDto {
 
   @Expose()
   longitude?: string;
-  
+
   @Expose()
   description?: string;
 

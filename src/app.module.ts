@@ -24,9 +24,10 @@ import { EventAnalyticsModule } from '@app/rest/organizer/analytics-resources/ev
 import { GeneralEventAnalyticsModule } from '@app/rest/organizer/analytics-resources/general-event-analytics/general-event-analytics.module';
 import { MarketplaceModule } from '@app/rest/attendee/marketplace/marketplace.module';
 import { NewsletterModule } from '@app/rest/attendee/newsletter/newsletter.module';
-import { SubscribersModule } from './app/rest/attendee/subscribers/subscribers.module';
-import { BookingsModule } from './app/rest/attendee/bookings/bookings.module';
-import { BookingsTransactionsModule } from './app/rest/attendee/bookings-transactions/bookings-transactions.module';
+import { SubscribersModule } from '@app/rest/attendee/subscribers/subscribers.module';
+import { BookingsModule } from '@app/rest/attendee/bookings/bookings.module';
+import { BookingsTransactionsModule } from '@app/rest/attendee/bookings-transactions/bookings-transactions.module';
+import { AttendeeDashboardModule } from '@app/rest/attendee/dashboard/attendee-dashboard.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { BookingsTransactionsModule } from './app/rest/attendee/bookings-transac
     SubscribersModule,
     BookingsModule,
     BookingsTransactionsModule,
+    AttendeeDashboardModule,
   ],
   providers: [JwtStrategy],
 })

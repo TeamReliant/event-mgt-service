@@ -7,6 +7,7 @@ import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.ent
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -163,6 +164,11 @@ export class User extends AbstractEntity<User> {
 
   @OneToMany(() => Booking, (booking) => booking.user, { cascade: true })
   bookings?: Booking[];
+
+  @OneToMany(() => EventView, (view) => view.user, {
+    cascade: true,
+  })
+  eventViews?: EventView[];
 
   // @OneToMany(() => Booking, (booking) => booking.transferredTo, {
   //   cascade: true,

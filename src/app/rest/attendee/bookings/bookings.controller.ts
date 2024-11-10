@@ -22,6 +22,8 @@ import { DeleteBookingParamsDto } from '@app/rest/attendee/bookings/dto/delete-b
 import { ProcessBookingDto } from '@app/rest/attendee/bookings/dto/process-booking.dto';
 import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
 import { VerifyBookingsTransactionDto } from '@app/rest/attendee/bookings/dto/verify-bookings-transaction.dto';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { roles } from '@config/app.config';
 
 @Controller()
 export class BookingsController {
@@ -32,7 +34,7 @@ export class BookingsController {
 
   @Post('events/:eventId/bookings')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async create(
     @Body() body: CreateBookingDto,
     @GetCurrentUserId() userId: string,
@@ -44,7 +46,7 @@ export class BookingsController {
 
   @Get('bookings')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async findAll(@GetCurrentUserId() userId: string) {
     const response = this._bookingsService.findAll(userId);
     const paginatedData =
@@ -65,7 +67,7 @@ export class BookingsController {
 
   @Get('bookings/:id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async findOne(@Param() { id }: ShowBookingParamsDto) {
     let booking = await this._bookingsService.findOne(id);
     if (booking) {
@@ -86,7 +88,7 @@ export class BookingsController {
 
   @Delete('bookings/:id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async remove(
     @Param() { id }: DeleteBookingParamsDto,
     @GetCurrentUserId() userId: string,
@@ -97,7 +99,7 @@ export class BookingsController {
 
   @Post('events/:eventId/bookings/process')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async processBooking(
     @GetCurrentUserId() userId: string,
     @Body() body: ProcessBookingDto,
@@ -108,7 +110,7 @@ export class BookingsController {
 
   @Post('bookings/transfer')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async transfer(
     @Body() body: TransferBookingDto,
     @GetCurrentUserId() userId: string,
@@ -119,7 +121,7 @@ export class BookingsController {
 
   @Post('bookings/verify')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async verify(
     @Body() { transactionId }: VerifyBookingsTransactionDto,
     @GetCurrentUserId() userId: string,
