@@ -4,23 +4,21 @@ import {
   NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
+import slugify from 'slugify';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import {
-  Brackets,
-  EntityManager,
-  Repository,
-} from 'typeorm';
+import { Brackets, EntityManager, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
 import { User } from '@app/rest/users/entities/user.entity';
-import { query, Request } from 'express';
+import { Request } from 'express';
 import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/assign-team.dto';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { UsersService } from '@app/rest/users/users.service';
+import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 
 @Injectable()
 export class EventsService {
@@ -116,6 +114,14 @@ export class EventsService {
 
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
+
+    // check if the event name already exists
+    const eventExists = await this.eventRepo.findOneBy({
+      name: createEventDto.name,
+    });
+    if (eventExists)
+      throw new NotAcceptableException('Event with this name already exists');
+
     try {
       const {
         eventCoverImage,
@@ -145,6 +151,7 @@ export class EventsService {
         async (manager) => {
           const eventInstance = manager.create(Event, {
             ...rest,
+            slug: slugify(rest.name, { lower: true }),
             eventImageURL,
             eventVisibility,
             eventStatus,
@@ -177,49 +184,55 @@ export class EventsService {
     }
   }
 
-  /**
-   * A method to find all events in the database based on some query parameters
-   * @param params this is an object containing key value pairs of query parameters
-   * @returns the list of events
-   */
-  findAll(params?: { [key: string]: any }) {
-    const queryBuilder = this.eventRepo.createQueryBuilder('event');
-    queryBuilder.andWhere('event.eventVisibility = :publicVisibility', {
-      publicVisibility: 'public',
-    });
-    queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
-      publishedStatus: 'published',
-    });
+  // //NEEDED BY ADMIN
+  // findAll(req: Request) {
+  //   const { query } = req;
+  //   const {
+  //     name,
+  //     location,
+  //     address,
+  //     eventVisibility,
+  //     eventStatus,
+  //     eventStartDateAndTime,
+  //   } = query;
 
-     if (params) {
-       Object.keys(params).forEach((key) => {
-         if (params[key]) {
-           if (key === 'tags') {
-             queryBuilder.andWhere(
-               `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
-               { tag: params[key] },
-             );
-           } else if (key === 'eventStartDateAndTime') {
-             const today = new Date();
-             queryBuilder.andWhere(
-               `event.eventStartDateAndTime BETWEEN :today AND :eventEndDate`,
-               {
-                 today: today.toISOString(),
-                 eventEndDate: params[key],
-               },
-             );
-           } else {
-             queryBuilder.andWhere(`event.${key} ILIKE :${key}`, {
-               [key]: `%${params[key]}%`,
-             });
-           }
-         }
-       });
-     }
+  //   const queryBuilder = this.eventRepo.createQueryBuilder('event');
+  //   if (name) {
+  //     queryBuilder.andWhere('event.name LIKE :name', { name: `%${name}%` });
+  //   }
 
+  //   if (location) {
+  //     queryBuilder.andWhere('event.location LIKE :location', {
+  //       location: `%${location}%`,
+  //     });
+  //   }
 
-    return queryBuilder.getMany();
-  }
+  //   if (address) {
+  //     queryBuilder.andWhere('event.address LIKE :address', {
+  //       address: `%${address}%`,
+  //     });
+  //   }
+
+  //   if (eventVisibility) {
+  //     queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
+  //       eventVisibility,
+  //     });
+  //   }
+
+  //   if (eventStatus) {
+  //     queryBuilder.andWhere('event.eventStatus = :eventStatus', {
+  //       eventStatus,
+  //     });
+  //   }
+
+  //   if (eventStartDateAndTime) {
+  //     queryBuilder.andWhere('event.eventDate >= :eventStartDateAndTime', {
+  //       eventStartDateAndTime,
+  //     });
+  //   }
+
+  //   return queryBuilder;
+  // }
 
   findMyEvents(req: Request, user: TJwtPayload) {
     const { query } = req;
@@ -332,7 +345,49 @@ export class EventsService {
         'User is neither the event owner nor a team member',
       );
     }
+
     return event;
+  }
+
+  async findOneForAttendee(slug: string, userId: string) {
+    const event = await this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .where('event.slug = :slug', { slug })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('event.eventStatus = :publishedStatus', {
+            publishedStatus: 'published',
+          });
+        }),
+      )
+      .getOne();
+
+    if (!event) throw new NotFoundException('Event not found');
+
+    // update the views
+    await this.updateView(event, userId);
+    // return the found event
+    return event;
+  }
+
+  async updateView(event: Event, userId: string) {
+    const user = await this.userService.findOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    // check if the view already exist
+    const existingView = await this.entityManager.findOne(EventView, {
+      where: { event: { id: event.id }, user: { id: user.id } },
+    });
+    if (existingView) {
+      existingView.updatedAt = new Date();
+      await this.entityManager.save(EventView, existingView);
+      return;
+    }
+
+    const view = this.entityManager.create(EventView, { user, event });
+    await this.entityManager.save(EventView, view);
+    return;
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
@@ -346,12 +401,25 @@ export class EventsService {
       await this.deleteImage(event.eventImageURL);
     }
 
+    // check if name is part of the payload
+    if (updateEventDto.name) {
+      // check if name already exists
+      const eventExists = await this.eventRepo
+        .createQueryBuilder('event')
+        .where('event.name = :name', { name: updateEventDto.name })
+        .andWhere('event.userId != userId', { userId: user.userId })
+        .getOne();
+      if (eventExists)
+        throw new NotAcceptableException('Event with this name already exists');
+    }
+
     // update event
     const updatedEvent = await this.entityManager.transaction(
       async (manager) => {
         const { eventCoverImage, tickets, ...rest } = updateEventDto;
         const updatedFields = {
           ...rest,
+          slug: rest.name ? slugify(rest.name, { lower: true }) : event.slug,
           eventImageURL,
         };
 

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
@@ -19,6 +20,13 @@ import { events } from '@config/app.config';
 import { Payment } from './entities/payment.entity';
 import { PaymentEvent } from './events/payment.event';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
+import { ConfigService } from '@nestjs/config';
+import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
+import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
+import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
+import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 
 @Injectable()
 export class PaymentService {
@@ -28,6 +36,7 @@ export class PaymentService {
     private readonly paymentStrategyResolver: PaymentStrategyResolver,
     private readonly entityManager: EntityManager,
     private readonly eventEmitter: EventEmitter2,
+    private readonly configService: ConfigService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2024-06-20',
@@ -493,5 +502,206 @@ export class PaymentService {
     };
 
     this.eventEmitter.emit(eventType, new PaymentEvent(payoutNotification));
+  }
+
+  async createPaymentIntent(
+    stripeCustomerId: string,
+    amount: number = 1400,
+  ): Promise<any> {
+    return await this.stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      customer: stripeCustomerId,
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'never',
+      },
+    });
+  }
+
+  // confirm paymentIntent from stripe
+  async confirmPaymentIntent(paymentIntentId: string): Promise<any> {
+    try {
+      return await this.stripe.paymentIntents.confirm(paymentIntentId);
+    } catch (error) {
+      throw new NotAcceptableException(error);
+    }
+  }
+
+  // retrieve paymentIntent from stripe
+  async retrievePaymentIntent(paymentIntentId: string): Promise<any> {
+    return await this.stripe.paymentIntents.retrieve(paymentIntentId);
+  }
+
+  async createCheckoutSession(
+    bookings: Booking[],
+    user: User,
+    cancelUrl: string = null,
+  ): Promise<any> {
+    const totalAmount = bookings.reduce((currentAmount, booking) => {
+      return currentAmount + booking.ticket.price * booking.quantity;
+    }, 0);
+
+    const booking = bookings.find((booking) => booking);
+
+    return await this.stripe.checkout.sessions.create({
+      payment_method_types: [
+        'card', // Credit/Debit cards
+        'alipay', // Alipay for users in China
+      ],
+      line_items: [
+        {
+          price_data: {
+            currency: this.configService.get<string>(
+              'STRIPE_CHECKOUT_SESSION_CURRENCY',
+            ),
+            product_data: {
+              name: `EVENT BOOKING - ${booking.event.name.toUpperCase()}`,
+              description: `By ${user.firstname} ${user.lastname}, Email: ${user.email}`,
+            },
+            unit_amount: totalAmount * 100, // Amount in cents, adjust based on ticket price
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      customer: user.customerId,
+      currency: this.configService.get<string>(
+        'STRIPE_CHECKOUT_SESSION_CURRENCY',
+      ),
+      success_url: this.configService.get<string>(
+        'STRIPE_CHECKOUT_SESSION_SUCCESS_URL',
+      ),
+      cancel_url:
+        cancelUrl ??
+        this.configService.get<string>('STRIPE_CHECKOUT_SESSION_CANCEL_URL'),
+    });
+  }
+
+  async handleBookingsCheckoutSessionCompleted(event: Stripe.Event) {
+    const session = event.data.object as Stripe.Checkout.Session;
+    return this.verifyBookingsCheckoutSession(session.id);
+  }
+
+  async verifyBookingsCheckoutSession(sessionId: string): Promise<any> {
+    const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+    if (!session) throw new NotFoundException('Session not found');
+
+    return await this.entityManager.transaction(async (manager) => {
+      // find the booking transaction with the checkout id that is not processed yet
+      const transaction = await manager
+        .createQueryBuilder(BookingsTransaction, 'transaction')
+        .leftJoinAndSelect('transaction.bookings', 'bookings')
+        .leftJoinAndSelect('bookings.event', 'event')
+        .leftJoinAndSelect('bookings.user', 'user')
+        .leftJoinAndSelect('bookings.ticket', 'ticket')
+        .where('transaction.stripeCheckoutId = :stripeCheckoutId', {
+          stripeCheckoutId: session.id,
+        })
+        .andWhere('transaction.processed = :processed', { processed: false })
+        .getOne();
+
+      if (!transaction) throw new NotFoundException('Transaction not found');
+
+      if (
+        session.payment_status === 'paid' &&
+        transaction.totalAmount === session.amount_total / 100
+      ) {
+        transaction.processed = true;
+        transaction.paid = true;
+        transaction.currency = session.currency;
+
+        // Keep track of total revenue and event
+        let totalRevenue: number = 0.0;
+        const bookings: Booking[] = [];
+        let event: Event = undefined;
+
+        // loop through the bookings and update
+        for (const booking of transaction.bookings) {
+          // spread the booking based on the quantity
+          for (let i = 1; i <= booking.quantity; i++) {
+            const newBooking = manager.create(Booking, {
+              quantity: 1,
+              category: booking.category,
+              reaction: booking.reaction,
+              unitAmount: booking.unitAmount,
+              email: booking.email,
+              firstName: booking.firstName,
+              lastName: booking.lastName,
+              user: booking.user,
+              event: booking.event,
+              ticket: booking.ticket,
+              bookingId: await this.generateBookingId(),
+              processed: true,
+              status: BookingStatus.VALID,
+            });
+
+            if (booking.category === TicketCategory.PAID) {
+              newBooking.paid = true;
+              newBooking.transaction = transaction;
+            }
+
+            if (
+              booking.ticket.numberOfTicketsSold ===
+              booking.ticket.availableTickets
+            ) {
+              booking.ticket.isAvailable = false;
+            }
+
+            // increase the number of tickets sold for the ticket
+            booking.ticket.numberOfTicketsSold += 1;
+            await manager.save(Ticket, booking.ticket);
+            // push the booking to list to be saved
+            bookings.push(newBooking);
+          }
+
+          if (booking.category === TicketCategory.PAID) {
+            // update the event's revenue
+            const percentage = +this.configService.get<number>(
+              'TICKET_PERCENTAGE_CUT',
+            );
+
+            const price = +booking.unitAmount * booking.quantity;
+            const percentageCut = (price * percentage) / 100;
+            const revenue = price - percentageCut;
+
+            if (!event) event = booking.event;
+            totalRevenue += revenue;
+          }
+
+          // save the newly generated bookings
+          await manager.save(Booking, bookings);
+
+          // remove the initial booking
+          await manager.remove(Booking, booking);
+        }
+
+        if (event) {
+          event.revenue = +event.revenue + totalRevenue;
+          await manager.save(Event, event);
+        }
+
+        // delete old transactions from memory
+        delete transaction.bookings;
+        // Save the transaction details
+        return await manager.save(BookingsTransaction, transaction);
+      }
+
+      throw new NotAcceptableException('Payment not completed');
+    });
+  }
+
+  async generateBookingId(): Promise<string> {
+    const randNum = Math.floor(10000 + Math.random() * 90000);
+    const bookingId = `#${randNum}`;
+    // check if the booking number already exists
+    const booking = await this.entityManager.findOneBy(Booking, { bookingId });
+    if (booking) return this.generateBookingId();
+
+    return bookingId;
+  }
+
+  async retrieveCheckoutSession(sessionId: string): Promise<any> {
+    return await this.stripe.checkout.sessions.retrieve(sessionId);
   }
 }
