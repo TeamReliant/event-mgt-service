@@ -11,14 +11,13 @@ import { Event } from './entities/event.entity';
 import {
   Brackets,
   EntityManager,
-  FindRelationsNotFoundError,
   Repository,
 } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
 import { User } from '@app/rest/users/entities/user.entity';
-import { Request } from 'express';
+import { query, Request } from 'express';
 import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/assign-team.dto';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { UsersService } from '@app/rest/users/users.service';
@@ -79,7 +78,7 @@ export class EventsService {
     const { maxPublishableEvents, maxPrivateEvents } = planRestrictions[plan];
     const publishedEventsCreatedThisMonthCount =
       this.getCountOfPublishedEventCreatedThisMonth(user);
-      
+
     if (plan === 'free' && visibility === 'private') {
       throw new BadRequestException(
         'Users on the free plan cannot create private events',
@@ -178,55 +177,49 @@ export class EventsService {
     }
   }
 
-  // //NEEDED BY ADMIN
-  // findAll(req: Request) {
-  //   const { query } = req;
-  //   const {
-  //     name,
-  //     location,
-  //     address,
-  //     eventVisibility,
-  //     eventStatus,
-  //     eventStartDateAndTime,
-  //   } = query;
+  /**
+   * A method to find all events in the database based on some query parameters
+   * @param params this is an object containing key value pairs of query parameters
+   * @returns the list of events
+   */
+  findAll(params?: { [key: string]: any }) {
+    const queryBuilder = this.eventRepo.createQueryBuilder('event');
+    queryBuilder.andWhere('event.eventVisibility = :publicVisibility', {
+      publicVisibility: 'public',
+    });
+    queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
+      publishedStatus: 'published',
+    });
 
-  //   const queryBuilder = this.eventRepo.createQueryBuilder('event');
-  //   if (name) {
-  //     queryBuilder.andWhere('event.name LIKE :name', { name: `%${name}%` });
-  //   }
+     if (params) {
+       Object.keys(params).forEach((key) => {
+         if (params[key]) {
+           if (key === 'tags') {
+             queryBuilder.andWhere(
+               `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
+               { tag: params[key] },
+             );
+           } else if (key === 'eventStartDateAndTime') {
+             const today = new Date();
+             queryBuilder.andWhere(
+               `event.eventStartDateAndTime BETWEEN :today AND :eventEndDate`,
+               {
+                 today: today.toISOString(),
+                 eventEndDate: params[key],
+               },
+             );
+           } else {
+             queryBuilder.andWhere(`event.${key} ILIKE :${key}`, {
+               [key]: `%${params[key]}%`,
+             });
+           }
+         }
+       });
+     }
 
-  //   if (location) {
-  //     queryBuilder.andWhere('event.location LIKE :location', {
-  //       location: `%${location}%`,
-  //     });
-  //   }
 
-  //   if (address) {
-  //     queryBuilder.andWhere('event.address LIKE :address', {
-  //       address: `%${address}%`,
-  //     });
-  //   }
-
-  //   if (eventVisibility) {
-  //     queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
-  //       eventVisibility,
-  //     });
-  //   }
-
-  //   if (eventStatus) {
-  //     queryBuilder.andWhere('event.eventStatus = :eventStatus', {
-  //       eventStatus,
-  //     });
-  //   }
-
-  //   if (eventStartDateAndTime) {
-  //     queryBuilder.andWhere('event.eventDate >= :eventStartDateAndTime', {
-  //       eventStartDateAndTime,
-  //     });
-  //   }
-
-  //   return queryBuilder;
-  // }
+    return queryBuilder.getMany();
+  }
 
   findMyEvents(req: Request, user: TJwtPayload) {
     const { query } = req;
@@ -239,7 +232,7 @@ export class EventsService {
       eventStartDateAndTime,
       dateRangeStart,
       dateRangeEnd,
-      pastPublishedEvents
+      pastPublishedEvents,
     } = query;
 
     const userId = user.userId;
@@ -298,16 +291,16 @@ export class EventsService {
         { dateRangeStart, dateRangeEnd },
       );
 
-      if (pastPublishedEvents) {
-        const currentDate = new Date();
-        queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
-          currentDate,
-        });
+    if (pastPublishedEvents) {
+      const currentDate = new Date();
+      queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
+        currentDate,
+      });
 
-        queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
-          publishedStatus: 'published',
-        });
-      }
+      queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
+        publishedStatus: 'published',
+      });
+    }
 
     return queryBuilder;
   }
