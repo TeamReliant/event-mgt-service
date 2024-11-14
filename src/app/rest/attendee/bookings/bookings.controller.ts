@@ -53,8 +53,9 @@ export class BookingsController {
       await this._paginationService.applyHTEAOS<Booking>(response);
     paginatedData.data = paginatedData.data.map((booking: Booking) => {
       return {
-        id: booking.id,
-        eventName: booking.event.name,
+        ...booking,
+        event: booking.event,
+        ticket: booking.ticket,
         ticketType: booking.ticket.name,
         ticketNumber: booking.bookingId,
         date: booking.event.eventStartDateAndTime,

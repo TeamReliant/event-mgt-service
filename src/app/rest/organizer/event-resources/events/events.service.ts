@@ -4,6 +4,7 @@ import {
   NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
+import slugify from 'slugify';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -113,6 +114,14 @@ export class EventsService {
 
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
+
+    // check if the event name already exists
+    const eventExists = await this.eventRepo.findOneBy({
+      name: createEventDto.name,
+    });
+    if (eventExists)
+      throw new NotAcceptableException('Event with this name already exists');
+
     try {
       const {
         eventCoverImage,
@@ -142,6 +151,7 @@ export class EventsService {
         async (manager) => {
           const eventInstance = manager.create(Event, {
             ...rest,
+            slug: slugify(rest.name, { lower: true }),
             eventImageURL,
             eventVisibility,
             eventStatus,
@@ -339,11 +349,11 @@ export class EventsService {
     return event;
   }
 
-  async findOneForAttendee(id: string, userId: string) {
+  async findOneForAttendee(slug: string, userId: string) {
     const event = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
-      .where('event.id = :id', { id })
+      .where('event.slug = :slug', { slug })
       .andWhere(
         new Brackets((qb) => {
           qb.where('event.eventStatus = :publishedStatus', {
@@ -391,12 +401,25 @@ export class EventsService {
       await this.deleteImage(event.eventImageURL);
     }
 
+    // check if name is part of the payload
+    if (updateEventDto.name) {
+      // check if name already exists
+      const eventExists = await this.eventRepo
+        .createQueryBuilder('event')
+        .where('event.name = :name', { name: updateEventDto.name })
+        .andWhere('event.userId != userId', { userId: user.userId })
+        .getOne();
+      if (eventExists)
+        throw new NotAcceptableException('Event with this name already exists');
+    }
+
     // update event
     const updatedEvent = await this.entityManager.transaction(
       async (manager) => {
         const { eventCoverImage, tickets, ...rest } = updateEventDto;
         const updatedFields = {
           ...rest,
+          slug: rest.name ? slugify(rest.name, { lower: true }) : event.slug,
           eventImageURL,
         };
 

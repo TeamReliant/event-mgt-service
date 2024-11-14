@@ -533,7 +533,11 @@ export class PaymentService {
     return await this.stripe.paymentIntents.retrieve(paymentIntentId);
   }
 
-  async createCheckoutSession(bookings: Booking[], user: User): Promise<any> {
+  async createCheckoutSession(
+    bookings: Booking[],
+    user: User,
+    cancelUrl: string = null,
+  ): Promise<any> {
     const totalAmount = bookings.reduce((currentAmount, booking) => {
       return currentAmount + booking.ticket.price * booking.quantity;
     }, 0);
@@ -568,9 +572,9 @@ export class PaymentService {
       success_url: this.configService.get<string>(
         'STRIPE_CHECKOUT_SESSION_SUCCESS_URL',
       ),
-      cancel_url: this.configService.get<string>(
-        'STRIPE_CHECKOUT_SESSION_CANCEL_URL',
-      ),
+      cancel_url:
+        cancelUrl ??
+        this.configService.get<string>('STRIPE_CHECKOUT_SESSION_CANCEL_URL'),
     });
   }
 

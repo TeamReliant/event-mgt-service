@@ -68,6 +68,7 @@
     "raw-body": "^3.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
+    "slugify": "^1.6.6",
     "stripe": "^16.11.0",
     "typeorm": "0.3.20",
     "uuid": "^10.0.0",

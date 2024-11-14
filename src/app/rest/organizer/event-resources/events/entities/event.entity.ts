@@ -14,6 +14,9 @@ export class Event extends AbstractEntity<Event> {
   @Column()
   name: string;
 
+  @Column({ name: 'slug', unique: true, nullable: true })
+  slug: string;
+
   @Column({ name: 'location', type: 'varchar', length: 255, nullable: true })
   location?: string;
 

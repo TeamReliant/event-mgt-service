@@ -140,7 +140,6 @@ export class BookingsService {
     const bookings = await this._repo.save(bookingsToToBeSaved);
     return bookings.map((booking) => {
       delete booking.ticket.event;
-      delete booking.event;
       delete booking.user;
       return booking;
     });
@@ -152,16 +151,9 @@ export class BookingsService {
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('bookings.userId = :userId', { userId })
+      .andWhere('bookings.status != :status', { status: BookingStatus.PENDING })
       .orderBy('bookings.createdAt', 'DESC')
-      .select([
-        'bookings.id',
-        'bookings.bookingId',
-        'bookings.status',
-        'bookings.createdAt',
-        'ticket.name',
-        'event.name',
-        'event.eventStartDateAndTime',
-      ]);
+      .select(['bookings', 'ticket', 'event']);
   }
 
   async findOne(id: string, throwError: boolean = true): Promise<Booking> {
@@ -213,7 +205,7 @@ export class BookingsService {
         'Ticket percentage cut not configured properly',
       );
 
-    const { bookings } = body;
+    const { bookings, cancelUrl } = body;
     const invalidBookings: string[] = [];
     const validBookings: Booking[] = [];
 
@@ -265,12 +257,13 @@ export class BookingsService {
     if (!foundPaid) return this.processFreeBookings(validBookings);
 
     // if bookings contains paid
-    return this.processMixedBookings(validBookings, userId);
+    return this.processMixedBookings(validBookings, userId, cancelUrl);
   }
 
   private async processMixedBookings(
     bookings: Booking[],
     userId: string,
+    cancelUrl: string = null,
   ): Promise<any> {
     return await this._entityManager.transaction(async (manager) => {
       // find the user with the userId
@@ -282,6 +275,7 @@ export class BookingsService {
       const response = await this._paymentService.createCheckoutSession(
         bookings,
         user,
+        cancelUrl,
       );
 
       // Check if the checkout session creation failed
@@ -356,7 +350,7 @@ export class BookingsService {
       .leftJoinAndSelect('booking.ticket', 'ticket')
       .leftJoinAndSelect('booking.event', 'event')
       .where('booking.userId = :userId', { userId })
-      .andWhere('booking.bookingId = :bookingId', { bookingId })
+      .andWhere('booking.id = :bookingId', { bookingId })
       .getOne();
 
     if (!booking) throw new NotFoundException('Booking not found');
@@ -371,6 +365,16 @@ export class BookingsService {
         `Paid ticket's payment must be processed before transfer`,
       );
 
+    // check if the booking has already been transferred
+    if (booking.transferredOut || booking.transferredIn)
+      throw new NotAcceptableException(
+        'You cannot transfer a transferred ticket',
+      );
+
+    // check if the ticket is already used
+    if (booking.status === BookingStatus.USED)
+      throw new NotAcceptableException('Used ticket cannot be transferred');
+
     // check if the destination user is a registered attendee
     const user = await this._entityManager.findOneBy(User, { email });
     if (!user || user.userType !== UserType.ATTENDEE)
@@ -378,25 +382,36 @@ export class BookingsService {
         `User with email ${email} is not a registered attendee`,
       );
 
+    // prevent a user from sending to himself
+    if (user.id === userId)
+      throw new NotAcceptableException(`Can't transfer to yourself`);
+
     // transfer the booking to the user
     return await this._entityManager.transaction(async (manager) => {
-      const newBooking = manager.create(Booking, {
+      const bookingEntity = manager.create(Booking, {
         bookingId: booking.bookingId,
         quantity: 1,
         category: booking.category,
         reaction: booking.reaction,
         unitAmount: booking.unitAmount,
         processed: booking.processed,
-        status: BookingStatus.TRANSFERRED_IN,
+        paid: booking.paid,
+        status: BookingStatus.VALID,
         email: email,
         firstName: firstName,
         lastName: lastName,
+        transferredIn: true,
         transferredFrom: booking,
         user,
         event: booking.event,
         ticket: booking.ticket,
       });
-      const savedBooking = await manager.save(Booking, newBooking);
+
+      console.log(bookingEntity);
+
+      const savedBooking = await manager.save<Booking>(bookingEntity);
+
+      //console.log(newBooking);
 
       booking.status = BookingStatus.TRANSFERRED_OUT;
       booking.transferredTo = savedBooking;

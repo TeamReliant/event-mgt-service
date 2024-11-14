@@ -40,6 +40,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
 import { roles } from '@config/app.config';
+import { AttendeeShowEventParamsDto } from '@app/rest/organizer/event-resources/events/dto/attendee-show-event-params.dto';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
@@ -151,11 +152,11 @@ export class EventsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async findOneForAttendee(
-    @Param() params: ShowEventParamsDto,
+    @Param() params: AttendeeShowEventParamsDto,
     @CurrentUser() user: TJwtPayload,
   ) {
     const data = await this.eventsService.findOneForAttendee(
-      params.id,
+      params.slug,
       user.userId,
     );
     return ResponseSerializer.data(data);
