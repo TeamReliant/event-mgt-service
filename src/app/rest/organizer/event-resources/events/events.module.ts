@@ -12,7 +12,7 @@ import { User } from '@app/rest/users/entities/user.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Event, Ticket, User]), UsersModule],
   controllers: [EventsController],
-  providers: [EventsService, UsersService, AzureBlobFileSystemService],
+  providers: [EventsService, AzureBlobFileSystemService],
   exports: [EventsService],
 })
 export class EventsModule {}
