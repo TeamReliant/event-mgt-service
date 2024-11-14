@@ -59,7 +59,8 @@ ENV NODE_ENV=production \
     STRIPE_SUBSCRIPTION_SUCCESS_URI="http://localhost:3000/subscription-result" \
     STRIPE_SUBSCRIPTION_CANCEL_URI="http://localhost:3000/organizer" \
     FRONTEND_URL="http://localhost:3000/invitation" \
-    FORM_URL="https://google.com"
+    FORM_URL="https://google.com" \
+    IP_INFO_TOKEN=9c61bdc3b30ad4
 
 # Create a "dist" folder with the production build
 RUN npm install -g @nestjs/cli@latest
