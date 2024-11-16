@@ -158,6 +158,9 @@ export class BookingsService {
 
     const { search, date, status } = query;
 
+    // check if a search key is supplied
+
+
     return queryBuilder;
   }
 
