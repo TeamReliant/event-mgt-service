@@ -76,13 +76,19 @@ export class BookingsService {
         );
 
       // check if the quantity is within the acceptable range
-      if (quantity < ticket.minNumberOfTicketsOrderable)
-        throw new NotFoundException(
+      if (
+        ticket.minNumberOfTicketsOrderable &&
+        quantity < ticket.minNumberOfTicketsOrderable
+      )
+        throw new NotAcceptableException(
           `Minimum number of tickets for ${ticketId} is ${ticket.minNumberOfTicketsOrderable}`,
         );
 
-      if (quantity > ticket.maxNumberOfTicketsOrderable)
-        throw new NotFoundException(
+      if (
+        ticket.maxNumberOfTicketsOrderable &&
+        quantity > ticket.maxNumberOfTicketsOrderable
+      )
+        throw new NotAcceptableException(
           `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}`,
         );
 
@@ -99,16 +105,17 @@ export class BookingsService {
 
       // Prevent user from going beyond allowed limit.
       if (
+        quantity > ticket.maxNumberOfTicketsOrderable &&
         existingBooking &&
         existingBooking.processed &&
         existingBooking.quantity + quantity > ticket.maxNumberOfTicketsOrderable
       )
-        throw new NotFoundException(
+        throw new NotAcceptableException(
           `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
         );
 
       if (quantity > ticket.availableTickets - ticket.numberOfTicketsSold)
-        throw new NotFoundException(
+        throw new NotAcceptableException(
           `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
         );
 
@@ -150,17 +157,48 @@ export class BookingsService {
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
-      .leftJoinAndSelect('bookings.event', 'event')
       .where('bookings.userId = :userId', { userId })
-      .andWhere('bookings.status != :status', { status: BookingStatus.PENDING })
-      .orderBy('bookings.createdAt', 'DESC')
-      .select(['bookings', 'ticket', 'event']);
+      .andWhere('bookings.status != :status', {
+        status: BookingStatus.PENDING,
+      });
 
     const { search, date, status } = query;
 
     // check if a search key is supplied
+    if (search)
+      queryBuilder.andWhere(
+        `ticket.name ILIKE :search OR event.name ILIKE :search`,
+        {
+          search: `%${search}%`,
+        },
+      );
 
+    console.log(query);
 
+    // Check if status is supplied
+    if (status)
+      queryBuilder.andWhere('bookings.status = :bookingStatus', {
+        bookingStatus: 'valid',
+      });
+
+    // check if date supplied
+    if (date) {
+      if (date) {
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        queryBuilder.andWhere('bookings.createdAt BETWEEN :start AND :end', {
+          start: startOfDay.toISOString(),
+          end: endOfDay.toISOString(),
+        });
+      }
+    }
+
+    queryBuilder.orderBy('bookings.createdAt', 'DESC');
+    queryBuilder.select(['bookings', 'ticket', 'event']);
     return queryBuilder;
   }
 

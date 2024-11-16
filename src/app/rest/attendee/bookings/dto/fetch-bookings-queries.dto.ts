@@ -21,10 +21,15 @@ export class FetchBookingsQueriesDto extends PaginationQueryDto {
   search: string;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date format');
+    }
+    return date;
+  })
   @IsDate()
-  @Transform(({ value }) => parseISO(value))
-  @FormatValidationException()
-  date: string;
+  date: Date;
 
   @IsOptional()
   @IsString()
