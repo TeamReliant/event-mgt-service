@@ -183,20 +183,23 @@ export class BookingsService {
 
     // check if date supplied
     if (date) {
-      if (date) {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(1, 0, 0, 0);
-
-        const endOfDay = new Date(date);
-        endOfDay.setHours(24, 59, 59, 999);
-
-        console.log(startOfDay.toISOString(), endOfDay.toISOString());
-
-        queryBuilder.andWhere('bookings.createdAt BETWEEN :start AND :end', {
-          start: startOfDay.toISOString(),
-          end: endOfDay.toISOString(),
-        });
-      }
+      queryBuilder.andWhere(`bookings.createdAt LIKE :createdDate`, {
+        createdDate: `%${date}%`,
+      });
+      // if (date) {
+      //   const startOfDay = new Date(date);
+      //   startOfDay.setHours(1, 0, 0, 0);
+      //
+      //   const endOfDay = new Date(date);
+      //   endOfDay.setHours(24, 59, 59, 999);
+      //
+      //   console.log(startOfDay.toISOString(), endOfDay.toISOString());
+      //
+      //   queryBuilder.andWhere('bookings.createdAt BETWEEN :start AND :end', {
+      //     start: startOfDay.toISOString(),
+      //     end: endOfDay.toISOString(),
+      //   });
+      // }
     }
 
     queryBuilder.orderBy('bookings.createdAt', 'DESC');

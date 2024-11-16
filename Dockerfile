@@ -60,7 +60,11 @@ ENV NODE_ENV=production \
     STRIPE_SUBSCRIPTION_CANCEL_URI="http://localhost:3000/organizer" \
     FRONTEND_URL="http://localhost:3000/invitation" \
     FORM_URL="https://google.com" \
-    IP_INFO_TOKEN=9c61bdc3b30ad4
+    IP_INFO_TOKEN=9c61bdc3b30ad4 \
+    STRIPE_CHECKOUT_SESSION_SUCCESS_URL="http://localhost:3000/booking-result" \
+    STRIPE_CHECKOUT_SESSION_CANCEL_URL="https://webhook.site/1120a4e3-70f2-4516-b2b8-d324b68b9a47" \
+    STRIPE_CHECKOUT_SESSION_CURRENCY=usd \
+    TICKET_PERCENTAGE_CUT=10
 
 # Create a "dist" folder with the production build
 RUN npm install -g @nestjs/cli@latest
