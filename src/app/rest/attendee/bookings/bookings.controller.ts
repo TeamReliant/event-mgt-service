@@ -39,7 +39,6 @@ export class BookingsController {
 
   @Post('events/:eventId/bookings')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async create(
     @Body() body: CreateBookingDto,
     @GetCurrentUserId() userId: string,
@@ -108,7 +107,6 @@ export class BookingsController {
 
   @Post('events/:eventId/bookings/process')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async processBooking(
     @GetCurrentUserId() userId: string,
     @Body() body: ProcessBookingDto,
