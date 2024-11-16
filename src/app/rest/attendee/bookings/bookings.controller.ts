@@ -8,6 +8,8 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
+  Query,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -24,6 +26,9 @@ import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-boo
 import { VerifyBookingsTransactionDto } from '@app/rest/attendee/bookings/dto/verify-bookings-transaction.dto';
 import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
 import { roles } from '@config/app.config';
+import { Request } from 'express';
+import { FetchLineItemsQueriesDto } from '@app/rest/organizer/event-resources/line-items/dto/fetch-line-items-queries.dto';
+import { FetchBookingsQueriesDto } from '@app/rest/attendee/bookings/dto/fetch-bookings-queries.dto';
 
 @Controller()
 export class BookingsController {
@@ -47,10 +52,13 @@ export class BookingsController {
   @Get('bookings')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
-  async findAll(@GetCurrentUserId() userId: string) {
-    const response = this._bookingsService.findAll(userId);
-    const paginatedData =
-      await this._paginationService.applyHTEAOS<Booking>(response);
+  async findAll(
+    @GetCurrentUserId() userId: string,
+    @Query() query: FetchBookingsQueriesDto,
+    @Req() req: Request,
+  ) {
+    const response = this._bookingsService.findAll(userId, query);
+    const paginatedData = await ResponseSerializer.applyHTEAOS(req, response);
     paginatedData.data = paginatedData.data.map((booking: Booking) => {
       return {
         ...booking,

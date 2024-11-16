@@ -32,6 +32,9 @@ export class EventResponseDto {
   description?: string;
 
   @Expose()
+  slug?: string;
+
+  @Expose()
   additionalInfo?: string;
 
   @Expose()

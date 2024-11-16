@@ -407,7 +407,7 @@ export class EventsService {
       const eventExists = await this.eventRepo
         .createQueryBuilder('event')
         .where('event.name = :name', { name: updateEventDto.name })
-        .andWhere('event.userId != userId', { userId: user.userId })
+        .andWhere('event.userId != :userId', { userId: user.userId })
         .getOne();
       if (eventExists)
         throw new NotAcceptableException('Event with this name already exists');
@@ -440,6 +440,49 @@ export class EventsService {
     );
     // return updated event
     return updatedEvent;
+  }
+
+  /**
+   * A method to find all events in the database based on some query parameters
+   * @param params this is an object containing key value pairs of query parameters
+   * @returns the list of events
+   */
+  findAll(params?: { [key: string]: any }) {
+    const queryBuilder = this.eventRepo.createQueryBuilder('event');
+    queryBuilder.andWhere('event.eventVisibility = :publicVisibility', {
+      publicVisibility: 'public',
+    });
+    queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
+      publishedStatus: 'published',
+    });
+
+    if (params) {
+      Object.keys(params).forEach((key) => {
+        if (params[key]) {
+          if (key === 'tags') {
+            queryBuilder.andWhere(
+              `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
+              { tag: params[key] },
+            );
+          } else if (key === 'eventStartDateAndTime') {
+            const today = new Date();
+            queryBuilder.andWhere(
+              `event.eventStartDateAndTime BETWEEN :today AND :eventEndDate`,
+              {
+                today: today.toISOString(),
+                eventEndDate: params[key],
+              },
+            );
+          } else {
+            queryBuilder.andWhere(`event.${key} ILIKE :${key}`, {
+              [key]: `%${params[key]}%`,
+            });
+          }
+        }
+      });
+    }
+
+    return queryBuilder.getMany();
   }
 
   async remove(id: string, user: TJwtPayload) {
