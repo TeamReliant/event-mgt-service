@@ -535,7 +535,6 @@ export class PaymentService {
 
   async createCheckoutSession(
     bookings: Booking[],
-    user: User,
     cancelUrl: string = null,
   ): Promise<any> {
     const totalAmount = bookings.reduce((currentAmount, booking) => {
@@ -557,7 +556,7 @@ export class PaymentService {
             ),
             product_data: {
               name: `EVENT BOOKING - ${booking.event.name.toUpperCase()}`,
-              description: `By ${user.firstname} ${user.lastname}, Email: ${user.email}`,
+              description: `By ${booking.firstName} ${booking.lastName}, Email: ${booking.email}`,
             },
             unit_amount: totalAmount * 100, // Amount in cents, adjust based on ticket price
           },
@@ -565,7 +564,7 @@ export class PaymentService {
         },
       ],
       mode: 'payment',
-      customer: user.customerId,
+      customer_email: booking.email,
       currency: this.configService.get<string>(
         'STRIPE_CHECKOUT_SESSION_CURRENCY',
       ),

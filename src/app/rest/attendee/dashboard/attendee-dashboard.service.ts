@@ -43,7 +43,7 @@ export class AttendeeDashboardService {
       .leftJoinAndSelect('event.tickets', 'tickets')
       .where('view.userId = :userId', { userId })
       .orderBy('event.createdAt', 'DESC')
-      .limit(3)
+      .limit(10)
       .getMany();
 
     const recommendedEvents = await this._entityManager
@@ -54,7 +54,7 @@ export class AttendeeDashboardService {
         eventVisibility: EventVisibility.PRIVATE,
       })
       .orderBy('RANDOM()') // Fetch random rows each time
-      .limit(3)
+      .limit(10)
       .getMany();
 
     return {

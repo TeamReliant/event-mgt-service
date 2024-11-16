@@ -34,14 +34,17 @@ export class BookingsService {
   async create(
     body: CreateBookingDto,
     eventId: string,
-    userId: string,
+    userId?: string,
   ): Promise<Booking[]> {
     const { tickets, firstName, lastName, email } = body;
 
     // find the user with the userId
-    const user = await this._entityManager.findOneBy(User, {
-      id: userId,
-    });
+    let user: User;
+    if (userId)
+      user = await this._entityManager.findOneBy(User, {
+        id: userId,
+      });
+
     // find the event with the eventId
     const event = await this._entityManager.findOneBy(Event, {
       id: eventId,
@@ -96,7 +99,7 @@ export class BookingsService {
       const existingBooking = await this._repo.findOneBy({
         status: BookingStatus.PENDING,
         processed: false,
-        user: { id: userId },
+        email,
         ticket: { id: ticketId },
       });
 
@@ -182,24 +185,25 @@ export class BookingsService {
       });
 
     // check if date supplied
+    // if (date) {
+    //   queryBuilder.andWhere(`bookings.created_at LIKE :createdDate`, {
+    //     createdDate: `${date}%`,
+    //   });
+    // }
+
     if (date) {
-      queryBuilder.andWhere(`bookings.createdAt LIKE :createdDate`, {
-        createdDate: `%${date}%`,
+      const startOfDay = new Date(date);
+      startOfDay.setHours(1, 0, 0, 0);
+
+      const endOfDay = new Date(date);
+      endOfDay.setHours(24, 59, 59, 999);
+
+      console.log(startOfDay, endOfDay);
+
+      queryBuilder.andWhere('bookings.createdAt BETWEEN :start AND :end', {
+        start: startOfDay,
+        end: endOfDay,
       });
-      // if (date) {
-      //   const startOfDay = new Date(date);
-      //   startOfDay.setHours(1, 0, 0, 0);
-      //
-      //   const endOfDay = new Date(date);
-      //   endOfDay.setHours(24, 59, 59, 999);
-      //
-      //   console.log(startOfDay.toISOString(), endOfDay.toISOString());
-      //
-      //   queryBuilder.andWhere('bookings.createdAt BETWEEN :start AND :end', {
-      //     start: startOfDay.toISOString(),
-      //     end: endOfDay.toISOString(),
-      //   });
-      // }
     }
 
     queryBuilder.orderBy('bookings.createdAt', 'DESC');
@@ -266,7 +270,6 @@ export class BookingsService {
         .createQueryBuilder('booking')
         .leftJoinAndSelect('booking.ticket', 'ticket')
         .leftJoinAndSelect('booking.event', 'event')
-        .where('booking.userId = :userId', { userId })
         .andWhere('booking.id = :id', { id })
         .getOne();
 
@@ -313,19 +316,20 @@ export class BookingsService {
 
   private async processMixedBookings(
     bookings: Booking[],
-    userId: string,
+    userId: string = null,
     cancelUrl: string = null,
   ): Promise<any> {
     return await this._entityManager.transaction(async (manager) => {
       // find the user with the userId
-      const user = await manager.findOneBy(User, {
-        id: userId,
-      });
+      let user: User;
+      if (userId)
+        user = await manager.findOneBy(User, {
+          id: userId,
+        });
 
       // process stripe auth url here
       const response = await this._paymentService.createCheckoutSession(
         bookings,
-        user,
         cancelUrl,
       );
 
