@@ -158,7 +158,6 @@ export class BookingsService {
 
     const { search, date, status } = query;
 
-
     return queryBuilder;
   }
 

@@ -4,6 +4,7 @@ import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
+import { EventVisibility } from '@app/rest/organizer/event-resources/events/enums';
 
 @Injectable()
 export class AttendeeDashboardService {
@@ -49,6 +50,9 @@ export class AttendeeDashboardService {
       .createQueryBuilder(Event, 'events')
       .innerJoinAndSelect('events.user', 'user')
       .leftJoinAndSelect('events.tickets', 'tickets')
+      .where('events.eventVisibility != :eventVisibility', {
+        eventVisibility: EventVisibility.PRIVATE,
+      })
       .orderBy('RANDOM()') // Fetch random rows each time
       .limit(3)
       .getMany();

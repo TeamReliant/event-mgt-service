@@ -148,15 +148,15 @@ export class EventsController {
     return await this.eventsService.findOne(params.id, user);
   }
 
-  @Get(':id/attendee')
+  @Get(':slug/attendee')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async findOneForAttendee(
-    @Param() params: AttendeeShowEventParamsDto,
+    @Param() { slug }: AttendeeShowEventParamsDto,
     @CurrentUser() user: TJwtPayload,
   ) {
     const data = await this.eventsService.findOneForAttendee(
-      params.slug,
+      slug,
       user.userId,
     );
     return ResponseSerializer.data(data);

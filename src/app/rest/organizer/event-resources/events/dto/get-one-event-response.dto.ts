@@ -31,10 +31,8 @@ export class GetOneEventResponseDto {
   @Expose()
   description?: string;
 
-
   @Expose()
   slug?: string;
-
 
   @Expose()
   tags?: string[];
