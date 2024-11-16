@@ -27,6 +27,7 @@ import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ti
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 
 @Injectable()
 export class PaymentService {
@@ -229,7 +230,8 @@ export class PaymentService {
   }
 
   async handlePayment(event: Stripe.Event) {
-    let { invoice, user } = await this.getInvoiceAndUserFromStripeEvent(event);
+    const { invoice, user } =
+      await this.getInvoiceAndUserFromStripeEvent(event);
     if (invoice.subscription) {
       this.handleSubscriptionPayment(
         event.type === 'invoice.payment_failed' ? 'failed' : 'succeeded',
@@ -586,7 +588,10 @@ export class PaymentService {
     const session = await this.stripe.checkout.sessions.retrieve(sessionId);
     if (!session) throw new NotFoundException('Session not found');
 
-    return await this.entityManager.transaction(async (manager) => {
+    // new bookings generated from the current one
+    let newBookings: Booking[];
+
+    await this.entityManager.transaction(async (manager) => {
       // find the booking transaction with the checkout id that is not processed yet
       const transaction = await manager
         .createQueryBuilder(BookingsTransaction, 'transaction')
@@ -669,7 +674,7 @@ export class PaymentService {
           }
 
           // save the newly generated bookings
-          await manager.save(Booking, bookings);
+          newBookings = await manager.save(Booking, bookings);
 
           // remove the initial booking
           await manager.remove(Booking, booking);
@@ -685,9 +690,14 @@ export class PaymentService {
         // Save the transaction details
         return await manager.save(BookingsTransaction, transaction);
       }
-
       throw new NotAcceptableException('Payment not completed');
     });
+
+    if (newBookings && newBookings.length)
+      this.eventEmitter.emit(
+        events.BOOKING_COMPLETED,
+        new BookingsEvent(newBookings),
+      );
   }
 
   async generateBookingId(): Promise<string> {
