@@ -352,6 +352,7 @@ export class EventsService {
     const event = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets')
       .where('event.slug = :slug', { slug })
       .andWhere(
         new Brackets((qb) => {
