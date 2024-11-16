@@ -68,7 +68,9 @@ export class MarketplaceService {
     const queryBuilder = this.entityManager
       .createQueryBuilder(Event, 'event')
       .where('event.eventStatus = :status', { status: 'published' })
-      .andWhere('event.eventVisibility = :visibility', { visibility: 'public' })
+      .andWhere('event.eventVisibility = :visibility', {
+        visibility: 'public',
+      });
 
     if (userLocation.lat && userLocation.lon) {
       queryBuilder.andWhere(
@@ -94,14 +96,11 @@ export class MarketplaceService {
       .andWhere('event.eventStartDateAndTime > :currentDate', {
         currentDate: new Date(),
       });
-      
 
     return queryBuilder.getMany();
   }
 
-  async getTopEventsInMyCountry() {
-    
-  }
+  async getTopEventsInMyCountry() {}
 
   async getTopEventsInTheWorld() {}
 }

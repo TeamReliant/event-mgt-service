@@ -28,6 +28,7 @@ export class AttendeeDashboardService {
     const upcomingEventBookings = await this._entityManager
       .createQueryBuilder(Booking, 'booking')
       .innerJoinAndSelect('booking.event', 'event')
+      .innerJoinAndSelect('event.tickets', 'tickets')
       .where(`booking.event IN (${subQuery.getQuery()})`)
       .andWhere('booking.userId = :userId', { userId })
       .setParameters(subQuery.getParameters())
@@ -35,14 +36,16 @@ export class AttendeeDashboardService {
 
     const recentlyViewedEvents = await this._entityManager
       .createQueryBuilder(EventView, 'view')
-      .where('view.userId = :userId', { userId })
       .leftJoinAndSelect('view.event', 'event')
+      .leftJoinAndSelect('event.tickets', 'tickets')
+      .where('view.userId = :userId', { userId })
       .orderBy('event.createdAt', 'DESC')
       .limit(3)
       .getMany();
 
     const recommendedEvents = await this._entityManager
       .createQueryBuilder(Event, 'events')
+      .leftJoinAndSelect('events.tickets', 'tickets')
       .orderBy('RANDOM()') // Fetch random rows each time
       .limit(3)
       .getMany();

@@ -1,4 +1,10 @@
-import { Controller, Get, RawBodyRequest, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  RawBodyRequest,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 import { Request } from 'express';
 import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
@@ -13,23 +19,23 @@ export class MarketplaceController {
 
   @Get('find-events')
   @SerializeResponse(EventResponseDto, 'collection')
-  async findEvents(@Req() req: Request){
+  async findEvents(@Req() req: Request) {
     return await this.marketplaceService.findEvents(req);
   }
 
-  @Get('events-near-me') 
+  @Get('events-near-me')
   @SerializeResponse(EventResponseDto, 'collection')
-  async getEventsNearMe(@Req() req: RawBodyRequest<Request>){
+  async getEventsNearMe(@Req() req: RawBodyRequest<Request>) {
     return await this.marketplaceService.getEventsNearMe(req);
   }
 
   @Get('top-events-in-my-country')
-  async getTopEventsInMyCountry(){
+  async getTopEventsInMyCountry() {
     return await this.marketplaceService.getTopEventsInMyCountry();
   }
 
   @Get('top-events-in-the-world')
-  async getTopEventsInTheWorld(){
+  async getTopEventsInTheWorld() {
     return await this.marketplaceService.getTopEventsInTheWorld();
   }
 }

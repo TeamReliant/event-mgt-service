@@ -145,8 +145,8 @@ export class BookingsService {
     });
   }
 
-  findAll(userId: string) {
-    return this._repo
+  findAll(userId: string, { ...query }) {
+    const queryBuilder =  this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
@@ -154,6 +154,11 @@ export class BookingsService {
       .andWhere('bookings.status != :status', { status: BookingStatus.PENDING })
       .orderBy('bookings.createdAt', 'DESC')
       .select(['bookings', 'ticket', 'event']);
+
+    const { search, date, status } = query;
+
+
+    return queryBuilder;
   }
 
   async findOne(id: string, throwError: boolean = true): Promise<Booking> {
