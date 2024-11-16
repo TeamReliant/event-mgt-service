@@ -29,7 +29,18 @@ export class FetchBookingsQueriesDto extends PaginationQueryDto {
     return date;
   })
   @IsDate()
-  date: Date;
+  dateRangeStart: Date;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date format');
+    }
+    return date;
+  })
+  @IsDate()
+  dateRangeEnd: Date;
 
   @IsOptional()
   @IsString()
