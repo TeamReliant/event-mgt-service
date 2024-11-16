@@ -165,7 +165,7 @@ export class BookingsService {
         status: BookingStatus.PENDING,
       });
 
-    const { search, date, status } = query;
+    const { search, dateRangeStart, dateRangeEnd, status } = query;
 
     // check if a search key is supplied
     if (search)
@@ -191,14 +191,12 @@ export class BookingsService {
     //   });
     // }
 
-    if (date) {
-      const startOfDay = new Date(date);
+    if (dateRangeStart && dateRangeEnd) {
+      const startOfDay = new Date(dateRangeStart);
       startOfDay.setHours(1, 0, 0, 0);
 
-      const endOfDay = new Date(date);
+      const endOfDay = new Date(dateRangeEnd);
       endOfDay.setHours(24, 59, 59, 999);
-
-      console.log(startOfDay, endOfDay);
 
       queryBuilder.andWhere('bookings.createdAt BETWEEN :start AND :end', {
         start: startOfDay,
