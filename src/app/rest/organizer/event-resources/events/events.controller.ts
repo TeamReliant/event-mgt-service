@@ -155,10 +155,7 @@ export class EventsController {
     @Param() { slug }: AttendeeShowEventParamsDto,
     @CurrentUser() user: TJwtPayload,
   ) {
-    const data = await this.eventsService.findOneForAttendee(
-      slug,
-      user.userId,
-    );
+    const data = await this.eventsService.findOneForAttendee(slug, user.userId);
     return ResponseSerializer.data(data);
   }
 
