@@ -442,7 +442,7 @@ export class EventsService {
     return updatedEvent;
   }
 
-  /**
+   /**
    * A method to find all events in the database based on some query parameters
    * @param params this is an object containing key value pairs of query parameters
    * @returns the list of events
@@ -484,6 +484,7 @@ export class EventsService {
 
     return queryBuilder.getMany();
   }
+
 
   async remove(id: string, user: TJwtPayload) {
     //check if event exists and belongs to authenticated user
