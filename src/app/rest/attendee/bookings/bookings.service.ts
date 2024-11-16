@@ -146,9 +146,10 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
-    const queryBuilder =  this._repo
+    const queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
+      .leftJoinAndSelect('bookings.event', 'event')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('bookings.userId = :userId', { userId })
       .andWhere('bookings.status != :status', { status: BookingStatus.PENDING })
