@@ -16,7 +16,7 @@ export class ProcessBookingDto {
   bookings?: string[];
 
   @IsOptional()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @MaxLength(2000)
   cancelUrl?: string;
 }

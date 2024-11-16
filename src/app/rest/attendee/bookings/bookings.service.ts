@@ -178,17 +178,19 @@ export class BookingsService {
     // Check if status is supplied
     if (status)
       queryBuilder.andWhere('bookings.status = :bookingStatus', {
-        bookingStatus: 'valid',
+        bookingStatus: status,
       });
 
     // check if date supplied
     if (date) {
       if (date) {
         const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
+        startOfDay.setHours(1, 0, 0, 0);
 
         const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        endOfDay.setHours(24, 59, 59, 999);
+
+        console.log(startOfDay.toISOString(), endOfDay.toISOString());
 
         queryBuilder.andWhere('bookings.createdAt BETWEEN :start AND :end', {
           start: startOfDay.toISOString(),
