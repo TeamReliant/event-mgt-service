@@ -20,6 +20,9 @@ import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enu
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { events } from '@config/app.config';
+import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class BookingsService {
@@ -29,6 +32,7 @@ export class BookingsService {
     private readonly _entityManager: EntityManager,
     private readonly _paymentService: PaymentService,
     private readonly _configService: ConfigService,
+    private readonly _eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -393,6 +397,10 @@ export class BookingsService {
       await manager.save(Booking, newBookings);
     });
 
+    this._eventEmitter.emit(
+      events.BOOKING_COMPLETED,
+      new BookingsEvent(newBookings),
+    );
     return { checkoutUrl: null, bookings: newBookings };
   }
 
@@ -430,17 +438,14 @@ export class BookingsService {
 
     // check if the destination user is a registered attendee
     const user = await this._entityManager.findOneBy(User, { email });
-    if (!user || user.userType !== UserType.ATTENDEE)
-      throw new NotFoundException(
-        `User with email ${email} is not a registered attendee`,
-      );
 
     // prevent a user from sending to himself
     if (user.id === userId)
       throw new NotAcceptableException(`Can't transfer to yourself`);
 
+    const newBookings: Booking[] = [];
     // transfer the booking to the user
-    return await this._entityManager.transaction(async (manager) => {
+    await this._entityManager.transaction(async (manager) => {
       const bookingEntity = manager.create(Booking, {
         bookingId: booking.bookingId,
         quantity: 1,
@@ -460,17 +465,19 @@ export class BookingsService {
         ticket: booking.ticket,
       });
 
-      console.log(bookingEntity);
-
       const savedBooking = await manager.save<Booking>(bookingEntity);
-
-      //console.log(newBooking);
+      newBookings.push(savedBooking);
 
       booking.status = BookingStatus.TRANSFERRED_OUT;
       booking.transferredTo = savedBooking;
       await manager.save(Booking, booking);
       return booking;
     });
+
+    this._eventEmitter.emit(
+      events.BOOKING_RECEIVED,
+      new BookingsEvent(newBookings),
+    );
   }
 
   /**

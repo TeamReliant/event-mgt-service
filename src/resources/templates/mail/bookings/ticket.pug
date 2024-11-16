@@ -1,0 +1,94 @@
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport" content="width=device-width, initial-scale=1.0")
+        title Event Ticket
+        style.
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f9;
+                margin: 0;
+                padding: 20px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .ticket {
+                max-width: 600px;
+                border: 2px dashed #ffcc00;
+                background-color: #001f3f; /* Navy Blue */
+                color: #ffcc00; /* Deep Yellow */
+                border-radius: 10px;
+                padding: 20px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+                position: relative;
+            }
+            .ticket-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .event-name {
+                font-size: 1.3rem;
+                font-weight: bold;
+                text-align: center;
+                margin: 0;
+            }
+            .ticket-number {
+                font-size: 1rem;
+                font-weight: bold;
+                color: #ffcc00;
+            }
+            .ticket-details {
+                margin-top: 20px;
+            }
+            .detail-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+            }
+            .detail-title {
+                font-weight: bold;
+                color: #ffffff;
+            }
+            .detail-value {
+                font-size: 1rem;
+            }
+            .qr-code-container {
+                text-align: center;
+                margin-top: 20px;
+            }
+            .qr-code {
+                max-width: 150px;
+                margin: 0 auto;
+                border: 5px solid #ffcc00;
+                border-radius: 5px;
+                background-color: #ffffff;
+            }
+            .footer {
+                margin-top: 20px;
+                text-align: center;
+                font-size: 0.85rem;
+                color: #ffffff;
+            }
+    body
+        .ticket
+            .ticket-header
+                div
+                    h1.event-name #{event.name}
+                    p.ticket-number Ticket #{bookingId}
+            .ticket-details
+                .detail-row
+                    span.detail-title Ticket Type:
+                    span.detail-value #{ticket.name}
+                .detail-row
+                    span.detail-title Guest Name:
+                    span.detail-value #{firstName} #{lastName}
+                .detail-row
+                    span.detail-title Status:
+                    span.detail-value #{status}
+            .qr-code-container
+                img.qr-code(src="data:image/png;base64,"+ qrCodeBase64 alt="QR Code")
+            .footer
+                p Scan the QR code to view ticket details online.
