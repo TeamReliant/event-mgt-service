@@ -114,13 +114,12 @@ export class EventsService {
 
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
+    const timestampInSeconds = Math.floor(Date.now() / 1000);
 
     // check if the event name already exists
-    const eventExists = await this.eventRepo.findOneBy({
-      name: createEventDto.name,
+    const slugExists = await this.eventRepo.findOneBy({
+      slug: slugify(createEventDto.name, { lower: true }),
     });
-    if (eventExists)
-      throw new NotAcceptableException('Event with this name already exists');
 
     try {
       const {
@@ -151,7 +150,7 @@ export class EventsService {
         async (manager) => {
           const eventInstance = manager.create(Event, {
             ...rest,
-            slug: slugify(rest.name, { lower: true }),
+            slug: `${slugify(rest.name, { lower: true })}-${slugExists ? timestampInSeconds : null}`,
             eventImageURL,
             eventVisibility,
             eventStatus,
@@ -391,6 +390,9 @@ export class EventsService {
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
+    const timestampInSeconds = Math.floor(Date.now() / 1000);
+    const { name } = updateEventDto;
+
     // check if event exists and belongs to authenticated user
     const event = await this.findOne(id, user);
     // check if update has image.
@@ -401,16 +403,18 @@ export class EventsService {
       await this.deleteImage(event.eventImageURL);
     }
 
+    let slugExists: Event;
+    let slug: string = event.slug;
     // check if name is part of the payload
-    if (updateEventDto.name) {
+    if (name) {
       // check if name already exists
-      const eventExists = await this.eventRepo
+      slugExists = await this.eventRepo
         .createQueryBuilder('event')
-        .where('event.name = :name', { name: updateEventDto.name })
+        .where('event.slug = :slug', { name: updateEventDto.name })
         .andWhere('event.userId != :userId', { userId: user.userId })
         .getOne();
-      if (eventExists)
-        throw new NotAcceptableException('Event with this name already exists');
+
+      slug = `${slugify(name, { lower: true })}-${slugExists ? timestampInSeconds : null}`;
     }
 
     // update event
@@ -419,7 +423,7 @@ export class EventsService {
         const { eventCoverImage, tickets, ...rest } = updateEventDto;
         const updatedFields = {
           ...rest,
-          slug: rest.name ? slugify(rest.name, { lower: true }) : event.slug,
+          slug,
           eventImageURL,
         };
 
