@@ -1,7 +1,6 @@
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { EventsService } from '@app/rest/organizer/event-resources/events/events.service';
 import { UsersService } from '@app/rest/users/users.service';
-import { TJwtPayload } from '@libs/types';
 import {
   BadRequestException,
   Injectable,
@@ -18,15 +17,6 @@ export class MarketplaceService {
     private readonly eventService: EventsService,
     @InjectEntityManager() private readonly entityManager: EntityManager,
   ) {}
-
-  private async getCurrentlyLoggedInUser(user: TJwtPayload) {
-    const userData = await this.userService.findOneById(user.userId);
-    if (!userData) {
-      throw new NotFoundException('User not found');
-    }
-
-    return userData;
-  }
 
   async findEvents(req: Request) {
     const {
@@ -122,11 +112,13 @@ export class MarketplaceService {
 
   async findTopEvents(req: Request) {
     const { countryName } = req.query;
-    const LIMIT = 10; // Limit number of top events
+    const LIMIT = 20; // Limit number of top events
 
     try {
       const queryBuilder = this.entityManager
         .createQueryBuilder(Event, 'event')
+        .leftJoinAndSelect('event.user', 'user')
+        .leftJoinAndSelect('event.tickets', 'tickets')
         .where('event.eventStatus = :status', { status: 'published' })
         .andWhere('event.eventVisibility = :visibility', {
           visibility: 'public',
