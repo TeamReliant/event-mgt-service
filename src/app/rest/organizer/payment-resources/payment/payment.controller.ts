@@ -50,12 +50,12 @@ export class PaymentController {
   async createSubscription(
     @Body() createSubDto: CreateSubscriptionDto,
     @CurrentUser() user: TJwtPayload,
-    @Query('paymentMethod') paymentMethod: string,
+    @Req() req: Request,
   ) {
     const { statusCode, data } = await this.paymentService.createSubscription(
       user,
       createSubDto,
-      paymentMethod,
+      req,
     );
     return ResponseSerializer.data({ statusCode, data });
   }
