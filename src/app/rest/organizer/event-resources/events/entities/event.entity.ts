@@ -78,6 +78,10 @@ export class Event extends AbstractEntity<Event> {
   @Column({ default: true })
   isAvailable?: boolean;
 
+  //sum of all tickets sold for all ticket types
+  @Column({ nullable: true })
+  totalNumberOfTicketsSold?: number;
+
   @Column({
     name: 'revenue',
     nullable: true,

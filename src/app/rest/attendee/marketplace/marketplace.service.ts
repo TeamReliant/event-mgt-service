@@ -29,22 +29,42 @@ export class MarketplaceService {
   }
 
   async findEvents(req: Request) {
-    const { eventTag, eventLocation, eventDate } = req.query;
-    if (!eventTag && !eventLocation && !eventDate) {
-      throw new BadRequestException(
-        'Please provide at least one search parameter',
-      );
+    const {
+      whatEvent,
+      eventLocation,
+      eventStartDateAndTime,
+      eventEndDateAndTime,
+      lat,
+      lon,
+    } = req.query;
+
+    const parsedStartDate = eventStartDateAndTime
+      ? new Date(eventStartDateAndTime as string)
+      : null;
+    const parsedEndDate = eventEndDateAndTime
+      ? new Date(eventEndDateAndTime as string)
+      : null;
+
+    if (parsedStartDate && parsedStartDate < new Date()) {
+      throw new BadRequestException('Event start date must be in the future');
     }
 
-    const parsedEventDate = eventDate ? new Date(eventDate as string) : null;
-    if (parsedEventDate && parsedEventDate < new Date()) {
-      throw new BadRequestException('Event date must be in the future');
+    if (parsedEndDate && parsedEndDate < new Date()) {
+      throw new BadRequestException('Event end date must be in the future');
     }
 
     const events = this.eventService.findAll({
-      tags: eventTag ? eventTag : undefined,
+      tags: whatEvent ? whatEvent : undefined,
+      name: whatEvent ? whatEvent : undefined,
       locationName: eventLocation ? eventLocation : undefined,
-      eventStartDateAndTime: eventDate ? eventDate : undefined,
+      eventStartDateAndTime: eventStartDateAndTime
+        ? eventStartDateAndTime
+        : undefined,
+      eventEndDateAndTime: eventEndDateAndTime
+        ? eventEndDateAndTime
+        : undefined,
+      latitude: lat ? lat : null,
+      longitude: lon ? lon : null,
     });
     if (!events) {
       throw new NotFoundException('No events found');
@@ -53,54 +73,83 @@ export class MarketplaceService {
     return events;
   }
 
-  async getEventsNearMe(req: Request) {
-    if (!req.ip) {
-      throw new BadRequestException('User IP address not provided');
+  // async getEventsNearMe(req: Request) {
+  //   if (!req.ip) {
+  //     throw new BadRequestException('User IP address not provided');
+  //   }
+
+  //   const userLocation = await this.userService.getUserLocation(req.ip);
+  //   if (!userLocation) {
+  //     throw new BadRequestException('Failed to get user location');
+  //   }
+
+  //   const radius = 0.01;
+
+  //   const queryBuilder = this.entityManager
+  //     .createQueryBuilder(Event, 'event')
+  //     .where('event.eventStatus = :status', { status: 'published' })
+  //     .andWhere('event.eventVisibility = :visibility', {
+  //       visibility: 'public',
+  //     });
+
+  //   if (userLocation.lat && userLocation.lon) {
+  //     queryBuilder.andWhere(
+  //       new Brackets((qb) => {
+  //         qb.where('event.latitude BETWEEN :minLat AND :maxLat', {
+  //           minLat: userLocation.lat - radius,
+  //           maxLat: userLocation.lat + radius,
+  //         }).andWhere('event.longitude BETWEEN :minLong AND :maxLong', {
+  //           minLong: userLocation.lon - radius,
+  //           maxLong: userLocation.lon + radius,
+  //         });
+  //       }),
+  //     );
+  //   }
+
+  //   queryBuilder
+  //     .andWhere('event.locationName ILIKE :locationName', {
+  //       locationName: `%${userLocation.city ?? 'USA'}%`,
+  //     })
+  //     .orWhere('event.address ILIKE :address', {
+  //       address: `%${userLocation.city ?? 'USA'}%`,
+  //     })
+  //     .andWhere('event.eventStartDateAndTime > :currentDate', {
+  //       currentDate: new Date(),
+  //     });
+
+  //   return queryBuilder.getMany();
+  // }
+
+  async findTopEvents(req: Request) {
+    const { countryName } = req.query;
+    const LIMIT = 10; // Limit number of top events
+
+    try {
+      const queryBuilder = this.entityManager
+        .createQueryBuilder(Event, 'event')
+        .where('event.eventStatus = :status', { status: 'published' })
+        .andWhere('event.eventVisibility = :visibility', {
+          visibility: 'public',
+        })
+        .andWhere('event.eventStartDateAndTime > :currentDate', {
+          currentDate: new Date(),
+        });
+
+      if (typeof countryName === 'string') {
+        queryBuilder.andWhere('event.locationName ILIKE :countryName', {
+          countryName: `%${countryName}%`,
+        });
+      }
+
+      queryBuilder
+        .orderBy('event.totalNumberOfTicketsSold', 'DESC')
+        .take(LIMIT);
+
+      return await queryBuilder.getMany();
+    } catch (error) {
+      throw new Error(`Failed to fetch top events: ${error.message}`);
     }
-
-    const userLocation = await this.userService.getUserLocation(req.ip);
-    if (!userLocation) {
-      throw new BadRequestException('Failed to get user location');
-    }
-
-    const radius = 0.01;
-
-    const queryBuilder = this.entityManager
-      .createQueryBuilder(Event, 'event')
-      .where('event.eventStatus = :status', { status: 'published' })
-      .andWhere('event.eventVisibility = :visibility', {
-        visibility: 'public',
-      });
-
-    if (userLocation.lat && userLocation.lon) {
-      queryBuilder.andWhere(
-        new Brackets((qb) => {
-          qb.where('event.latitude BETWEEN :minLat AND :maxLat', {
-            minLat: userLocation.lat - radius,
-            maxLat: userLocation.lat + radius,
-          }).andWhere('event.longitude BETWEEN :minLong AND :maxLong', {
-            minLong: userLocation.lon - radius,
-            maxLong: userLocation.lon + radius,
-          });
-        }),
-      );
-    }
-
-    queryBuilder
-      .andWhere('event.locationName ILIKE :locationName', {
-        locationName: `%${userLocation.city ?? 'USA'}%`,
-      })
-      .orWhere('event.address ILIKE :address', {
-        address: `%${userLocation.city ?? 'USA'}%`,
-      })
-      .andWhere('event.eventStartDateAndTime > :currentDate', {
-        currentDate: new Date(),
-      });
-
-    return queryBuilder.getMany();
   }
-
-  async getTopEventsInMyCountry() {}
 
   async getTopEventsInTheWorld() {}
 }

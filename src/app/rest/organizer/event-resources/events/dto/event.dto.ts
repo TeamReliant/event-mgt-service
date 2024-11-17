@@ -68,6 +68,9 @@ export class EventResponseDto {
   isAvailable: boolean;
 
   @Expose()
+  totalNumberOfTicketsSold: number;
+
+  @Expose()
   @Type(() => UserDto)
   user: UserDto;
 
