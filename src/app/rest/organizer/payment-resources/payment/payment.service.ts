@@ -28,6 +28,7 @@ import { Event } from '@app/rest/organizer/event-resources/events/entities/event
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
+import { Request } from 'express';
 
 @Injectable()
 export class PaymentService {
@@ -132,13 +133,15 @@ export class PaymentService {
   async createSubscription(
     user: TJwtPayload,
     createSubDto: CreateSubscriptionDto,
-    paymentMethod: string,
+    req: Request,
   ) {
+
+    const { paymentMethod, cancelUrl } = req.query;
     const paymentStrategy =
-      this.paymentStrategyResolver.getStrategy(paymentMethod);
+      this.paymentStrategyResolver.getStrategy(paymentMethod as string);
     const currUser = await this.validateUserType(user, 'organizer');
     if (!currUser.customerId) {
-      await this.createCustomer(user, paymentMethod);
+      await this.createCustomer(user, paymentMethod as string);
     }
 
     if (!currUser.stripeConnectedAccountId) {
@@ -151,7 +154,7 @@ export class PaymentService {
     ) {
       const updatedUser = await this.updateSubscription(
         currUser,
-        paymentMethod,
+        paymentMethod as string,
         createSubDto,
       );
       return { statusCode: 200, data: updatedUser };
@@ -159,6 +162,7 @@ export class PaymentService {
       const session = await paymentStrategy.createSubscription(
         currUser.customerId,
         createSubDto.plan,
+        cancelUrl as string,
       );
       return { statusCode: 303, data: session.url };
     }

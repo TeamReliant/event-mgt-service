@@ -447,14 +447,17 @@ export class EventsService {
     return updatedEvent;
   }
 
-   /**
+  /**
    * A method to find all events in the database based on some query parameters
    * @param params this is an object containing key value pairs of query parameters
    * @returns the list of events
    */
   findAll(params?: { [key: string]: any }) {
+    const today = new Date();
+    const todayISO = today.toISOString();
     const queryBuilder = this.eventRepo.createQueryBuilder('event');
-    queryBuilder.andWhere('event.eventVisibility = :publicVisibility', {
+
+    queryBuilder.where('event.eventVisibility = :publicVisibility', {
       publicVisibility: 'public',
     });
     queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
@@ -462,26 +465,99 @@ export class EventsService {
     });
 
     if (params) {
+      if (params['eventStartDateAndTime'] && params['eventEndDateAndTime']) {
+        queryBuilder.andWhere(
+          `event.eventStartDateAndTime <= :end AND event.eventEndDateAndTime >= :start`,
+          {
+            start: params['eventStartDateAndTime'],
+            end: params['eventEndDateAndTime'],
+          },
+        );
+      } else if (params['eventStartDateAndTime']) {
+        queryBuilder.andWhere(
+          `event.eventStartDateAndTime BETWEEN :today AND :eventStartDate`,
+          {
+            today: todayISO,
+            eventStartDate: params['eventStartDateAndTime'],
+          },
+        );
+      } else if (params['eventEndDateAndTime']) {
+        queryBuilder.andWhere(
+          `event.eventEndDateAndTime BETWEEN :today AND :eventEndDate`,
+          {
+            today: todayISO,
+            eventEndDate: params['eventEndDateAndTime'],
+          },
+        );
+      }
+
       Object.keys(params).forEach((key) => {
         if (params[key]) {
-          if (key === 'tags') {
-            queryBuilder.andWhere(
-              `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
-              { tag: params[key] },
-            );
-          } else if (key === 'eventStartDateAndTime') {
-            const today = new Date();
-            queryBuilder.andWhere(
-              `event.eventStartDateAndTime BETWEEN :today AND :eventEndDate`,
-              {
-                today: today.toISOString(),
-                eventEndDate: params[key],
-              },
-            );
-          } else {
-            queryBuilder.andWhere(`event.${key} ILIKE :${key}`, {
-              [key]: `%${params[key]}%`,
-            });
+          switch (key) {
+            case 'tags':
+              queryBuilder.andWhere(
+                `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
+                { tag: params[key] },
+              );
+              break;
+
+            case 'latitude':
+              if (params['longitude']) {
+                const radius = 5000; // 5000km radius
+                const lat = parseFloat(params['latitude']);
+                const lon = parseFloat(params['longitude']);
+
+                // Add distance calculation as a separate column for sorting
+                queryBuilder
+                  .addSelect(
+                    `(
+          6371 * acos(
+            least(1::float, 
+              cos(radians(:lat)) * 
+              cos(radians(CAST(event.latitude AS float))) * 
+              cos(radians(CAST(event.longitude AS float)) - radians(:lon)) + 
+              sin(radians(:lat)) * 
+              sin(radians(CAST(event.latitude AS float)))
+            )
+          )
+        )`,
+                    'distance',
+                  )
+                  .addSelect('event.latitude', 'event_latitude')
+                  .addSelect('event.longitude', 'event_longitude')
+                  .andWhere(
+                    `(
+          6371 * acos(
+            least(1::float, 
+              cos(radians(:lat)) * 
+              cos(radians(CAST(event.latitude AS float))) * 
+              cos(radians(CAST(event.longitude AS float)) - radians(:lon)) + 
+              sin(radians(:lat)) * 
+              sin(radians(CAST(event.latitude AS float)))
+            )
+          ) <= :radius
+          OR (CAST(event.latitude AS float) = :lat AND CAST(event.longitude AS float) = :lon)
+        )`,
+                    { lat, lon, radius },
+                  )
+                  .andWhere(
+                    'event.latitude IS NOT NULL AND event.longitude IS NOT NULL',
+                  )
+                  .orderBy('distance', 'ASC');
+
+                // Debug: Log the generated SQL
+                //console.log('Generated SQL:', queryBuilder.getSql());
+              }
+              break;
+
+            default:
+              const allowedFallbackKeys = ['locationName', 'address', 'name'];
+              if (allowedFallbackKeys.includes(key)) {
+                queryBuilder.andWhere(`event.${key} ILIKE :${key}`, {
+                  [key]: `%${params[key]}%`,
+                });
+              }
+              break;
           }
         }
       });
@@ -489,7 +565,6 @@ export class EventsService {
 
     return queryBuilder.getMany();
   }
-
 
   async remove(id: string, user: TJwtPayload) {
     //check if event exists and belongs to authenticated user

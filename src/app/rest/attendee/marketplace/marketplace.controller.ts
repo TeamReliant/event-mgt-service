@@ -23,19 +23,9 @@ export class MarketplaceController {
     return await this.marketplaceService.findEvents(req);
   }
 
-  @Get('events-near-me')
+  @Get('find-top-events')
   @SerializeResponse(EventResponseDto, 'collection')
-  async getEventsNearMe(@Req() req: RawBodyRequest<Request>) {
-    return await this.marketplaceService.getEventsNearMe(req);
-  }
-
-  @Get('top-events-in-my-country')
-  async getTopEventsInMyCountry() {
-    return await this.marketplaceService.getTopEventsInMyCountry();
-  }
-
-  @Get('top-events-in-the-world')
-  async getTopEventsInTheWorld() {
-    return await this.marketplaceService.getTopEventsInTheWorld();
+  async findTopEvents(@Req() req: RawBodyRequest<Request>) {
+    return await this.marketplaceService.findTopEvents(req);
   }
 }
