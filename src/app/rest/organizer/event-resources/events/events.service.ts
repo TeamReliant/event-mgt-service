@@ -411,7 +411,7 @@ export class EventsService {
       // check if name already exists
       slugExists = await this.eventRepo
         .createQueryBuilder('event')
-        .where('event.slug = :slug', { name: updateEventDto.name })
+        .where('event.slug = :slug', { slug: slugify(name, { lower: true }) })
         .andWhere('event.userId != :userId', { userId: user.userId })
         .getOne();
 

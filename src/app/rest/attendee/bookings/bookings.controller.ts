@@ -27,7 +27,6 @@ import { VerifyBookingsTransactionDto } from '@app/rest/attendee/bookings/dto/ve
 import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
 import { roles } from '@config/app.config';
 import { Request } from 'express';
-import { FetchLineItemsQueriesDto } from '@app/rest/organizer/event-resources/line-items/dto/fetch-line-items-queries.dto';
 import { FetchBookingsQueriesDto } from '@app/rest/attendee/bookings/dto/fetch-bookings-queries.dto';
 
 @Controller()

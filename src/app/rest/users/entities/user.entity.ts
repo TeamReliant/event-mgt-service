@@ -1,5 +1,5 @@
 import { TeamInvitation } from '@app/rest/organizer/team-resources/team-invitations/entities/team-invitation.entity';
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne } from 'typeorm';
 import { TeamMember } from '@app/rest/organizer/team-resources/team-members/entities/team-member.entity';
 import { AbstractEntity } from '@libs/database';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
@@ -8,6 +8,7 @@ import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { UserType } from '@app/rest/users/enums/user-type';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
+import { UsersPublicProfile } from './users-public-profile.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -184,4 +185,10 @@ export class User extends AbstractEntity<User> {
     cascade: true,
   })
   bookingsTransactions?: BookingsTransaction[];
+
+  @OneToOne(() => UsersPublicProfile, (publicProfile) => publicProfile.user, {
+    cascade: true,
+  })
+  @JoinColumn({ name: 'publicProfileId' })
+  publicProfile: UsersPublicProfile;
 }

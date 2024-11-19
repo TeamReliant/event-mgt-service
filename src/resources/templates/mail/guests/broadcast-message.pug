@@ -1,0 +1,12 @@
+extends ../baseEmail
+
+block content
+  h3 📢 #{payload.title}
+
+  p We have an update for you regarding the event "#{payload.event.name}":
+  blockquote
+    p #{payload.message}
+
+  br
+  small
+    b - Best regards, #{payload.companyName}

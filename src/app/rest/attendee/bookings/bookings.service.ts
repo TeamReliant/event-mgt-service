@@ -17,7 +17,10 @@ import { PaymentService } from '@app/rest/organizer/payment-resources/payment/pa
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { ConfigService } from '@nestjs/config';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
-import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import {
+  BookingStatus,
+  TicketTransferStatus,
+} from '@app/rest/attendee/bookings/enums/booking-status';
 import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
 import { UserType } from '@app/rest/users/enums/user-type';
 import { events } from '@config/app.config';
@@ -179,8 +182,6 @@ export class BookingsService {
           search: `%${search}%`,
         },
       );
-
-    console.log(query);
 
     // Check if status is supplied
     if (status)
@@ -427,7 +428,7 @@ export class BookingsService {
       );
 
     // check if the booking has already been transferred
-    if (booking.transferredOut || booking.transferredIn)
+    if (booking.transferStatus)
       throw new NotAcceptableException(
         'You cannot transfer a transferred ticket',
       );
@@ -458,7 +459,7 @@ export class BookingsService {
         email: email,
         firstName: firstName,
         lastName: lastName,
-        transferredIn: true,
+        transferStatus: TicketTransferStatus.RECEIVED,
         transferredFrom: booking,
         user,
         event: booking.event,
@@ -468,7 +469,8 @@ export class BookingsService {
       const savedBooking = await manager.save<Booking>(bookingEntity);
       newBookings.push(savedBooking);
 
-      booking.status = BookingStatus.TRANSFERRED_OUT;
+      booking.status = BookingStatus.USED;
+      booking.transferStatus = TicketTransferStatus.TRANSFERRED;
       booking.transferredTo = savedBooking;
       await manager.save(Booking, booking);
       return booking;

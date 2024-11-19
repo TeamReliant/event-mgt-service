@@ -6,7 +6,10 @@ import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticke
 import { User } from '@app/rest/users/entities/user.entity';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
-import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import {
+  BookingStatus,
+  TicketTransferStatus,
+} from '@app/rest/attendee/bookings/enums/booking-status';
 
 @Entity({ name: 'bookings' })
 export class Booking extends AbstractEntity<Booking> {
@@ -75,13 +78,16 @@ export class Booking extends AbstractEntity<Booking> {
   @Column({ name: 'last_name', nullable: false, type: 'varchar' })
   lastName: string;
 
-  @Column({ name: 'transferred_in', type: 'boolean', default: false })
-  transferredIn: boolean;
+  @Column({
+    name: 'transfer_status',
+    type: 'enum',
+    enum: TicketTransferStatus,
+    nullable: true,
+    default: null,
+  })
+  transferStatus: TicketTransferStatus;
 
-  @Column({ name: 'transferred_out', type: 'boolean', default: false })
-  transferredOut: boolean;
-
-  @OneToOne(() => Booking, (booking) => booking.transferredFrom)
+  @OneToOne(() => Booking, (booking) => booking.transferredFrom) 0;
   transferredTo: Booking;
 
   @OneToOne(() => Booking, (booking) => booking.transferredTo)
