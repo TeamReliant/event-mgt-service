@@ -7,16 +7,12 @@ import puppeteer from 'puppeteer';
 import * as pug from 'pug';
 import * as qr from 'qrcode';
 import * as path from 'path';
-import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
-import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class BookingsEmailService {
   constructor(
     private readonly emailEngineService: EmailEngineService,
     private readonly configService: ConfigService,
-    private readonly azureBlob: AzureBlobFileSystemService,
-    private readonly entityManager: EntityManager,
   ) {}
 
   templatePath = () => {
@@ -32,7 +28,7 @@ export class BookingsEmailService {
 
   async generateTicketBuffers(booking: Booking) {
     const qrCodeBase64 = await qr.toDataURL(
-      `https://localhost/ticket/${booking.id}`,
+      `${this.configService.get<string>('FRONTEND_URL')}/booking-details/${booking.id}`,
     );
 
     // Render HTML from Pug
@@ -59,7 +55,7 @@ export class BookingsEmailService {
   }
 
   async sendBookingCompletedMessage(bookings: Booking[]) {
-    const booking = bookings.find((booking) => booking);
+    const booking = bookings[0];
     const { appName, appEmail, companyName } = appInfo;
     const attachments: any[] = [];
 
@@ -101,7 +97,7 @@ export class BookingsEmailService {
   }
 
   async sendBookingTransferredMessage(bookings: Booking[]) {
-    const { email } = bookings.find((booking) => booking.email);
+    const { email } = bookings[0];
     const { appName } = appInfo;
 
     const payload = {
@@ -119,7 +115,7 @@ export class BookingsEmailService {
   }
 
   async sendBookingReceivedMessage(bookings: Booking[]) {
-    const booking = bookings.find((booking) => booking);
+    const booking = bookings[0];
     const { appName, appEmail, companyName } = appInfo;
     const attachments: any[] = [];
 

@@ -5,3 +5,8 @@ export enum BookingStatus {
   TRANSFERRED_OUT = 'transferred_out',
   USED = 'used',
 }
+
+export enum TicketTransferStatus {
+  TRANSFERRED = 'transferred',
+  RECEIVED = 'received',
+}
