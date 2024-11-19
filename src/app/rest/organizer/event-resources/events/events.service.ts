@@ -455,9 +455,10 @@ export class EventsService {
   findAll(params?: { [key: string]: any }) {
     const today = new Date();
     const todayISO = today.toISOString();
-    const queryBuilder = this.eventRepo.createQueryBuilder('event')
-    .leftJoinAndSelect('event.user', 'user')
-    .leftJoinAndSelect('event.tickets', 'tickets');
+    const queryBuilder = this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets');
 
     queryBuilder.where('event.eventVisibility = :publicVisibility', {
       publicVisibility: 'public',
