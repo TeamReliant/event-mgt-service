@@ -135,10 +135,10 @@ export class PaymentService {
     createSubDto: CreateSubscriptionDto,
     req: Request,
   ) {
-
     const { paymentMethod, cancelUrl } = req.query;
-    const paymentStrategy =
-      this.paymentStrategyResolver.getStrategy(paymentMethod as string);
+    const paymentStrategy = this.paymentStrategyResolver.getStrategy(
+      paymentMethod as string,
+    );
     const currUser = await this.validateUserType(user, 'organizer');
     if (!currUser.customerId) {
       await this.createCustomer(user, paymentMethod as string);
@@ -621,6 +621,7 @@ export class PaymentService {
 
         // Keep track of total revenue and event
         let totalRevenue: number = 0.0;
+        let totalTicketsSold: number = 0;
         const bookings: Booking[] = [];
         let event: Event = undefined;
 
@@ -675,6 +676,7 @@ export class PaymentService {
 
             if (!event) event = booking.event;
             totalRevenue += revenue;
+            totalTicketsSold++;
           }
 
           // save the newly generated bookings
@@ -686,6 +688,8 @@ export class PaymentService {
 
         if (event) {
           event.revenue = +event.revenue + totalRevenue;
+          event.totalNumberOfTicketsSold =
+            +event.totalNumberOfTicketsSold + totalTicketsSold;
           await manager.save(Event, event);
         }
 
