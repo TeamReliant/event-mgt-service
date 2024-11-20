@@ -35,13 +35,12 @@ export class MarketplaceService {
       ? new Date(eventEndDateAndTime as string)
       : null;
 
-    if (parsedStartDate && parsedStartDate < new Date()) {
-      throw new BadRequestException('Event start date must be in the future');
-    }
+  
 
-    if (parsedEndDate && parsedEndDate < new Date()) {
-      throw new BadRequestException('Event end date must be in the future');
-    }
+    if (parsedStartDate && parsedEndDate && parsedEndDate < parsedStartDate) throw new BadRequestException('Event end date must be after start date');
+     if (parsedEndDate && parsedEndDate < new Date()) throw new BadRequestException('Event end date must be in the future');
+    
+
 
     const events = this.eventService.findAll({
       tags: whatEvent ? whatEvent : undefined,
@@ -112,7 +111,7 @@ export class MarketplaceService {
 
   async findTopEvents(req: Request) {
     const { countryName } = req.query;
-    const LIMIT = 20; // Limit number of top events
+    const LIMIT = 10;
 
     try {
       const queryBuilder = this.entityManager
