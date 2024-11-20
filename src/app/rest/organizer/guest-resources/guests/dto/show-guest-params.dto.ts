@@ -6,11 +6,5 @@ export class ShowGuestParamsDto {
   @IsString()
   @IsUUID()
   @FormatValidationException()
-  eventId: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @IsUUID()
-  @FormatValidationException()
   bookingId: string;
 }
