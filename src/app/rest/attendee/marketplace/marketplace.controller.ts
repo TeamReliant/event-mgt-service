@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  RawBodyRequest,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, RawBodyRequest, Req } from '@nestjs/common';
 import { MarketplaceService } from './marketplace.service';
 import { Request } from 'express';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
@@ -17,7 +12,11 @@ export class MarketplaceController {
   @Get('find-events')
   async findEvents(@Req() req: Request) {
     const events = await this.marketplaceService.findEvents(req);
-    return ResponseSerializer.applyHTEAOSWithDtoFormatter<EventResponseDto>(req, events, EventResponseDto);
+    return ResponseSerializer.applyHTEAOSWithDtoFormatter<EventResponseDto>(
+      req,
+      events,
+      EventResponseDto,
+    );
   }
 
   @Get('find-top-events')

@@ -26,11 +26,11 @@ import { ShowGuestParamsDto } from '@app/rest/organizer/guest-resources/guests/d
 import { CheckGuestParamsDto } from '@app/rest/organizer/guest-resources/guests/dto/check-guest-params.dto';
 import { CheckGuestDto } from '@app/rest/organizer/guest-resources/guests/dto/check-guest.dto';
 
-@Controller(':eventId/guests')
+@Controller()
 export class GuestsController {
   constructor(private readonly guestsService: GuestsService) {}
 
-  @Get()
+  @Get('events/:eventId/guests')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async findAllGuests(
@@ -43,22 +43,18 @@ export class GuestsController {
     return ResponseSerializer.applyHTEAOS(request, data);
   }
 
-  @Get(':bookingId')
+  @Get('guests/:bookingId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async showGuest(
     @CurrentUser() user: TJwtPayload,
-    @Param() { eventId, bookingId }: ShowGuestParamsDto,
+    @Param() { bookingId }: ShowGuestParamsDto,
   ) {
-    const data = await this.guestsService.showGuest(
-      eventId,
-      user.userId,
-      bookingId,
-    );
+    const data = await this.guestsService.showGuest(user.userId, bookingId);
     return ResponseSerializer.data(data);
   }
 
-  @Post('broadcast')
+  @Post('events/:eventId/guests/broadcast')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async broadcastGuests(
@@ -70,7 +66,7 @@ export class GuestsController {
     return ResponseSerializer.message('Broadcast message sent successfully');
   }
 
-  @Post('check')
+  @Post('events/:eventId/guests/check')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async checkInGuest(
