@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Brackets, EntityManager, SelectQueryBuilder } from 'typeorm';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 
 @Injectable()

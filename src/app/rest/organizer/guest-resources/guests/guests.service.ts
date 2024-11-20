@@ -42,12 +42,26 @@ export class GuestsService {
       .getRepository(Booking)
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.event', 'event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('team.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId })
       .andWhere('event.userId = :userId', { userId })
       .andWhere('bookings.status != :status', {
         status: BookingStatus.PENDING,
-      });
+      })
+      .select([
+        'bookings',
+        'event',
+        'user.id',
+        'user.firstname',
+        'user.lastname',
+        'user.email',
+        'team',
+        'permissions',
+        'ticket',
+      ]);
 
     // check if a search key is supplied
     if (search) {
@@ -189,6 +203,12 @@ export class GuestsService {
       .getRepository(Booking)
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.event', 'event')
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('team.members', 'teamMembers')
+      .leftJoinAndSelect('teamMembers.user', 'teamMemberUser')
+      .leftJoinAndSelect('teamMembers.permissions', 'teamMemberPermissions')
+      .leftJoinAndSelect('team.permissions', 'permissions')
+      .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId })
       .andWhere('event.userId = :userId', { userId })
@@ -196,6 +216,23 @@ export class GuestsService {
       .andWhere('bookings.status != :status', {
         status: BookingStatus.PENDING,
       })
+      .select([
+        'bookings',
+        'event',
+        'team',
+        'teamMembers',
+        'teamMemberUser.id',
+        'teamMemberUser.firstname',
+        'teamMemberUser.lastname',
+        'teamMemberUser.email',
+        'teamMemberPermissions',
+        'permissions',
+        'user.id',
+        'user.firstname',
+        'user.lastname',
+        'user.email',
+        'ticket',
+      ])
       .getOne();
 
     if (!booking) throw new NotFoundException('Booking not found');
