@@ -1,14 +1,22 @@
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   MaxLength,
 } from 'class-validator';
 
 export class SendBroadcastMessageDto {
-  @IsNotEmpty()
+  @IsOptional()
+  @IsEnum(['true', 'false'], {
+    message: 'all should either be true or false as a string',
+  })
+  all: string;
+
+  @IsOptional()
   @IsArray()
   @IsUUID(4, {
     each: true,

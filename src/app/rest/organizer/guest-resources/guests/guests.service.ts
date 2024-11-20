@@ -117,22 +117,54 @@ export class GuestsService {
     userId: string,
     body: SendBroadcastMessageDto,
   ) {
-    const { bookingIds, title, message } = body;
-    // fetch the bookings with the bookingIds
-    const bookings = await this._entityManager
-      .getRepository(Booking)
-      .createQueryBuilder('bookings')
-      .leftJoinAndSelect('bookings.event', 'event')
-      .where('bookings.eventId = :eventId', { eventId })
-      .andWhere('event.userId = :userId', { userId })
-      .andWhere('bookings.id IN (:...bookingIds)', { bookingIds })
-      .andWhere('bookings.status != :bookingStatus', {
-        bookingStatus: BookingStatus.PENDING,
-      })
-      // .andWhere('bookings.transferStatus != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
-      .getMany();
+    const { bookingIds, title, message, all } = body;
+    let bookings: Booking[];
+
+    // check if all is true
+    if (all && all === 'true') {
+      // fetch the bookings with the bookingIds
+      bookings = await this._entityManager
+        .getRepository(Booking)
+        .createQueryBuilder('bookings')
+        .leftJoinAndSelect('bookings.event', 'event')
+        .where('bookings.eventId = :eventId', { eventId })
+        .andWhere('event.userId = :userId', { userId })
+        .andWhere('bookings.status != :bookingStatus', {
+          bookingStatus: BookingStatus.PENDING,
+        })
+        // .andWhere('bookings.transferStatus != :transferStatus', {
+        //   transferStatus: TicketTransferStatus.TRANSFERRED,
+        // })
+        .getMany();
+
+      // check if the bookings are found
+      if (!bookings.length)
+        throw new NotAcceptableException(
+          'No bookings found for the given bookingIds',
+        );
+    }
+
+    if (!all || all === 'false') {
+      // check if bookingIds is supplied
+      if (!bookingIds || !bookingIds.length)
+        throw new NotAcceptableException('No bookingIds supplied');
+
+      // fetch the bookings with the bookingIds
+      bookings = await this._entityManager
+        .getRepository(Booking)
+        .createQueryBuilder('bookings')
+        .leftJoinAndSelect('bookings.event', 'event')
+        .where('bookings.eventId = :eventId', { eventId })
+        .andWhere('event.userId = :userId', { userId })
+        .andWhere('bookings.id IN (:...bookingIds)', { bookingIds })
+        .andWhere('bookings.status != :bookingStatus', {
+          bookingStatus: BookingStatus.PENDING,
+        })
+        // .andWhere('bookings.transferStatus != :transferStatus', {
+        //   transferStatus: TicketTransferStatus.TRANSFERRED,
+        // })
+        .getMany();
+    }
 
     console.log(bookings);
 
