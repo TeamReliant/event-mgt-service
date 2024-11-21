@@ -49,6 +49,17 @@ export class BookingsController {
     return ResponseSerializer.data(response);
   }
 
+  @Post('events/:eventId/bookings/process')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(SoftJwtAuthGuard)
+  async processBooking(
+    @GetCurrentUserId() userId: string,
+    @Body() body: ProcessBookingDto,
+  ) {
+    const response = await this._bookingsService.processBookings(body, userId);
+    return ResponseSerializer.data(response);
+  }
+
   @Get('bookings')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
@@ -105,15 +116,7 @@ export class BookingsController {
     return ResponseSerializer.message('Booking removed successfully');
   }
 
-  @Post('events/:eventId/bookings/process')
-  @HttpCode(HttpStatus.OK)
-  async processBooking(
-    @GetCurrentUserId() userId: string,
-    @Body() body: ProcessBookingDto,
-  ) {
-    const response = await this._bookingsService.processBookings(body, userId);
-    return ResponseSerializer.data(response);
-  }
+
 
   @Post('bookings/transfer')
   @HttpCode(HttpStatus.OK)
