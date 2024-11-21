@@ -28,6 +28,7 @@ import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
 import { roles } from '@config/app.config';
 import { Request } from 'express';
 import { FetchBookingsQueriesDto } from '@app/rest/attendee/bookings/dto/fetch-bookings-queries.dto';
+import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
 
 @Controller()
 export class BookingsController {
@@ -38,6 +39,7 @@ export class BookingsController {
 
   @Post('events/:eventId/bookings')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(SoftJwtAuthGuard)
   async create(
     @Body() body: CreateBookingDto,
     @GetCurrentUserId() userId: string,
