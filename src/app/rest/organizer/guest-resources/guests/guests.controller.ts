@@ -45,9 +45,7 @@ export class GuestsController {
 
   @Get('guests/:bookingId')
   @HttpCode(HttpStatus.OK)
-  async showGuest(
-    @Param() { bookingId }: ShowGuestParamsDto,
-  ) {
+  async showGuest(@Param() { bookingId }: ShowGuestParamsDto) {
     const data = await this.guestsService.showGuest(bookingId);
     return ResponseSerializer.data(data);
   }
