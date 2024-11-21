@@ -53,7 +53,13 @@ export class OrganizerDashboardService {
       totalRevenue: user.totalRevenue,
       ticketsSold: user.ticketsSold,
       publishedEvents: totalEvents,
-      totalParticipants: usedTickets, // Placeholder for future calculation
+      attendanceRate: usedTickets, // Placeholder for future calculation
+      percentageChange: {
+        totalTicketSoldChange: 0,
+        totalRevenueChange: 0,
+        totalEventsChange: 0,
+        attendanceRate: 0,
+      },
       recentEvents,
       usefulResources: [
         {

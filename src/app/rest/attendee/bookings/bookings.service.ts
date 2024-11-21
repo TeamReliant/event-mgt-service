@@ -22,7 +22,6 @@ import {
   TicketTransferStatus,
 } from '@app/rest/attendee/bookings/enums/booking-status';
 import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
-import { UserType } from '@app/rest/users/enums/user-type';
 import { events } from '@config/app.config';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -135,6 +134,8 @@ export class BookingsService {
         throw new NotAcceptableException(
           `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
         );
+
+      console.log(user);
 
       const booking = this._repo.create({
         quantity,
