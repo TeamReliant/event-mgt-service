@@ -148,6 +148,18 @@ export class User extends AbstractEntity<User> {
   @Column({ nullable: true })
   subscriptionEndDate?: string;
 
+  @Column({
+    name: 'total_revenue',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalRevenue: number;
+
+  @Column({ name: 'tickets_sold', type: 'bigint', nullable: true })
+  ticketsSold: number;
+
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];
 
@@ -165,11 +177,11 @@ export class User extends AbstractEntity<User> {
 
   @OneToMany(() => Booking, (booking) => booking.user, { cascade: true })
   bookings?: Booking[];
-
-  @OneToMany(() => EventView, (view) => view.user, {
-    cascade: true,
-  })
-  eventViews?: EventView[];
+  //
+  // @OneToMany(() => EventView, (view) => view.user, {
+  //   cascade: true,
+  // })
+  // eventViews?: EventView[];
 
   // @OneToMany(() => Booking, (booking) => booking.transferredTo, {
   //   cascade: true,

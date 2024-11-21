@@ -1,12 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { User } from '@app/rest/users/entities/user.entity';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 
 @Injectable()
 export class OrganizerDashboardService {
   constructor(private readonly entityManager: EntityManager) {}
 
   public async getAnalytics(userId: string) {
+    // find the user with the userId
+    const user = await this.entityManager.findOneBy(User, { id: userId });
+
     // Base query for current events, joining necessary relationships
     const queryBuilder = this.entityManager
       .createQueryBuilder(Event, 'events')
@@ -15,30 +21,39 @@ export class OrganizerDashboardService {
       .andWhere('events.userId = :userId', { userId });
 
     // Fetch current published events and total count
-    const [events, totalEvents] = await queryBuilder.getManyAndCount();
-
-    // Calculate current total tickets sold and total revenue
-    const { totalTicketSold, totalRevenue } =
-      this.calculateEventMetrics(events);
+    const totalEvents = await queryBuilder.getCount();
 
     // Fetch the 5 most recent events
     const recentEvents = await this.getRecentEvents(queryBuilder);
 
     // Fetch past records for comparison (e.g., last month)
-    const pastMetrics = await this.getPastAnalytics(userId);
-
+    // const pastMetrics = await this.getPastAnalytics(userId);
+    //
     // Calculate percentage changes based on past data
-    const percentageChange = this.calculatePercentageChange(
-      { totalTicketSold, totalRevenue, totalEvents },
-      pastMetrics,
-    );
+    // const percentageChange = this.calculatePercentageChange(
+    //   {
+    //     totalTicketSold: user.ticketsSold,
+    //     totalRevenue: user.totalRevenue,
+    //     totalEvents,
+    //   },
+    //   pastMetrics,
+    // );
+
+    // count used tickets
+    const usedTickets = await this.entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId })
+      .andWhere('bookings.status = :bookingStatus', {
+        bookingStatus: BookingStatus.USED,
+      })
+      .getCount();
 
     return {
-      totalRevenue,
-      ticketsSold: totalTicketSold,
+      totalRevenue: user.totalRevenue,
+      ticketsSold: user.ticketsSold,
       publishedEvents: totalEvents,
-      attendanceRate: 0, // Placeholder for future calculation
-      percentageChange, // Include percentage changes in the result
+      totalParticipants: usedTickets, // Placeholder for future calculation
       recentEvents,
       usefulResources: [
         {
@@ -61,8 +76,29 @@ export class OrganizerDashboardService {
       .createQueryBuilder(Event, 'events')
       .leftJoinAndSelect('events.tickets', 'tickets')
       .where('events.eventStatus = :status', { status: 'published' })
-      .andWhere('events.userId = :userId', { userId })
-      .andWhere('events.createdAt < :date', { date: new Date() }); // Define your time range for past data
+      .andWhere('events.userId = :userId', { userId });
+
+    // Get yesterday's date
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Get two days ago
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+    const formattedYesterday = yesterday.toISOString().split('T')[0];
+    const formattedTwoDaysAgo = twoDaysAgo.toISOString().split('T')[0];
+
+    const start = new Date(formattedTwoDaysAgo);
+    start.setHours(1, 0, 0, 0);
+
+    const end = new Date(formattedYesterday);
+    end.setHours(24, 59, 59, 999);
+
+    pastQueryBuilder.andWhere('events.createdAt BETWEEN :start AND :end', {
+      start,
+      end,
+    });
 
     const pastEvents = await pastQueryBuilder.getMany();
 

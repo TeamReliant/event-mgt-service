@@ -74,7 +74,6 @@ export class BookingsController {
 
   @Get('bookings/:id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async findOne(@Param() { id }: ShowBookingParamsDto) {
     let booking = await this._bookingsService.findOne(id);
     if (booking) {

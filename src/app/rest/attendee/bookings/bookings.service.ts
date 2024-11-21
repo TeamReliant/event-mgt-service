@@ -113,12 +113,19 @@ export class BookingsService {
       if (existingBooking && !existingBooking.processed)
         await this._repo.remove(existingBooking);
 
+      // find existing processed tickets
+      const existingProcessedBooking = await this._repo.findOneBy({
+        processed: true,
+        email,
+        ticket: { id: ticketId },
+      });
+
       // Prevent user from going beyond allowed limit.
       if (
         quantity > ticket.maxNumberOfTicketsOrderable &&
-        existingBooking &&
-        existingBooking.processed &&
-        existingBooking.quantity + quantity > ticket.maxNumberOfTicketsOrderable
+        existingProcessedBooking &&
+        existingProcessedBooking.quantity + quantity >
+          ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
           `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,

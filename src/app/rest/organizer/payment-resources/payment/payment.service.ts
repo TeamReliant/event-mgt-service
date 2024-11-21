@@ -5,7 +5,7 @@ import {
   NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { EntityManager, getManager } from 'typeorm';
 import { UsersService } from '@app/rest/users/users.service';
 import { TJwtPayload } from '@libs/types';
 import { PaymentStrategyResolver } from './strategies/shared/payment-strategy.resolver';
@@ -595,22 +595,24 @@ export class PaymentService {
     // new bookings generated from the current one
     let newBookings: Booking[];
 
+    // find the booking transaction with the checkout id that is not processed yet
+    const transaction = await this.entityManager
+      .createQueryBuilder(BookingsTransaction, 'transaction')
+      .leftJoinAndSelect('transaction.bookings', 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .leftJoinAndSelect('event.user', 'host')
+      .leftJoinAndSelect('bookings.user', 'user')
+      .leftJoinAndSelect('bookings.ticket', 'ticket')
+      .where('transaction.stripeCheckoutId = :stripeCheckoutId', {
+        stripeCheckoutId: session.id,
+      })
+      .andWhere('transaction.processed = :processed', { processed: false })
+      .getOne();
+
+    if (!transaction) throw new NotFoundException('Transaction not found');
+
+    // Create database transaction for the database changes
     await this.entityManager.transaction(async (manager) => {
-      // find the booking transaction with the checkout id that is not processed yet
-      const transaction = await manager
-        .createQueryBuilder(BookingsTransaction, 'transaction')
-        .leftJoinAndSelect('transaction.bookings', 'bookings')
-        .leftJoinAndSelect('bookings.event', 'event')
-        .leftJoinAndSelect('bookings.user', 'user')
-        .leftJoinAndSelect('bookings.ticket', 'ticket')
-        .where('transaction.stripeCheckoutId = :stripeCheckoutId', {
-          stripeCheckoutId: session.id,
-        })
-        .andWhere('transaction.processed = :processed', { processed: false })
-        .getOne();
-
-      if (!transaction) throw new NotFoundException('Transaction not found');
-
       if (
         session.payment_status === 'paid' &&
         transaction.totalAmount === session.amount_total / 100
@@ -676,7 +678,7 @@ export class PaymentService {
 
             if (!event) event = booking.event;
             totalRevenue += revenue;
-            totalTicketsSold++;
+            totalTicketsSold = totalTicketsSold + booking.quantity;
           }
 
           // save the newly generated bookings
@@ -687,9 +689,17 @@ export class PaymentService {
         }
 
         if (event) {
+          // update the event's revenue
           event.revenue = +event.revenue + totalRevenue;
           event.totalNumberOfTicketsSold =
             +event.totalNumberOfTicketsSold + totalTicketsSold;
+
+          // update the user's revenue and tickets sold
+          event.user.totalRevenue = +event.user.totalRevenue + totalRevenue;
+          event.user.ticketsSold = +event.user.ticketsSold + totalTicketsSold;
+
+          await manager.save(User, event.user);
+          // update the event
           await manager.save(Event, event);
         }
 
