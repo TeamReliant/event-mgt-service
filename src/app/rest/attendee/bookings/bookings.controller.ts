@@ -116,8 +116,6 @@ export class BookingsController {
     return ResponseSerializer.message('Booking removed successfully');
   }
 
-
-
   @Post('bookings/transfer')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
