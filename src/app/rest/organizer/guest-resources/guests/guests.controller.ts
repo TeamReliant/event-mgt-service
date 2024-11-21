@@ -45,12 +45,10 @@ export class GuestsController {
 
   @Get('guests/:bookingId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async showGuest(
-    @CurrentUser() user: TJwtPayload,
     @Param() { bookingId }: ShowGuestParamsDto,
   ) {
-    const data = await this.guestsService.showGuest(user.userId, bookingId);
+    const data = await this.guestsService.showGuest(bookingId);
     return ResponseSerializer.data(data);
   }
 

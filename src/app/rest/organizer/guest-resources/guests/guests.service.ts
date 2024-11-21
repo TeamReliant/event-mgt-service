@@ -198,7 +198,7 @@ export class GuestsService {
     return;
   }
 
-  async showGuest(userId: string, bookingId: string) {
+  async showGuest(bookingId: string) {
     const booking = await this._entityManager
       .getRepository(Booking)
       .createQueryBuilder('bookings')
@@ -210,8 +210,7 @@ export class GuestsService {
       .leftJoinAndSelect('team.permissions', 'permissions')
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
-      .where('event.userId = :userId', { userId })
-      .andWhere('bookings.id = :bookingId', { bookingId })
+      .where('bookings.id = :bookingId', { bookingId })
       .andWhere('bookings.status != :status', {
         status: BookingStatus.PENDING,
       })
@@ -243,7 +242,7 @@ export class GuestsService {
     const { bookingId, check } = body;
 
     // find the booking
-    const booking = await this.showGuest(userId, bookingId);
+    const booking = await this.showGuest(bookingId);
 
     // check if the booking has been transferred
     if (booking.transferStatus === TicketTransferStatus.TRANSFERRED)
