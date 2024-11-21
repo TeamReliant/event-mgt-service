@@ -86,18 +86,27 @@ export class EventAnalyticsService {
     const endOfDay = new Date(dateRangeEnd);
     endOfDay.setHours(24, 59, 59, 999);
 
+    // Map the `range` input to PostgreSQL-compatible units
+    const rangeMapping = {
+      daily: 'day',
+      weekly: 'week',
+      monthly: 'month',
+    };
+
+    const pgRange = rangeMapping[range]; // Resolve PostgreSQL-compatible unit
+
     // fetch event views
     const queryBuilder = this.entityManager
       .createQueryBuilder(EventView, 'views')
-      .select(`DATE_TRUNC('${range}', views.createdAt)`, 'timeGroup')
+      .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
       .addSelect('COUNT(views.id)', 'viewCount')
       .where('views.eventId = :eventId', { eventId })
       .andWhere('views.createdAt BETWEEN :start AND :end', {
         start: startOfDay,
         end: endOfDay,
       })
-      .groupBy('timeGroup')
-      .orderBy('timeGroup', 'ASC');
+      .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt)`)
+      .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'ASC');
 
     const rawResults = await queryBuilder.getRawMany();
 

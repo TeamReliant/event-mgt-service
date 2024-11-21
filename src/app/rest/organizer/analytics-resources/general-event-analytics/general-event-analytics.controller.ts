@@ -3,6 +3,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { GeneralEventAnalyticsService } from './general-event-analytics.service';
@@ -11,6 +12,7 @@ import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator
 import ResponseSerializer, {
   IResponseWithData,
 } from '@libs/helpers/ResponseSerializer';
+import { Request } from 'express';
 
 @Controller()
 export class GeneralEventAnalyticsController {
@@ -23,9 +25,13 @@ export class GeneralEventAnalyticsController {
   @UseGuards(JwtAuthGuard)
   async getGeneralEventAnalytics(
     @GetCurrentUserId() userId: string,
+    @Req() req: Request,
   ): Promise<IResponseWithData> {
     const data =
-      await this.generalEventAnalyticsService.getGeneralEventAnalytics(userId);
+      await this.generalEventAnalyticsService.getGeneralEventAnalytics(
+        userId,
+        req,
+      );
     return ResponseSerializer.data(data);
   }
 }
