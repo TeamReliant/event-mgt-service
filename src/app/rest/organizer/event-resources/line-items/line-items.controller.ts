@@ -60,7 +60,7 @@ export class LineItemsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async getAnalytics(@Param() params: FetchAnalyticsParamsDto) {
-    const data = await this.lineItemsService.getAnaylytics(params.eventId);
+    const data = await this.lineItemsService.getAnalytics(params.eventId);
     return ResponseSerializer.data(data);
   }
 
