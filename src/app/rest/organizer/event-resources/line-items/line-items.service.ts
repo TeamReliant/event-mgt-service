@@ -132,12 +132,12 @@ export class LineItemsService {
 
     // calculate total sum of intendedBudget
     const totalBudget = event.lineItems.reduce(
-      (acc, lineItem) => acc + lineItem.intendedBudget,
+      (acc, lineItem) => acc + +lineItem.intendedBudget,
       0,
     );
     // calculate the total sum of amountSpent
     const totalAmountSpent = event.lineItems.reduce(
-      (acc, lineItem) => acc + lineItem.amountSpent,
+      (acc, lineItem) => acc + +lineItem.amountSpent,
       0,
     );
 
@@ -146,7 +146,7 @@ export class LineItemsService {
     const totalExpensePercentageDiff = (totalBudget / totalAmountSpent) * 100;
 
     // calculate the available budget
-    const availableBudget = totalBudget - totalAmountSpent;
+    const availableBudget = +totalBudget - totalAmountSpent;
     // calculate percentage diff of available budget
     const availableBudgetPercentageDiff = (availableBudget / totalBudget) * 100;
 
