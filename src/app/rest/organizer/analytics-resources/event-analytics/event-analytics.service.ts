@@ -18,6 +18,15 @@ export class EventAnalyticsService {
   ) {}
 
   async getAnalytics(userId: string, eventId: string, { ...query }) {
+    // get the date of 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(1, 0, 0, 0);
+
+    // get the current date
+    const today = new Date();
+    today.setHours(24, 59, 59, 999);
+
     // find the user with the given userId
     const event = await this.entityManager
       .createQueryBuilder(Event, 'event')
@@ -43,11 +52,59 @@ export class EventAnalyticsService {
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
+    const ticketsScannedWithin7Days = await this.entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .where('bookings.eventId = :eventId', { eventId })
+      // .andWhere('bookings.transfer_status != :transferStatus', {
+      //   transferStatus: TicketTransferStatus.TRANSFERRED,
+      // })
+      .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
+      .andWhere('bookings.createdAt <= :today', { today })
+      .andWhere('bookings.status = :status', { status: BookingStatus.USED })
+      .getCount();
+
+    // fetch successful bookings within the last 7 days
+    const successfulBookingsWithin7Days = await this.entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId })
+      .andWhere('event.id = :eventId', { eventId })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
+      .andWhere('bookings.createdAt <= :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
     // calculate Attendance rate
     const attendanceRate = (ticketsScanned / totalNumberOfTicketsSold) * 100;
 
     // calculate percentage change
     const percentageChange = (attendanceRate * totalNumberOfTicketsSold) / 100;
+
+    // sum the unitAmount of the booking
+    const totalNetRevenueWithin7Days = successfulBookingsWithin7Days.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
+
+    const grossRevenueWithin7days =
+      totalNetRevenueWithin7Days / organizerPercentage;
+
+    // calculate the revenue percentage change
+    const percentageNetRevenueChangeWithin7Days =
+      (totalNetRevenueWithin7Days / revenue) * 100;
+
+    // calculate gross revenue percentage change
+    const percentageGrossRevenueChangeWithin7Days =
+      (grossRevenueWithin7days / grossRevenue) * 100;
+
+    // calculate ticket scanned percentage change
+    const ticketScannedPercentageChange =
+      (ticketsScannedWithin7Days / ticketsScanned) * 100;
+
+    // calculate tickets sold percentage change
+    const percentageChangeTicketsSoldWithin7Days =
+      (successfulBookingsWithin7Days.length / totalNumberOfTicketsSold) * 100;
 
     // check if the neccessary queries for page views are supplied
     const { dateRangeStart, dateRangeEnd, range } = query;
@@ -62,16 +119,32 @@ export class EventAnalyticsService {
     }
 
     return {
-      grossRevenue,
-      netRevenue: revenue,
-      ticketsSold: totalNumberOfTicketsSold,
-      ticketsScanned,
+      grossRevenue: {
+        value: grossRevenue,
+        change: this._roundToTwo(percentageGrossRevenueChangeWithin7Days),
+      },
+      netRevenue: {
+        value: revenue,
+        change: this._roundToTwo(percentageNetRevenueChangeWithin7Days),
+      },
+      ticketsSold: {
+        value: totalNumberOfTicketsSold,
+        change: this._roundToTwo(percentageChangeTicketsSoldWithin7Days),
+      },
+      ticketsScanned: {
+        value: ticketsScanned,
+        change: this._roundToTwo(ticketScannedPercentageChange),
+      },
       attendanceRate: {
         value: Math.ceil(attendanceRate * 100) / 100,
         change: Math.ceil(percentageChange * 100) / 100,
       },
       pageViews,
     };
+  }
+
+  private _roundToTwo(digits: number) {
+    return Math.ceil(digits * 100) / 100;
   }
 
   async getEventPageViews(
