@@ -238,7 +238,6 @@ export class EventAnalyticsService {
     return formattedResults;
   }
 
-
   // async getEventPageViews(
   //   eventId: string,
   //   dateRangeStart: string,

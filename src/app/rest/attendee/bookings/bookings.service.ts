@@ -25,6 +25,8 @@ import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-boo
 import { events } from '@config/app.config';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/send-complimentary-booking.dto';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
 export class BookingsService {
@@ -411,6 +413,68 @@ export class BookingsService {
       new BookingsEvent(newBookings),
     );
     return { checkoutUrl: null, bookings: newBookings };
+  }
+
+  async sendComplimentaryBooking(
+    body: SendComplimentaryBookingDto,
+    userId: string,
+  ) {
+    const { ticketId, email, firstName, lastName, quantity } = body;
+    const ticket = await this._entityManager
+      .createQueryBuilder(Ticket, 'ticket')
+      .leftJoinAndSelect('ticket.event', 'event')
+      .where('event.userId = :userId', { userId })
+      .andWhere('ticket.id = :ticketId', { ticketId })
+      .getOne();
+
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    if (!ticket.isAvailable)
+      throw new NotAcceptableException('Ticket is not available');
+
+    // const { availableTickets, numberOfTicketsSold } = ticket;
+    // const unsoldTickets = availableTickets - numberOfTicketsSold;
+    // if (quantity > unsoldTickets)
+    //   throw new NotFoundException(
+    //     `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available`,
+    //   );
+
+    // find the user with the email
+    const user = await this._entityManager.findOneBy(User, {
+      email,
+      userType: UserType.ATTENDEE,
+    });
+
+    const bookings = await this._entityManager.transaction(async (manager) => {
+      // loop through the quantity and create booking
+      const bookings: Booking[] = [];
+      for (let i = 1; i <= quantity; i++) {
+        const booking = manager.create(Booking, {
+          quantity: 1,
+          category: TicketCategory.COMPLIMENTARY,
+          unitAmount: ticket.price,
+          status: BookingStatus.VALID,
+          email,
+          firstName,
+          lastName,
+          user,
+          event: ticket.event,
+          ticket,
+          bookingId: await this.generateBookingId(),
+          processed: true,
+        });
+
+        bookings.push(booking);
+      }
+
+      return await manager.save(Booking, bookings);
+    });
+
+    this._eventEmitter.emit(
+      events.COMPLIMENTARY_BOOKING_SENT,
+      new BookingsEvent(bookings),
+    );
+    return bookings;
   }
 
   async transferBooking(body: TransferBookingDto, userId: string) {

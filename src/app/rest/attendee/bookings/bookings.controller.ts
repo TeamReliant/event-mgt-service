@@ -29,6 +29,7 @@ import { roles } from '@config/app.config';
 import { Request } from 'express';
 import { FetchBookingsQueriesDto } from '@app/rest/attendee/bookings/dto/fetch-bookings-queries.dto';
 import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
+import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/send-complimentary-booking.dto';
 
 @Controller()
 export class BookingsController {
@@ -125,6 +126,17 @@ export class BookingsController {
   ) {
     await this._bookingsService.transferBooking(body, userId);
     return ResponseSerializer.message('Booking transferred successfully');
+  }
+
+  @Post('bookings/complimentary')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
+  async sendComplimentary(
+    @Body() body: SendComplimentaryBookingDto,
+    @GetCurrentUserId() userId: string,
+  ) {
+    await this._bookingsService.sendComplimentaryBooking(body, userId);
+    return ResponseSerializer.message('Complimentary ticket sent successfully');
   }
 
   @Post('bookings/verify')
