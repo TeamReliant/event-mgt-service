@@ -37,6 +37,22 @@ export class BookingsListener {
     );
   }
 
+  @OnEvent(events.COMPLIMENTARY_BOOKING_SENT)
+  async dispatchComplimentaryBookingSentNotification(payload: BookingsEvent) {
+    const { bookings } = payload;
+
+    await this._bookingsEmailService.sendBookingCompletedMessage(
+      bookings,
+      true,
+    );
+
+    // Remove the event from the queue  when done
+    this._eventEmitter.removeListener(
+      events.COMPLIMENTARY_BOOKING_SENT,
+      this.dispatchComplimentaryBookingSentNotification,
+    );
+  }
+
   @OnEvent(events.BOOKING_RECEIVED)
   async dispatchBookingReceivedNotification(payload: BookingsEvent) {
     const { bookings } = payload;

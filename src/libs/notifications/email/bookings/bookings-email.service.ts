@@ -54,7 +54,10 @@ export class BookingsEmailService {
     return { pdfBuffer, jpegBuffer };
   }
 
-  async sendBookingCompletedMessage(bookings: Booking[]) {
+  async sendBookingCompletedMessage(
+    bookings: Booking[],
+    complimentary: boolean = false,
+  ) {
     const booking = bookings[0];
     const { appName, appEmail, companyName } = appInfo;
     const attachments: any[] = [];
@@ -85,6 +88,18 @@ export class BookingsEmailService {
       appEmail,
       companyName,
     };
+
+    if (complimentary) {
+      const subject: string = `COMPLIMENTARY TICKET RECEIVED - ${appName}`;
+      await this.emailEngineService.sendHtmlEmail(
+        [booking.email],
+        subject,
+        `bookings/complimentary-bookings-received`,
+        payload,
+        attachments,
+      );
+      return;
+    }
 
     const subject: string = `BOOKING COMPLETED - ${appName}`;
     await this.emailEngineService.sendHtmlEmail(
