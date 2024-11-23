@@ -5,6 +5,9 @@ import { Event } from '@app/rest/organizer/event-resources/events/entities/event
 
 @Entity({ name: 'event_views' })
 export class EventView extends AbstractEntity<EventView> {
+  @ManyToOne(() => User, (user) => user.eventViews)
+  user: User;
+
   @ManyToOne(() => Event, (event) => event.eventViews)
   event: Event;
 }
