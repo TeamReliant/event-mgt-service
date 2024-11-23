@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     libgconf-2-4 \
     libasound2 \
     libpangocairo-1.0-0 \
-    libgtk-3-0 \
+    libgtk-3-0
 
 # Install node-gyp globally
 RUN npm install -g node-gyp
