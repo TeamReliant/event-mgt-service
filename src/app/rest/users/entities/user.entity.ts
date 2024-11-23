@@ -177,11 +177,11 @@ export class User extends AbstractEntity<User> {
 
   @OneToMany(() => Booking, (booking) => booking.user, { cascade: true })
   bookings?: Booking[];
-  //
-  // @OneToMany(() => EventView, (view) => view.user, {
-  //   cascade: true,
-  // })
-  // eventViews?: EventView[];
+
+  @OneToMany(() => EventView, (view) => view.user, {
+    cascade: true,
+  })
+  eventViews?: EventView[];
 
   // @OneToMany(() => Booking, (booking) => booking.transferredTo, {
   //   cascade: true,
