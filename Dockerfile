@@ -9,6 +9,23 @@ RUN apt-get update && \
      apt-get install -y build-essential python3 && \
      apt-get clean
 
+# Install necessary libraries for Puppeteer
+RUN apt-get update && apt-get install -y \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libxrandr2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libpci3 \
+    libgconf-2-4 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libgtk-3-0 \
+
 # Install node-gyp globally
 RUN npm install -g node-gyp
 
