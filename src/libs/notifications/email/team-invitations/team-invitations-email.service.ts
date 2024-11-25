@@ -18,7 +18,9 @@ export class TeamInvitationsEmailService {
     const payload = {
       invitation: invitation,
       appName: appName,
-      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}?token=${invitation.token}`,
+      appInfo,
+      user: invitation.user,
+      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}/invitations?token=${invitation.token}`,
     };
 
     const subject: string = `TEAM INVITATION ${appName}`;

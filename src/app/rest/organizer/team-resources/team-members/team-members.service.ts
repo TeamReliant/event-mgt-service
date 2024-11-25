@@ -119,6 +119,7 @@ export class TeamMembersService {
     const adminMember = await this._entityManager
       .createQueryBuilder(TeamMember, 'teamMember')
       .leftJoinAndSelect('teamMember.user', 'user')
+      .leftJoinAndSelect('teamMember.invitation', 'invitation')
       .where('teamMember.userId = :userId', { userId })
       .andWhere('teamMember.teamId = :teamId', { teamId })
       .andWhere('teamMember.isAdmin = true')
@@ -133,6 +134,9 @@ export class TeamMembersService {
 
     // remove the team permissions from the database
     await this._entityManager.remove(Permission, member.permissions);
+
+    // remove the invitation from database
+    await this._entityManager.remove(member.invitation);
 
     // remove the team member
     await this._repo.remove(member);
