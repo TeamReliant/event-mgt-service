@@ -5,7 +5,8 @@ import { TeamInvitation } from '@app/rest/organizer/team-resources/team-invitati
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class TeamInvitationsEmailService {b
+export class TeamInvitationsEmailService {
+  b;
   constructor(
     private readonly emailEngineService: EmailEngineService,
     private readonly configService: ConfigService,

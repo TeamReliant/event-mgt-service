@@ -458,6 +458,8 @@ export class TeamInvitationsService {
     const invitation = await this._repo
       .createQueryBuilder('teamInvitations')
       .leftJoinAndSelect('teamInvitations.user', 'user')
+      .leftJoinAndSelect('teamInvitations.member', 'member')
+      .leftJoinAndSelect('member.permissions', 'permissions')
       .leftJoinAndSelect('teamInvitations.team', 'team')
       .where('teamInvitations.teamId = :teamId', { teamId })
       .andWhere('teamInvitations.id = :id', { id })
@@ -471,6 +473,22 @@ export class TeamInvitationsService {
       throw new NotAcceptableException(
         'Invitation has already been responded to',
       );
+
+    if (
+      invitation.member?.permissions &&
+      invitation.member?.permissions.length
+    ) {
+      // remove the permissions of the user
+      await this._entityManager.remove(
+        Permission,
+        invitation.member?.permissions,
+      );
+    }
+
+    if (invitation.member) {
+      // remove the member data
+      await this._entityManager.remove(TeamMember, invitation.member);
+    }
 
     // delete the invitation
     await this._repo.remove(invitation);
