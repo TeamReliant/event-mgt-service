@@ -1,3 +1,4 @@
+import { TeamInvitation } from '@app/rest/organizer/team-resources/team-invitations/entities/team-invitation.entity';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateTeamMemberDto } from './dto/update-team-member.dto';
 import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
@@ -20,9 +21,12 @@ export class TeamMembersService {
     const queryBuilder = this._repo
       .createQueryBuilder('members')
       .leftJoinAndSelect('members.user', 'user')
+      .leftJoinAndSelect('members.invitation', 'invitation')
       .where('members.teamId = :teamId', { teamId })
       .select([
         'members',
+        'invitation.id',
+        'invitation.email',
         'user.id',
         'user.firstname',
         'user.lastname',
@@ -113,7 +117,14 @@ export class TeamMembersService {
   }
 
   async remove(teamId: string, id: string, userId: string): Promise<boolean> {
-    const member = await this.findOne(teamId, id);
+    const member = await this._repo
+      .createQueryBuilder('member')
+      .leftJoinAndSelect('member.user', 'user')
+      .leftJoinAndSelect('member.permissions', 'permissions')
+      .leftJoinAndSelect('member.invitation', 'invitation')
+      .where('member.id = :id', { id })
+      .andWhere('member.teamId = :teamId', { teamId })
+      .getOne();
 
     // find the team member where the userId is an admin and the teamId is the teamId
     const adminMember = await this._entityManager
@@ -128,18 +139,37 @@ export class TeamMembersService {
     if (!adminMember)
       throw new NotFoundException('Only team admins can update members');
 
+    if (!member)
+      throw new NotFoundException(`Member with the id: ${id} not found`);
+
     // make sure the user is not removing itself
     if (member.user?.id === userId)
       throw new NotFoundException('You cannot remove yourself from the team');
 
+    // // remove the permissions of the user
+    // await this._entityManager.remove(Permission, member?.permissions);
+    // // delete the invitation
+    // await this._entityManager.remove(TeamInvitation, member.invitation);
+    // // remove the member data
+    // await this._entityManager.remove(TeamMember, member);
+
     // remove the team permissions from the database
-    await this._entityManager.remove(Permission, member.permissions);
+    await this._entityManager.softRemove(Permission, member.permissions);
 
-    // remove the invitation from database
-    await this._entityManager.remove(member.invitation);
+    // remove the team members from the database
+    await this._entityManager.softRemove(TeamMember, member);
 
-    // remove the team member
-    await this._repo.remove(member);
+    // remove the team invitations from the database
+    await this._entityManager.softRemove(TeamInvitation, member.invitation);
+
+    // // remove the team permissions from the database
+    // await this._entityManager.softRemove(Permission, member.permissions);
+
+    // // remove the invitation from database
+    // await this._entityManager.softRemove(member.invitation);
+
+    // // remove the team member
+    // await this._repo.softRemove(member);
 
     return true;
   }
