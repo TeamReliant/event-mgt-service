@@ -63,7 +63,6 @@ export class BookingsController {
 
   @Get('bookings')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async findAll(
     @GetCurrentUserId() userId: string,
     @Query() query: FetchBookingsQueriesDto,
@@ -108,7 +107,6 @@ export class BookingsController {
 
   @Delete('bookings/:id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async remove(
     @Param() { id }: DeleteBookingParamsDto,
     @GetCurrentUserId() userId: string,
@@ -119,7 +117,6 @@ export class BookingsController {
 
   @Post('bookings/transfer')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async transfer(
     @Body() body: TransferBookingDto,
     @GetCurrentUserId() userId: string,
@@ -141,7 +138,6 @@ export class BookingsController {
 
   @Post('bookings/verify')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ATTENDEE]))
   async verify(
     @Body() { transactionId }: VerifyBookingsTransactionDto,
     @GetCurrentUserId() userId: string,
