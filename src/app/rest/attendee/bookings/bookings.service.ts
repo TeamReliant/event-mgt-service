@@ -123,6 +123,7 @@ export class BookingsService {
 
       // Prevent user from going beyond allowed limit.
       if (
+        ticket.maxNumberOfTicketsOrderable &&
         quantity > ticket.maxNumberOfTicketsOrderable &&
         existingProcessedBooking &&
         existingProcessedBooking.quantity + quantity >
