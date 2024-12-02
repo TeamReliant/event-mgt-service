@@ -132,7 +132,10 @@ export class BookingsService {
           `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
         );
 
-      if (quantity > ticket.availableTickets - ticket.numberOfTicketsSold)
+      if (
+        ticket.availableTickets &&
+        quantity > ticket.availableTickets - ticket.numberOfTicketsSold
+      )
         throw new NotAcceptableException(
           `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
         );
