@@ -7,6 +7,8 @@ import puppeteer from 'puppeteer';
 import * as pug from 'pug';
 import * as qr from 'qrcode';
 import * as path from 'path';
+import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
+import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 
 @Injectable()
 export class BookingsEmailService {
@@ -59,22 +61,31 @@ export class BookingsEmailService {
     complimentary: boolean = false,
   ) {
     const booking = bookings[0];
+    let foundGoingTicket: boolean = false;
     const { appName, appEmail, companyName } = appInfo;
     const attachments: any[] = [];
 
     for (const slot of bookings) {
-      const { pdfBuffer, jpegBuffer } = await this.generateTicketBuffers(slot);
+      if (
+        slot.category !== TicketCategory.FREE &&
+        slot.reaction !== FreeTicketReaction.NOT_GOING
+      ) {
+        const { pdfBuffer, jpegBuffer } =
+          await this.generateTicketBuffers(slot);
 
-      attachments.push({
-        filename: `${slot.event.name}_${slot.ticket.name}_ticket.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf',
-      });
-      attachments.push({
-        filename: `${slot.event.name}_${slot.ticket.name}_ticket.jpeg`,
-        content: jpegBuffer,
-        contentType: 'image/jpeg',
-      });
+        attachments.push({
+          filename: `${slot.event.name}_${slot.ticket.name}_ticket.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        });
+        attachments.push({
+          filename: `${slot.event.name}_${slot.ticket.name}_ticket.jpeg`,
+          content: jpegBuffer,
+          contentType: 'image/jpeg',
+        });
+
+        foundGoingTicket = true;
+      }
     }
 
     const payload = {
@@ -88,6 +99,9 @@ export class BookingsEmailService {
       appEmail,
       companyName,
     };
+
+    // if going ticket is not found
+    if (!foundGoingTicket) return;
 
     if (complimentary) {
       const subject: string = `COMPLIMENTARY TICKET RECEIVED - ${appName}`;
