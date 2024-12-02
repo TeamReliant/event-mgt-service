@@ -70,8 +70,10 @@ export class BookingsEmailService {
 
     for (const slot of bookings) {
       if (
-        slot.category !== TicketCategory.FREE &&
-        slot.reaction !== FreeTicketReaction.NOT_GOING
+        slot.category === TicketCategory.PAID ||
+        slot.category === TicketCategory.COMPLIMENTARY ||
+        (slot.category === TicketCategory.FREE &&
+          slot.reaction !== FreeTicketReaction.NOT_GOING)
       ) {
         const { pdfBuffer, jpegBuffer } =
           await this.generateTicketBuffers(slot);
