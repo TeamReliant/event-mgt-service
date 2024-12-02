@@ -29,6 +29,7 @@ import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enu
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { Request } from 'express';
+import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 
 @Injectable()
 export class PaymentService {
@@ -631,6 +632,11 @@ export class PaymentService {
         for (const booking of transaction.bookings) {
           // spread the booking based on the quantity
           for (let i = 1; i <= booking.quantity; i++) {
+            const status =
+              booking.reaction === FreeTicketReaction.NOT_GOING
+                ? BookingStatus.INVALID
+                : BookingStatus.VALID;
+
             const newBooking = manager.create(Booking, {
               quantity: 1,
               category: booking.category,
@@ -644,7 +650,10 @@ export class PaymentService {
               ticket: booking.ticket,
               bookingId: await this.generateBookingId(),
               processed: true,
-              status: BookingStatus.VALID,
+              status:
+                booking.category === TicketCategory.FREE
+                  ? status
+                  : BookingStatus.VALID,
             });
 
             if (booking.category === TicketCategory.PAID) {
