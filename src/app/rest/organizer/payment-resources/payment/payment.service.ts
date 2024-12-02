@@ -653,6 +653,7 @@ export class PaymentService {
             }
 
             if (
+              booking.ticket.availableTickets &&
               booking.ticket.numberOfTicketsSold ===
               booking.ticket.availableTickets
             ) {
