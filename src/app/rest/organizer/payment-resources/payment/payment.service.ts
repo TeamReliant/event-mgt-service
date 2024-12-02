@@ -655,7 +655,7 @@ export class PaymentService {
             if (
               booking.ticket.availableTickets &&
               booking.ticket.numberOfTicketsSold ===
-              booking.ticket.availableTickets
+                booking.ticket.availableTickets
             ) {
               booking.ticket.isAvailable = false;
             }
