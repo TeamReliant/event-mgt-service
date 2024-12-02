@@ -114,7 +114,7 @@ export class EventsService {
 
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
-    const timestampInSeconds = Math.floor(Date.now() / 1000);
+    const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
 
     // check if the event name already exists
     const slugExists = await this.eventRepo.findOneBy({
@@ -150,7 +150,7 @@ export class EventsService {
         async (manager) => {
           const eventInstance = manager.create(Event, {
             ...rest,
-            slug: `${slugify(rest.name, { lower: true })}-${slugExists ? timestampInSeconds : null}`,
+            slug: `${slugify(rest.name, { lower: true })}${slugExists ? timestampInSeconds : ''}`,
             eventImageURL,
             eventVisibility,
             eventStatus,
@@ -392,7 +392,7 @@ export class EventsService {
   }
 
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
-    const timestampInSeconds = Math.floor(Date.now() / 1000);
+    const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
     const { name } = updateEventDto;
 
     // check if event exists and belongs to authenticated user
@@ -416,7 +416,7 @@ export class EventsService {
         .andWhere('event.userId != :userId', { userId: user.userId })
         .getOne();
 
-      slug = `${slugify(name, { lower: true })}-${slugExists ? timestampInSeconds : null}`;
+      slug = `${slugify(name, { lower: true })}${slugExists ? timestampInSeconds : ''}`;
     }
 
     // update event
