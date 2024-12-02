@@ -30,6 +30,9 @@ export class GetAllEventsResponseDto {
   longitude?: string;
 
   @Expose()
+  slug?: string;
+
+  @Expose()
   description?: string;
 
   @Expose()
