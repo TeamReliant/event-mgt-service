@@ -303,7 +303,7 @@ export class BookingsService {
         ticket: { availableTickets, numberOfTicketsSold },
       } = booking;
       const unsoldTickets = availableTickets - numberOfTicketsSold;
-      if (booking?.quantity > unsoldTickets)
+      if (availableTickets && booking?.quantity > unsoldTickets)
         throw new NotFoundException(
           `Only ${booking?.ticket.availableTickets - booking?.ticket.numberOfTicketsSold} tickets are available for ${id}`,
         );
@@ -391,8 +391,9 @@ export class BookingsService {
           });
 
           if (
+            booking.ticket.availableTickets &&
             booking.ticket.numberOfTicketsSold ===
-            booking.ticket.availableTickets
+              booking.ticket.availableTickets
           ) {
             booking.ticket.isAvailable = false;
           }
