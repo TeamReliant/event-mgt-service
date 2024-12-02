@@ -27,6 +27,7 @@ import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/send-complimentary-booking.dto';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 
 @Injectable()
 export class BookingsService {
@@ -140,8 +141,6 @@ export class BookingsService {
         throw new NotAcceptableException(
           `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
         );
-
-      console.log(user);
 
       const booking = this._repo.create({
         quantity,
@@ -388,7 +387,10 @@ export class BookingsService {
             ticket: booking.ticket,
             bookingId: await this.generateBookingId(),
             processed: true,
-            status: BookingStatus.VALID,
+            status:
+              booking.reaction === FreeTicketReaction.NOT_GOING
+                ? BookingStatus.INVALID
+                : BookingStatus.VALID,
           });
 
           if (

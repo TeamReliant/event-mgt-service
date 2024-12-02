@@ -53,7 +53,7 @@ html(lang="en")
                 color: #ffffff;
             }
             .detail-value {
-                font-size: 1rem;
+                font-size: 0.8rem;
             }
             .qr-code-container {
                 text-align: center;
@@ -76,18 +76,23 @@ html(lang="en")
         .ticket
             .ticket-header
                 div
-                    h1.event-name #{event.name}
+                    h1.event-name #{event.name.charAt(0).toUpperCase() + event.name.slice(1)}
                     p.ticket-number Ticket #{bookingId}
             .ticket-details
                 .detail-row
                     span.detail-title Ticket Type:
-                    span.detail-value #{ticket.name}
+                    span.detail-value #{ticket.name.charAt(0).toUpperCase() + ticket.name.slice(1)}
                 .detail-row
                     span.detail-title Guest Name:
-                    span.detail-value #{firstName} #{lastName}
+                    span.detail-value #{firstName.charAt(0).toUpperCase() + firstName.slice(1)} #{lastName.charAt(0).toUpperCase() + lastName.slice(1)}
+                if category === 'free'
+                    .detail-row
+                        span.detail-title RSVP:
+                        span.detail-value #{reaction.charAt(0).toUpperCase() + reaction.slice(1)}
                 .detail-row
                     span.detail-title Status:
-                    span.detail-value #{status}
+                    span.detail-value #{status.charAt(0).toUpperCase() + status.slice(1)}
+
             .qr-code-container
                 img.qr-code(src="data:image/png;base64,"+ qrCodeBase64 alt="QR Code")
             .footer
