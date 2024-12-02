@@ -42,7 +42,7 @@ export class BookingsEmailService {
     // Generate PDF and JPEG using Puppeteer
     const browser = await puppeteer.launch({
       headless: true, // Ensure it runs in headless mode
-      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Add required flags
+      args: ['--no-sandbox', '--disable-setuid-sandbox'], // Required flags
     });
     const page = await browser.newPage();
     await page.setContent(html);
