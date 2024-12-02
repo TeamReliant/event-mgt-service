@@ -10,7 +10,7 @@ RUN apt-get update && \
      apt-get clean
 
 # Install necessary libraries for Puppeteer
-RUN apt-get update && apt-get install -y \
+RUN apt-get install -y \
     libnss3 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     libpangocairo-1.0-0 \
     libgtk-3-0
+
+RUN apt-get install -y chromium
 
 # Install node-gyp globally
 RUN npm install -g node-gyp
