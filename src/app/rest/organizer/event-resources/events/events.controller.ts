@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Param,
   ParseFilePipeBuilder,
@@ -85,8 +86,21 @@ export class EventsController {
     eventCoverImage: Express.Multer.File,
     @CurrentUser() user: TJwtPayload,
   ) {
-    createEventDto.eventCoverImage = eventCoverImage;
-    return await this.eventsService.create(createEventDto, user);
+    try {
+      createEventDto.eventCoverImage = eventCoverImage;
+      return await this.eventsService.create(createEventDto, user);
+    } catch (error) {
+      if (error?.status === HttpStatus.UNPROCESSABLE_ENTITY) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            error: error.message || 'File size exceeds 3MB limit',
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
+      throw error;
+    }
   }
 
   // @Get()
@@ -193,10 +207,23 @@ export class EventsController {
     )
     eventCoverImage?: Express.Multer.File,
   ) {
-    if (eventCoverImage) {
-      updateEventDto.eventCoverImage = eventCoverImage;
+    try {
+      if (eventCoverImage) {
+        updateEventDto.eventCoverImage = eventCoverImage;
+      }
+      return await this.eventsService.update(params.id, updateEventDto, user);
+    } catch (error) {
+      if (error?.status === HttpStatus.UNPROCESSABLE_ENTITY) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            error: error.message || 'File size exceeds 3MB limit',
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
+      throw error;
     }
-    return await this.eventsService.update(params.id, updateEventDto, user);
   }
 
   @Delete(':id')
