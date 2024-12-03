@@ -610,17 +610,24 @@ export class EventsService {
         'Event does not belong to authenticated user',
       );
 
-    // check if the event already has a team
-    if (event.team)
-      throw new NotAcceptableException('Event already has a team');
+    // // check if the event already has a team
+    return await this.entityManager.transaction(async (manager) => {
+      // unassign the tasks of the team
+      await manager
+        .createQueryBuilder()
+        .update(Task)
+        .set({ assignee: null })
+        .where('eventId = :eventId', { eventId: event.id })
+        .execute();
 
-    // find the team
-    const team = await this.entityManager.findOneBy(Team, { id: teamId });
-    if (!team) throw new NotFoundException('Team not found');
+      // find the team
+      const team = await manager.findOneBy(Team, { id: teamId });
+      if (!team) throw new NotFoundException('Team not found');
 
-    // assign the team to the event
-    event.team = team;
-    return await this.eventRepo.save(event);
+      // assign the team to the event
+      event.team = team;
+      return await manager.save(Event, event);
+    });
   }
 
   async deallocateTeam(eventId: string, userId: string) {
@@ -644,7 +651,7 @@ export class EventsService {
       );
 
     return await this.entityManager.transaction(async (manager) => {
-      // unassign the tasks of the team member
+      // unassign the tasks of the team
       await manager
         .createQueryBuilder()
         .update(Task)
