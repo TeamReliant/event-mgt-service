@@ -107,6 +107,7 @@ export class BookingsController {
   }
 
   @Delete('bookings/:id')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async remove(
     @Param() { id }: DeleteBookingParamsDto,
@@ -118,6 +119,7 @@ export class BookingsController {
 
   @Post('bookings/transfer')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async transfer(
     @Body() body: TransferBookingDto,
     @GetCurrentUserId() userId: string,
@@ -139,6 +141,7 @@ export class BookingsController {
 
   @Post('bookings/verify')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async verify(
     @Body() { transactionId }: VerifyBookingsTransactionDto,
     @GetCurrentUserId() userId: string,
