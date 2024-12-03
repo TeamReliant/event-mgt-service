@@ -63,6 +63,7 @@ export class BookingsController {
 
   @Get('bookings')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
   async findAll(
     @GetCurrentUserId() userId: string,
     @Query() query: FetchBookingsQueriesDto,
