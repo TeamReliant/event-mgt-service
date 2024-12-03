@@ -130,6 +130,10 @@ export class EventsService {
         eventStatus,
         ...rest
       } = createEventDto;
+
+      if (createEventDto.locationName == null && createEventDto.address == null)
+        throw new BadRequestException("Please provide an address for your event");
+      
       if (eventCoverImage) {
         eventImageURL = await this.uploadImage(eventCoverImage);
       }
