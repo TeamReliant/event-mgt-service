@@ -24,6 +24,21 @@ export class BookingsListener {
     );
   }
 
+  @OnEvent(events.BOOKING_REACTION_UPDATED)
+  async dispatchBookingReactionUpdatedNotification(payload: BookingsEvent) {
+    const { bookings } = payload;
+
+    await this._bookingsEmailService.sendBookingReactionUpdatedMessage(
+      bookings,
+    );
+
+    // Remove the event from the queue when done
+    this._eventEmitter.removeListener(
+      events.BOOKING_REACTION_UPDATED,
+      this.dispatchBookingReactionUpdatedNotification,
+    );
+  }
+
   @OnEvent(events.BOOKING_TRANSFERRED)
   async dispatchBookingTransferredNotification(payload: BookingsEvent) {
     const { bookings } = payload;
