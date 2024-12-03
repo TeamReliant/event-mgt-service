@@ -30,10 +30,12 @@ export class CreateEventDto {
 
   @IsNotEmpty()
   @IsString()
+  @IsOptional()
   locationName: string;
 
   @IsNotEmpty()
   @IsString()
+  @IsOptional()
   locationPlaceId: string;
 
   @IsOptional()
