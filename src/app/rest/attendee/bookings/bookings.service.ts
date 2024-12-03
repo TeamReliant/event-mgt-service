@@ -47,16 +47,12 @@ export class BookingsService {
   ): Promise<Booking[]> {
     const { tickets, firstName, lastName, email } = body;
 
-    console.log(`---------------- ${userId} ----------------`)
-
     // find the user with the userId
     let user: User;
     if (userId)
       user = await this._entityManager.findOneBy(User, {
         id: userId,
       });
-
-    console.log(`---------------- ${userId} ----------------`)
 
     // find the event with the eventId
     const event = await this._entityManager.findOneBy(Event, {
@@ -69,6 +65,7 @@ export class BookingsService {
 
     const bookingsToToBeSaved: Booking[] = [];
     const invalidTickets: string[] = [];
+    let foundPaid: boolean = false;
 
     // Loop through unit tickets
     for (const slot of tickets) {
@@ -146,6 +143,8 @@ export class BookingsService {
           `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
         );
 
+      if (category === TicketCategory.PAID) foundPaid = true;
+
       const booking = this._repo.create({
         quantity,
         category,
@@ -163,6 +162,11 @@ export class BookingsService {
       bookingsToToBeSaved.push(booking);
     }
 
+    // save the created bookings
+    const bookings = await this._repo.save(bookingsToToBeSaved);
+
+    if (!foundPaid) return this.processFreeBookings(bookings);
+
     // check if there are any invalid tickets
     if (invalidTickets.length) {
       throw new NotFoundException(
@@ -170,8 +174,6 @@ export class BookingsService {
       );
     }
 
-    // save the created bookings
-    const bookings = await this._repo.save(bookingsToToBeSaved);
     return bookings.map((booking) => {
       delete booking.ticket.event;
       delete booking.user;
@@ -180,9 +182,6 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
-
-    console.log(`---------------- ${userId} ----------------`)
-
     const queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
