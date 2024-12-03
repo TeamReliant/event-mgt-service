@@ -18,6 +18,7 @@ import { events } from '@config/app.config';
 import { TeamInvitationsEvent } from '@app/rest/organizer/team-resources/team-invitations/events/team-invitations.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Permission } from '@app/rest/organizer/team-resources/permissions/entities/permission.entity';
+import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 
 @Injectable()
 export class TeamsService {
@@ -357,6 +358,20 @@ export class TeamsService {
       throw new NotFoundException('Only team admins can remove a team');
 
     await this._entityManager.transaction(async (manager) => {
+      // Fetch the tasks of the team member
+      const tasks = await manager
+        .createQueryBuilder(Task, 'task')
+        .leftJoinAndSelect('task.assignee', 'assignee')
+        .leftJoinAndSelect('assignee.team', 'team')
+        .where('team.id = :teamId', { teamId: id })
+        .getMany();
+
+      // Loop through the tasks and update each
+      for (const task of tasks) {
+        task.assignee = null;
+        await manager.save(task); // Save the updated task
+      }
+
       // remove the team permissions from the database
       await manager.softRemove(Permission, team.permissions);
 
