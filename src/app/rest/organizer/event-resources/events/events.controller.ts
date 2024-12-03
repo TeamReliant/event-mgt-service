@@ -227,4 +227,15 @@ export class EventsController {
     delete data.user;
     return ResponseSerializer.data(data);
   }
+
+  @Post(':id/team/remove')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async removeTeamFromEvent(
+    @Param() params: AssignTeamParamsDto,
+    @CurrentUser() user: TJwtPayload,
+  ) {
+    await this.eventsService.deallocateTeam(params.id, user.userId);
+    return ResponseSerializer.message('Team removed successfully');
+  }
 }

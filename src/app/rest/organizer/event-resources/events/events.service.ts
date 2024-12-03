@@ -19,6 +19,7 @@ import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/as
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
+import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 
 @Injectable()
 export class EventsService {
@@ -620,5 +621,40 @@ export class EventsService {
     // assign the team to the event
     event.team = team;
     return await this.eventRepo.save(event);
+  }
+
+  async deallocateTeam(eventId: string, userId: string) {
+    // get the teamId from the body
+    // const { teamId } = body;
+
+    // find the event
+    const event = await this.eventRepo
+      .createQueryBuilder('event')
+      .where('event.id = :eventId', { eventId })
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('event.user', 'user')
+      .getOne();
+
+    if (!event) throw new NotFoundException('Event not found');
+
+    // check if the event belongs to the user
+    if (event.user.id !== userId)
+      throw new BadRequestException(
+        'Event does not belong to authenticated user',
+      );
+
+    return await this.entityManager.transaction(async (manager) => {
+      // unassign the tasks of the team member
+      await manager
+        .createQueryBuilder()
+        .update(Task)
+        .set({ assignee: null })
+        .where('eventId = :eventId', { eventId: event.id })
+        .execute();
+
+      event.team = null;
+      await manager.save(Event, event);
+      return true;
+    });
   }
 }
