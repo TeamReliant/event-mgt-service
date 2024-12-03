@@ -47,12 +47,16 @@ export class BookingsService {
   ): Promise<Booking[]> {
     const { tickets, firstName, lastName, email } = body;
 
+    console.log(`---------------- ${userId} ----------------`)
+
     // find the user with the userId
     let user: User;
     if (userId)
       user = await this._entityManager.findOneBy(User, {
         id: userId,
       });
+
+    console.log(`---------------- ${userId} ----------------`)
 
     // find the event with the eventId
     const event = await this._entityManager.findOneBy(Event, {
@@ -176,13 +180,16 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
+
+    console.log(`---------------- ${userId} ----------------`)
+
     const queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('bookings.userId = :userId', { userId })
-      .andWhere('bookings.status != :status', {
-        status: BookingStatus.PENDING,
+      .andWhere('bookings.status != :bookingStatus', {
+        bookingStatus: BookingStatus.PENDING,
       });
 
     const { search, dateRangeStart, dateRangeEnd, status } = query;
@@ -286,6 +293,7 @@ export class BookingsService {
         .createQueryBuilder('booking')
         .leftJoinAndSelect('booking.ticket', 'ticket')
         .leftJoinAndSelect('booking.event', 'event')
+        .leftJoinAndSelect('booking.user', 'user')
         .andWhere('booking.id = :id', { id })
         .getOne();
 
