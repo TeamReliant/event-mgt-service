@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { TeamMember } from '@app/rest/organizer/team-resources/team-members/entities/team-member.entity';
 import { Permission } from '@app/rest/organizer/team-resources/permissions/entities/permission.entity';
 import { Request } from 'express';
+import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 
 @Injectable()
 export class TeamMembersService {
@@ -146,30 +147,24 @@ export class TeamMembersService {
     if (member.user?.id === userId)
       throw new NotFoundException('You cannot remove yourself from the team');
 
-    // // remove the permissions of the user
-    // await this._entityManager.remove(Permission, member?.permissions);
-    // // delete the invitation
-    // await this._entityManager.remove(TeamInvitation, member.invitation);
-    // // remove the member data
-    // await this._entityManager.remove(TeamMember, member);
+    await this._entityManager.transaction(async (manager) => {
+      // unassign the tasks of the team member
+      await manager
+        .createQueryBuilder()
+        .update(Task)
+        .set({ assignee: null })
+        .where('assigneeId = :assigneeId', { assigneeId: member.id })
+        .execute();
 
-    // remove the team permissions from the database
-    await this._entityManager.softRemove(Permission, member.permissions);
+      // remove the team permissions from the database
+      await manager.softRemove(Permission, member.permissions);
 
-    // remove the team members from the database
-    await this._entityManager.softRemove(TeamMember, member);
+      // remove the team members from the database
+      await manager.softRemove(TeamMember, member);
 
-    // remove the team invitations from the database
-    await this._entityManager.softRemove(TeamInvitation, member.invitation);
-
-    // // remove the team permissions from the database
-    // await this._entityManager.softRemove(Permission, member.permissions);
-
-    // // remove the invitation from database
-    // await this._entityManager.softRemove(member.invitation);
-
-    // // remove the team member
-    // await this._repo.softRemove(member);
+      // remove the team invitations from the database
+      await manager.softRemove(TeamInvitation, member.invitation);
+    });
 
     return true;
   }
