@@ -10,6 +10,7 @@ import {
   UseGuards,
   Req,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -30,6 +31,7 @@ import { Request } from 'express';
 import { FetchBookingsQueriesDto } from '@app/rest/attendee/bookings/dto/fetch-bookings-queries.dto';
 import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
 import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/send-complimentary-booking.dto';
+import { UpdateFreeBookingDto } from '@app/rest/attendee/bookings/dto/update-free-booking.dto';
 
 @Controller()
 export class BookingsController {
@@ -126,6 +128,17 @@ export class BookingsController {
   ) {
     await this._bookingsService.transferBooking(body, userId);
     return ResponseSerializer.message('Booking transferred successfully');
+  }
+
+  @Patch('bookings/update-rsvp')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async updateRSVP(
+    @Body() body: UpdateFreeBookingDto,
+    @GetCurrentUserId() userId: string,
+  ) {
+    await this._bookingsService.updateRSVP(body, userId);
+    return ResponseSerializer.message('Booking updated successfully');
   }
 
   @Post('bookings/complimentary')

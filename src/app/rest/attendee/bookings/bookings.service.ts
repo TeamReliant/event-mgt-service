@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotAcceptableException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotAcceptableException, NotFoundException } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
@@ -17,10 +12,7 @@ import { PaymentService } from '@app/rest/organizer/payment-resources/payment/pa
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { ConfigService } from '@nestjs/config';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
-import {
-  BookingStatus,
-  TicketTransferStatus,
-} from '@app/rest/attendee/bookings/enums/booking-status';
+import { BookingStatus, TicketTransferStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
 import { events } from '@config/app.config';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
@@ -28,6 +20,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/send-complimentary-booking.dto';
 import { UserType } from '@app/rest/users/enums/user-type';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
+import { UpdateFreeBookingDto } from '@app/rest/attendee/bookings/dto/update-free-booking.dto';
 
 @Injectable()
 export class BookingsService {
@@ -446,6 +439,12 @@ export class BookingsService {
     if (!ticket.isAvailable)
       throw new NotAcceptableException('Ticket is not available');
 
+    // unsure the event is not over yet
+    const now = new Date();
+    const eventDate = new Date(ticket.event.eventStartDateAndTime);
+    if (now > eventDate)
+      throw new NotAcceptableException('Event has already ended');
+
     // const { availableTickets, numberOfTicketsSold } = ticket;
     // const unsoldTickets = availableTickets - numberOfTicketsSold;
     // if (quantity > unsoldTickets)
@@ -491,6 +490,63 @@ export class BookingsService {
     return bookings;
   }
 
+  async updateRSVP(
+    { bookingId, reaction }: UpdateFreeBookingDto,
+    userId: string,
+  ) {
+    const booking = await this._repo
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.ticket', 'ticket')
+      .leftJoinAndSelect('booking.event', 'event')
+      .where('booking.userId = :userId', { userId })
+      .andWhere('booking.id = :bookingId', { bookingId })
+      .getOne();
+
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const oldReaction = booking.reaction;
+
+    if (!booking.processed)
+      throw new NotAcceptableException(
+        'Only processed bookings can be updated',
+      );
+
+    if (booking.category !== TicketCategory.FREE)
+      throw new NotAcceptableException(
+        `Paid tickets are not eligible for RSVP update`,
+      );
+
+    if (
+      oldReaction !== FreeTicketReaction.NOT_GOING &&
+      booking.status !== BookingStatus.VALID
+    )
+      throw new NotAcceptableException('Only valid tickets can be updated');
+
+
+    // unsure the event is not over yet
+    const now = new Date();
+    const eventDate = new Date(booking.event.eventStartDateAndTime);
+    if (now > eventDate)
+      throw new NotAcceptableException('Event has already ended');
+
+    if (reaction === FreeTicketReaction.NOT_GOING)
+      booking.status = BookingStatus.INVALID;
+
+    booking.reaction = reaction;
+    await this._repo.save(booking);
+
+    // emit in case the reaction is not going
+    if (reaction !== FreeTicketReaction.NOT_GOING) {
+      this._eventEmitter.emit(
+        events.BOOKING_REACTION_UPDATED,
+        new BookingsEvent([booking]),
+      );
+    }
+
+    // return the saved booking
+    return booking;
+  }
+
   async transferBooking(body: TransferBookingDto, userId: string) {
     const { bookingId, email, firstName, lastName } = body;
     const booking = await this._repo
@@ -529,6 +585,12 @@ export class BookingsService {
     // prevent a user from sending to himself
     if (user.id === userId)
       throw new NotAcceptableException(`Can't transfer to yourself`);
+
+    // unsure the event is not over yet
+    const now = new Date();
+    const eventDate = new Date(booking.event.eventStartDateAndTime);
+    if (now > eventDate)
+      throw new NotAcceptableException('Event has already ended');
 
     const newBookings: Booking[] = [];
     // transfer the booking to the user
