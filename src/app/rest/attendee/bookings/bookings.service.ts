@@ -195,13 +195,14 @@ export class BookingsService {
     const { search, dateRangeStart, dateRangeEnd, status } = query;
 
     // check if a search key is supplied
-    if (search)
+    if (search) {
       queryBuilder.andWhere(
-        `ticket.name ILIKE :search OR event.name ILIKE :search`,
+        '(ticket.name ILIKE :search OR event.name ILIKE :search)', // Add parentheses here
         {
           search: `%${search}%`,
         },
       );
+    }
 
     // Check if status is supplied
     if (status)
