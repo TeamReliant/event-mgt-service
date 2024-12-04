@@ -536,8 +536,11 @@ export class BookingsService {
     if (now > eventDate)
       throw new NotAcceptableException('Event has already ended');
 
-    if (reaction === FreeTicketReaction.NOT_GOING)
+    if (reaction === FreeTicketReaction.NOT_GOING) {
       booking.status = BookingStatus.INVALID;
+    } else {
+      booking.status = BookingStatus.VALID;
+    }
 
     booking.reaction = reaction;
     await this._repo.save(booking);

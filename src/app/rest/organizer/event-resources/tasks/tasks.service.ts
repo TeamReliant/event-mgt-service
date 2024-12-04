@@ -93,22 +93,13 @@ export class TasksService {
       .createQueryBuilder('tasks')
       .leftJoinAndSelect('tasks.assignee', 'assignee')
       .leftJoinAndSelect('assignee.user', 'user')
-      .where('tasks.eventId = :eventId', { eventId })
-      .select([
-        'tasks',
-        'assignee',
-        'user.id',
-        'user.lastname',
-        'user.firstname',
-        'user.email',
-      ]);
+      .where('tasks.eventId = :eventId', { eventId });
 
     if (search) {
       const search = query.search as string;
-      queryBuilder.andWhere(
-        `tasks.title LIKE :search OR tasks.description ILIKE :search`,
-        { search: `%${search}%` },
-      );
+      queryBuilder.andWhere(`tasks.title ILIKE :search`, {
+        search: `%${search}%`,
+      });
     }
 
     if (status)
@@ -126,7 +117,14 @@ export class TasksService {
       });
     }
 
-    queryBuilder.select(['tasks', 'assignee']);
+    queryBuilder.select([
+      'tasks',
+      'assignee',
+      'user.id',
+      'user.lastname',
+      'user.firstname',
+      'user.email',
+    ]);
 
     // return the query builder
     return queryBuilder;
