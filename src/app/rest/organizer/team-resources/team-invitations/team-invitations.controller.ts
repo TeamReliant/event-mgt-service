@@ -27,6 +27,8 @@ import { FetchTeamInvitationsParamsDto } from '@app/rest/organizer/team-resource
 import { ShowTeamInvitationParamsDto } from '@app/rest/organizer/team-resources/team-invitations/dto/show-team-invitation-params.dto';
 import { ResendTeamInvitationParamsDto } from '@app/rest/organizer/team-resources/team-invitations/dto/resend-team-invitation-params.dto';
 import { DeleteTeamInvitationParamsDto } from '@app/rest/organizer/team-resources/team-invitations/dto/delete-team-invitation-params.dto';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { roles } from '@config/app.config';
 
 @Controller()
 export class TeamInvitationsController {
@@ -88,11 +90,37 @@ export class TeamInvitationsController {
 
   @Post('invitations/respond')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async update(
     @Body() updateTeamInvitationDto: UpdateTeamInvitationDto,
+    @GetCurrentUserId() userId: string,
   ): Promise<IResponseWithData> {
     const data = await this.teamInvitationsService.update(
       updateTeamInvitationDto,
+      userId,
+    );
+
+    delete data.token;
+    delete data.user?.password;
+    delete data.user?.emailVerificationToken;
+    delete data.user?.emailVerifiedAt;
+    delete data.user?.passwordResetToken;
+    delete data.user?.magicSignInToken;
+    delete data.user?.refreshToken;
+
+    return ResponseSerializer.data(data);
+  }
+
+  @Get('invitations/details-by-token/:token')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
+  async getDetailsBy(
+    @GetCurrentUserId() userId: string,
+    @Param('token') token: string,
+  ): Promise<IResponseWithData> {
+    const data = await this.teamInvitationsService.findByTokenAndUserId(
+      token,
+      userId,
     );
 
     delete data.token;

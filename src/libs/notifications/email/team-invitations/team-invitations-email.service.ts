@@ -23,7 +23,7 @@ export class TeamInvitationsEmailService {
       companyName: companyName,
       appInfo,
       user: invitation.user,
-      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}/invitations?token=${invitation.token}`,
+      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}/invitation?token=${invitation.token}`,
     };
 
     const subject: string = `TEAM INVITATION - ${appName}`;
