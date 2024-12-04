@@ -295,11 +295,11 @@ export class TeamInvitationsService {
     return this._repo.findOneBy({ token });
   }
 
-  async findByTokenAndUserId(token: string, userId: string) {
+  async findByTokenAndUserId(token: string) {
     // fetch the user account
-    const loggedInUser = await this._entityManager.findOneBy<User>(User, {
-      id: userId,
-    });
+    // const loggedInUser = await this._entityManager.findOneBy<User>(User, {
+    //   id: userId,
+    // });
 
     const invitation = await this._repo
       .createQueryBuilder('teamInvitations')
@@ -308,7 +308,7 @@ export class TeamInvitationsService {
       .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('admin.publicProfile', 'publicProfile')
       .where('teamInvitations.token = :token', { token })
-      .andWhere('teamInvitations.email = :email', { email: loggedInUser.email })
+      // .andWhere('teamInvitations.email = :email', { email: loggedInUser.email })
       .select([
         'teamInvitations.id',
         'teamInvitations.email',

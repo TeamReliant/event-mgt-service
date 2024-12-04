@@ -113,15 +113,10 @@ export class TeamInvitationsController {
 
   @Get('invitations/details-by-token/:token')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async getDetailsBy(
-    @GetCurrentUserId() userId: string,
     @Param('token') token: string,
   ): Promise<IResponseWithData> {
-    const data = await this.teamInvitationsService.findByTokenAndUserId(
-      token,
-      userId,
-    );
+    const data = await this.teamInvitationsService.findByTokenAndUserId(token);
 
     delete data.token;
     delete data.user?.password;
