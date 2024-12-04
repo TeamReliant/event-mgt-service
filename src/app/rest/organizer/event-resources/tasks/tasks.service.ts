@@ -242,7 +242,7 @@ export class TasksService {
       await manager.save(task);
     });
 
-    if (assigneeId && assigneeId !== currentAssigneeId) {
+    if (assigneeId && assigneeId !== 'unassigned') {
       // emit an event for the task assignment
       this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
     }
