@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException, NotAcceptableException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotAcceptableException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
@@ -12,7 +17,10 @@ import { PaymentService } from '@app/rest/organizer/payment-resources/payment/pa
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { ConfigService } from '@nestjs/config';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
-import { BookingStatus, TicketTransferStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import {
+  BookingStatus,
+  TicketTransferStatus,
+} from '@app/rest/attendee/bookings/enums/booking-status';
 import { TransferBookingDto } from '@app/rest/attendee/bookings/dto/transfer-booking.dto';
 import { events } from '@config/app.config';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
@@ -521,7 +529,6 @@ export class BookingsService {
       booking.status !== BookingStatus.VALID
     )
       throw new NotAcceptableException('Only valid tickets can be updated');
-
 
     // unsure the event is not over yet
     const now = new Date();
