@@ -11,7 +11,6 @@ import { Event } from './entities/event.entity';
 import {
   Brackets,
   EntityManager,
-  FindRelationsNotFoundError,
   Repository,
 } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
@@ -22,7 +21,6 @@ import { Request } from 'express';
 import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/assign-team.dto';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { UsersService } from '@app/rest/users/users.service';
-import { EventStatus, EventVisibility } from './enums';
 
 @Injectable()
 export class EventsService {
