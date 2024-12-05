@@ -242,8 +242,6 @@ export class TasksService {
     });
 
     if (assigneeId && assigneeId !== 'unassigned') {
-      console.log(`---------------------${assigneeId}------------------------`);
-      console.log(`---------------------${task}----------------------------`);
       // emit an event for the task assignment
       this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
     }
