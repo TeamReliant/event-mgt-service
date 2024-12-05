@@ -183,7 +183,7 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
-    const queryBuilder = this._repo
+    let queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
@@ -193,6 +193,7 @@ export class BookingsService {
       });
 
     const { search, dateRangeStart, dateRangeEnd, status } = query;
+    console.log(query);
 
     // check if a search key is supplied
     if (search) {
@@ -537,9 +538,32 @@ export class BookingsService {
     if (now > eventDate)
       throw new NotAcceptableException('Event has already ended');
 
+    // If nothing changed
+    if (reaction === booking.reaction) return booking;
+
+    const { availableTickets, numberOfTicketsSold, isAvailable } =
+      booking.ticket;
+
+    // If the user is not going
     if (reaction === FreeTicketReaction.NOT_GOING) {
       booking.status = BookingStatus.INVALID;
-    } else {
+      booking.ticket.isAvailable = true;
+
+      // decrease the number of tickets sold for the ticket
+      booking.ticket.numberOfTicketsSold -= 1;
+      await this._entityManager.save(Ticket, booking.ticket);
+    }
+
+    // If the user may go or go
+    if (reaction !== FreeTicketReaction.NOT_GOING) {
+      if (!isAvailable) throw new NotAcceptableException('Ticket out of stock');
+      if (availableTickets && +numberOfTicketsSold + 1 === availableTickets) {
+        booking.ticket.isAvailable = false;
+      }
+
+      // increase the number of tickets sold for the ticket
+      booking.ticket.numberOfTicketsSold += 1;
+      await this._entityManager.save(Ticket, booking.ticket);
       booking.status = BookingStatus.VALID;
     }
 
