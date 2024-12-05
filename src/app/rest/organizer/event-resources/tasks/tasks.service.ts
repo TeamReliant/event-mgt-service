@@ -217,7 +217,7 @@ export class TasksService {
       }
 
       let assignee: TeamMember;
-      if (assigneeId && assigneeId !== task.assignee?.id) {
+      if (assigneeId) {
         if (!this.isUUID(assigneeId))
           throw new NotAcceptableException(
             'assigneeId should either be a UUID or unassigned',
@@ -240,13 +240,13 @@ export class TasksService {
       await manager.save(task);
     });
 
-    if (assigneeId && assigneeId !== 'unassigned') {
+    const wasAssigneeChanged =
+      currentAssigneeId !== assigneeId && assigneeId !== 'unassigned';
+
+    if (wasAssigneeChanged) {
       // emit an event for the task assignment
       this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
     }
-
-    // emit an event for the task assignment
-    this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
 
     // find the updated data and return it
     return this.findOne(eventId, id);
