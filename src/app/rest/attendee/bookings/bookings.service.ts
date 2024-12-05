@@ -183,7 +183,7 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
-    const queryBuilder = this._repo
+    let queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
@@ -193,6 +193,7 @@ export class BookingsService {
       });
 
     const { search, dateRangeStart, dateRangeEnd, status } = query;
+    console.log(query);
 
     // check if a search key is supplied
     if (search) {
@@ -525,11 +526,11 @@ export class BookingsService {
         `Paid tickets are not eligible for RSVP update`,
       );
 
-    if (
-      oldReaction !== FreeTicketReaction.NOT_GOING &&
-      booking.status !== BookingStatus.VALID
-    )
-      throw new NotAcceptableException('Only valid tickets can be updated');
+    // if (
+    //   oldReaction !== FreeTicketReaction.NOT_GOING &&
+    //   booking.status !== BookingStatus.VALID
+    // )
+    //   throw new NotAcceptableException('Only valid tickets can be updated');
 
     // unsure the event is not over yet
     const now = new Date();
