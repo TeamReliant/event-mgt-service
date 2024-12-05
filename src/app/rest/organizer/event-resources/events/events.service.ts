@@ -11,7 +11,6 @@ import { Event } from './entities/event.entity';
 import {
   Brackets,
   EntityManager,
-  FindRelationsNotFoundError,
   Repository,
 } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
@@ -65,6 +64,8 @@ export class EventsService {
     eventVisibility: string,
     eventStatus: string,
   ) {
+
+    if (!user.isOnboarded && eventStatus !== "draft") throw new BadRequestException("Please complete stripe payout account setup to publish event");
     const { subscribedPlan, numOfPrivateEventsCreated } = user;
 
     const plan = subscribedPlan.toLowerCase();
