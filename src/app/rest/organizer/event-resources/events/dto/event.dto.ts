@@ -27,9 +27,12 @@ export class EventResponseDto {
 
   @Expose()
   longitude?: string;
-  
+
   @Expose()
   description?: string;
+
+  @Expose()
+  slug?: string;
 
   @Expose()
   additionalInfo?: string;
@@ -63,6 +66,9 @@ export class EventResponseDto {
 
   @Expose()
   isAvailable: boolean;
+
+  @Expose()
+  totalNumberOfTicketsSold: number;
 
   @Expose()
   @Type(() => UserDto)

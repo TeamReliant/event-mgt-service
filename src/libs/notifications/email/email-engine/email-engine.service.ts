@@ -68,6 +68,7 @@ export class EmailEngineService {
     subject: string,
     template: string,
     payload: any,
+    attachments: any[] = [],
   ) {
     const pugTemplatePath = `${this.templatePath()}/${template}.pug`;
     const newPayload = {
@@ -82,6 +83,7 @@ export class EmailEngineService {
       to,
       subject,
       html,
+      attachments,
     };
 
     this.transporter

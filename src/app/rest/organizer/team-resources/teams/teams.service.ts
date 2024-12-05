@@ -18,6 +18,7 @@ import { events } from '@config/app.config';
 import { TeamInvitationsEvent } from '@app/rest/organizer/team-resources/team-invitations/events/team-invitations.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Permission } from '@app/rest/organizer/team-resources/permissions/entities/permission.entity';
+import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 
 @Injectable()
 export class TeamsService {
@@ -356,17 +357,34 @@ export class TeamsService {
     if (!adminMember)
       throw new NotFoundException('Only team admins can remove a team');
 
-    // remove the team permissions from the database
-    await this._entityManager.softRemove(Permission, team.permissions);
+    await this._entityManager.transaction(async (manager) => {
+      // Fetch the tasks of the team member
+      const tasks = await manager
+        .createQueryBuilder(Task, 'task')
+        .leftJoinAndSelect('task.assignee', 'assignee')
+        .leftJoinAndSelect('assignee.team', 'team')
+        .where('team.id = :teamId', { teamId: id })
+        .getMany();
 
-    // remove the team members from the database
-    await this._entityManager.softRemove(TeamMember, team.members);
+      // Loop through the tasks and update each
+      for (const task of tasks) {
+        task.assignee = null;
+        await manager.save(task); // Save the updated task
+      }
 
-    // remove the team invitations from the database
-    await this._entityManager.softRemove(TeamInvitation, team.invitations);
+      // remove the team permissions from the database
+      await manager.softRemove(Permission, team.permissions);
 
-    // remove the team from the database
-    await this._entityManager.softRemove(Team, team);
+      // remove the team members from the database
+      await manager.softRemove(TeamMember, team.members);
+
+      // remove the team invitations from the database
+      await manager.softRemove(TeamInvitation, team.invitations);
+
+      // remove the team from the database
+      await manager.softRemove(Team, team);
+    });
+
     return true;
   }
 

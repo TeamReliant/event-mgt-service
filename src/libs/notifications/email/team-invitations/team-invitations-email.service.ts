@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TeamInvitationsEmailService {
+  b;
   constructor(
     private readonly emailEngineService: EmailEngineService,
     private readonly configService: ConfigService,
@@ -13,15 +14,19 @@ export class TeamInvitationsEmailService {
 
   async sendInvitationMessage(invitation: TeamInvitation) {
     const { email } = invitation;
-    const { appName } = appInfo;
+    const { appName, appEmail, companyName } = appInfo;
 
     const payload = {
       invitation: invitation,
       appName: appName,
-      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}?token=${invitation.token}`,
+      appEmail: appEmail,
+      companyName: companyName,
+      appInfo,
+      user: invitation.user,
+      reactionLink: `${this.configService.get<string>('FRONTEND_URL')}/invitation?token=${invitation.token}`,
     };
 
-    const subject: string = `TEAM INVITATION ${appName}`;
+    const subject: string = `TEAM INVITATION - ${appName}`;
     await this.emailEngineService.sendHtmlEmail(
       [email],
       subject,

@@ -1,7 +1,7 @@
 extends ../baseEmail
 
 block content
-  p #{(payload.assignee)? `Hello ${payload.assignee.lastname}  ${payload.assignee.lastname} `: 'Hello'},
+  p #{(payload.assignee)? `Hello ${payload.assignee.firstname}  ${payload.assignee.lastname}`: 'Hello'},
   p You have been assigned a new task within the #{payload.task.event.name} team.
 
   p Task Title: **#{payload.task.title}**
@@ -16,4 +16,4 @@ block content
   small Thank you!
   br
   small
-    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
+    b - Signed, #{payload.appInfo.appName}

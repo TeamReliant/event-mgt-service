@@ -263,7 +263,10 @@ export class TeamInvitationsService {
   async findOne(teamId: string, id: string): Promise<TeamInvitation> {
     return await this._repo
       .createQueryBuilder('teamInvitations')
+      .leftJoinAndSelect('teamInvitations.team', 'team')
       .leftJoinAndSelect('teamInvitations.user', 'user')
+      .leftJoinAndSelect('team.admin', 'admin')
+      .leftJoinAndSelect('admin.publicProfile', 'publicProfile')
       .where('teamInvitations.teamId = :teamId', { teamId })
       .andWhere('teamInvitations.id = :id', { id })
       .select([
@@ -272,6 +275,13 @@ export class TeamInvitationsService {
         'teamInvitations.status',
         'teamInvitations.createdAt',
         'teamInvitations.updatedAt',
+        'team',
+        'admin.id',
+        'admin.email',
+        'admin.firstname',
+        'admin.lastname',
+        'admin.picture',
+        'publicProfile',
         'user.id',
         'user.email',
         'user.firstname',
@@ -283,6 +293,45 @@ export class TeamInvitationsService {
 
   findOneByToken(token: string): Promise<TeamInvitation> {
     return this._repo.findOneBy({ token });
+  }
+
+  async findByTokenAndUserId(token: string) {
+    // fetch the user account
+    // const loggedInUser = await this._entityManager.findOneBy<User>(User, {
+    //   id: userId,
+    // });
+
+    const invitation = await this._repo
+      .createQueryBuilder('teamInvitations')
+      .leftJoinAndSelect('teamInvitations.team', 'team')
+      .leftJoinAndSelect('teamInvitations.user', 'user')
+      .leftJoinAndSelect('team.admin', 'admin')
+      .leftJoinAndSelect('admin.publicProfile', 'publicProfile')
+      .where('teamInvitations.token = :token', { token })
+      // .andWhere('teamInvitations.email = :email', { email: loggedInUser.email })
+      .select([
+        'teamInvitations.id',
+        'teamInvitations.email',
+        'teamInvitations.status',
+        'teamInvitations.createdAt',
+        'teamInvitations.updatedAt',
+        'team',
+        'admin.id',
+        'admin.email',
+        'admin.firstname',
+        'admin.lastname',
+        'admin.picture',
+        'publicProfile',
+        'user.id',
+        'user.email',
+        'user.firstname',
+        'user.lastname',
+        'user.picture',
+      ])
+      .getOne();
+
+    if (!invitation) throw new NotFoundException('Invitation not found');
+    return invitation;
   }
 
   async resendInvitation(
@@ -333,9 +382,14 @@ export class TeamInvitationsService {
 
   async update(
     updateTeamInvitationDto: UpdateTeamInvitationDto,
+    userId: string,
   ): Promise<TeamInvitation> {
-    const { account, userType, firstname, lastname, password, status, token } =
-      updateTeamInvitationDto;
+    const { status, token } = updateTeamInvitationDto;
+
+    // fetch the user account
+    const loggedInUser = await this._entityManager.findOneBy<User>(User, {
+      id: userId,
+    });
 
     // find the invitation where the id = id and teamId id teamId
     const invitation = await this._repo
@@ -343,6 +397,7 @@ export class TeamInvitationsService {
       .leftJoinAndSelect('teamInvitations.team', 'team')
       .leftJoinAndSelect('teamInvitations.user', 'user')
       .where('teamInvitations.token = :token', { token })
+      .andWhere('teamInvitations.email = :email', { email: loggedInUser.email })
       .select([
         'teamInvitations.id',
         'teamInvitations.email',
@@ -367,10 +422,10 @@ export class TeamInvitationsService {
         'Invitation has already been responded to',
       );
 
-    if (!invitation.user && (!account || account === 'registered'))
-      throw new NotAcceptableException(
-        'Please provide a registered account for the invitation, or set the account to not-registered',
-      );
+    // if (!invitation.user && (!account || account === 'registered'))
+    //   throw new NotAcceptableException(
+    //     'Please provide a registered account for the invitation, or set the account to not-registered',
+    //   );
 
     return this._entityManager.transaction(async (manager) => {
       // update the invitation status
@@ -378,35 +433,35 @@ export class TeamInvitationsService {
       invitation.token = null;
       await manager.save<TeamInvitation>(invitation);
 
-      let user: User;
-      // check if the invited user exists or registered
-      if (!invitation.user) {
-        user = await manager.findOneBy<User>(User, {
-          email: invitation.email,
-        });
-
-        // create the user if the user does not exist
-        if (!user) {
-          const salt = await bcrypt.genSalt();
-          // Generating the hashed version of the password
-          const hashedPassword = await bcrypt.hash(password, salt);
-
-          const userEntity = manager.create(User, {
-            lastname,
-            firstname,
-            userType,
-            password: hashedPassword,
-            email: invitation.email,
-            emailVerifiedAt: new Date(),
-          }) as User;
-          // save the user
-          user = await manager.save<User>(userEntity);
-        }
-      }
+      // let user: User;
+      // // check if the invited user exists or registered
+      // if (!invitation.user) {
+      //   user = await manager.findOneBy<User>(User, {
+      //     email: invitation.email,
+      //   });
+      //
+      //   create the user if the user does not exist
+      //   if (!user) {
+      //     const salt = await bcrypt.genSalt();
+      //     // Generating the hashed version of the password
+      //     const hashedPassword = await bcrypt.hash(password, salt);
+      //
+      //     const userEntity = manager.create(User, {
+      //       lastname,
+      //       firstname,
+      //       userType,
+      //       password: hashedPassword,
+      //       email: invitation.email,
+      //       emailVerifiedAt: new Date(),
+      //     }) as User;
+      //     // save the user
+      //     user = await manager.save<User>(userEntity);
+      //   }
+      // }
 
       // if the invitation was accepted, add the user to the team
       if (status === 'accepted') {
-        invitation.user = user;
+        invitation.user = loggedInUser;
         await manager.save<TeamInvitation>(invitation);
 
         const member = await manager
@@ -419,7 +474,7 @@ export class TeamInvitationsService {
           .getOne();
 
         member.status = 'active';
-        member.user = user;
+        member.user = loggedInUser;
         await manager.save<TeamMember>(member);
 
         // dispatch the event for the invitation
@@ -458,6 +513,8 @@ export class TeamInvitationsService {
     const invitation = await this._repo
       .createQueryBuilder('teamInvitations')
       .leftJoinAndSelect('teamInvitations.user', 'user')
+      .leftJoinAndSelect('teamInvitations.member', 'member')
+      .leftJoinAndSelect('member.permissions', 'permissions')
       .leftJoinAndSelect('teamInvitations.team', 'team')
       .where('teamInvitations.teamId = :teamId', { teamId })
       .andWhere('teamInvitations.id = :id', { id })
@@ -471,6 +528,22 @@ export class TeamInvitationsService {
       throw new NotAcceptableException(
         'Invitation has already been responded to',
       );
+
+    if (
+      invitation.member?.permissions &&
+      invitation.member?.permissions.length
+    ) {
+      // remove the permissions of the user
+      await this._entityManager.remove(
+        Permission,
+        invitation.member?.permissions,
+      );
+    }
+
+    if (invitation.member) {
+      // remove the member data
+      await this._entityManager.remove(TeamMember, invitation.member);
+    }
 
     // delete the invitation
     await this._repo.remove(invitation);

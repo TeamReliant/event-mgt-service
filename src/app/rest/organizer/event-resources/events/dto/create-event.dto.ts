@@ -2,15 +2,13 @@ import { MaxArrayLength } from '@libs/decorators/max-array-length-validator';
 import {
   IsArray,
   IsDate,
-  IsDateString,
   IsEnum,
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsTimeZone,
-  ValidateIf,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { EventStatus, EventVisibility } from '../enums';
@@ -25,6 +23,7 @@ import { FormatValidationException } from '@libs/decorators/format-validation-ex
 export class CreateEventDto {
   @IsNotEmpty()
   @IsString()
+  @MaxLength(255)
   @FormatValidationException()
   name: string;
 
