@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import { PaginationQueryDto } from '@libs/helpers/pagination/dto/pagination.query.dto';
-import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import { BookingStatus, TicketTransferStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { parseISO } from 'date-fns';
 import { Transform } from 'class-transformer';
 
@@ -49,4 +49,12 @@ export class FetchBookingsQueriesDto extends PaginationQueryDto {
   })
   @FormatValidationException()
   status: string;
+
+  @IsOptional()
+  @IsString()
+  @IsEnum(TicketTransferStatus, {
+    message: `status should either be $${TicketTransferStatus.TRANSFERRED}, or ${TicketTransferStatus.RECEIVED}`,
+  })
+  @FormatValidationException()
+  transferStatus: string;
 }

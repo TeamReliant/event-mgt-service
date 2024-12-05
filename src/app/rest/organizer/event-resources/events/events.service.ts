@@ -63,8 +63,10 @@ export class EventsService {
     eventVisibility: string,
     eventStatus: string,
   ) {
-
-    if (!user.isOnboarded && eventStatus !== "draft") throw new BadRequestException("Please complete stripe payout account setup to publish event");
+    if (!user.isOnboarded && eventStatus !== 'draft')
+      throw new BadRequestException(
+        'Please complete stripe payout account setup to publish event',
+      );
     const { subscribedPlan, numOfPrivateEventsCreated } = user;
 
     const plan = subscribedPlan.toLowerCase();
