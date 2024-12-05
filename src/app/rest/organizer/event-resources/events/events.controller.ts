@@ -39,6 +39,9 @@ import { GetOneEventResponseDto } from './dto/get-one-event-response.dto';
 import { GetAllEventsResponseDto } from './dto/get-all-events-response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { roles } from '@config/app.config';
+import { AttendeeShowEventParamsDto } from '@app/rest/organizer/event-resources/events/dto/attendee-show-event-params.dto';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
@@ -159,6 +162,13 @@ export class EventsController {
     return await this.eventsService.findOne(params.id, user);
   }
 
+  @Get(':slug/attendee')
+  @HttpCode(HttpStatus.OK)
+  async findOneForAttendee(@Param() { slug }: AttendeeShowEventParamsDto) {
+    const data = await this.eventsService.findOneForAttendee(slug);
+    return ResponseSerializer.data(data);
+  }
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
@@ -243,5 +253,16 @@ export class EventsController {
 
     delete data.user;
     return ResponseSerializer.data(data);
+  }
+
+  @Post(':id/team/remove')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async removeTeamFromEvent(
+    @Param() params: AssignTeamParamsDto,
+    @CurrentUser() user: TJwtPayload,
+  ) {
+    await this.eventsService.deallocateTeam(params.id, user.userId);
+    return ResponseSerializer.message('Team removed successfully');
   }
 }

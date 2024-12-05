@@ -115,7 +115,11 @@ export class StripePaymentStrategy implements PaymentStrategy {
 
     return customer;
   }
-  async createSubscription(customerId: string, plan: string) {
+  async createSubscription(
+    customerId: string,
+    plan: string,
+    cancelUrl: string,
+  ) {
     let priceId: string;
 
     switch (plan.toLowerCase()) {
@@ -137,7 +141,9 @@ export class StripePaymentStrategy implements PaymentStrategy {
         trial_period_days: 30,
       },
       success_url: `${process.env.STRIPE_SUBSCRIPTION_SUCCESS_URI}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: process.env.STRIPE_SUBSCRIPTION_CANCEL_URI,
+      cancel_url: cancelUrl
+        ? cancelUrl
+        : process.env.STRIPE_SUBSCRIPTION_CANCEL_URI,
     });
 
     return session;

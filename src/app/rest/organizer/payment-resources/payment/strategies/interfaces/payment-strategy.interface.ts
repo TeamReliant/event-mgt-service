@@ -1,6 +1,10 @@
 export interface PaymentStrategy {
   createCustomer(email: string, name?: string): Promise<any>;
-  createSubscription(customerId: string, planId: string): Promise<any>;
+  createSubscription(
+    customerId: string,
+    planId: string,
+    cancelUrl?: string,
+  ): Promise<any>;
   updateSubscription(
     sessionId: string,
     email?: string,

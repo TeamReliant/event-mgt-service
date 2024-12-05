@@ -4,15 +4,12 @@ import {
   NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
+import slugify from 'slugify';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import {
-  Brackets,
-  EntityManager,
-  Repository,
-} from 'typeorm';
+import { Brackets, EntityManager, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -21,6 +18,8 @@ import { Request } from 'express';
 import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/assign-team.dto';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { UsersService } from '@app/rest/users/users.service';
+import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
+import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 
 @Injectable()
 export class EventsService {
@@ -80,7 +79,7 @@ export class EventsService {
     const { maxPublishableEvents, maxPrivateEvents } = planRestrictions[plan];
     const publishedEventsCreatedThisMonthCount =
       this.getCountOfPublishedEventCreatedThisMonth(user);
-      
+
     if (plan === 'free' && visibility === 'private') {
       throw new BadRequestException(
         'Users on the free plan cannot create private events',
@@ -118,6 +117,13 @@ export class EventsService {
 
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
+    const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
+
+    // check if the event name already exists
+    const slugExists = await this.eventRepo.findOneBy({
+      slug: slugify(createEventDto.name, { lower: true }),
+    });
+
     try {
       const {
         eventCoverImage,
@@ -128,8 +134,10 @@ export class EventsService {
       } = createEventDto;
 
       if (createEventDto.locationName == null && createEventDto.address == null)
-        throw new BadRequestException("Please provide an address for your event");
-      
+        throw new BadRequestException(
+          'Please provide an address for your event',
+        );
+
       if (eventCoverImage) {
         eventImageURL = await this.uploadImage(eventCoverImage);
       }
@@ -151,6 +159,7 @@ export class EventsService {
         async (manager) => {
           const eventInstance = manager.create(Event, {
             ...rest,
+            slug: `${slugify(rest.name, { lower: true })}${slugExists ? timestampInSeconds : ''}`,
             eventImageURL,
             eventVisibility,
             eventStatus,
@@ -244,7 +253,7 @@ export class EventsService {
       eventStartDateAndTime,
       dateRangeStart,
       dateRangeEnd,
-      pastPublishedEvents
+      pastPublishedEvents,
     } = query;
 
     const userId = user.userId;
@@ -303,16 +312,16 @@ export class EventsService {
         { dateRangeStart, dateRangeEnd },
       );
 
-      if (pastPublishedEvents) {
-        const currentDate = new Date();
-        queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
-          currentDate,
-        });
+    if (pastPublishedEvents) {
+      const currentDate = new Date();
+      queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
+        currentDate,
+      });
 
-        queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
-          publishedStatus: 'published',
-        });
-      }
+      queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
+        publishedStatus: 'published',
+      });
+    }
 
     return queryBuilder;
   }
@@ -344,10 +353,57 @@ export class EventsService {
         'User is neither the event owner nor a team member',
       );
     }
+
     return event;
   }
 
+  async findOneForAttendee(slug: string) {
+    const event = await this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('user.publicProfile', 'publicProfile')
+      .leftJoinAndSelect('event.tickets', 'tickets')
+      .where('event.slug = :slug', { slug })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('event.eventStatus = :publishedStatus', {
+            publishedStatus: 'published',
+          });
+        }),
+      )
+      .getOne();
+
+    if (!event) throw new NotFoundException('Event not found');
+
+    // update the views
+    await this.updateView(event);
+    // return the found event
+    return event;
+  }
+
+  async updateView(event: Event) {
+    // const user = await this.userService.findOne(userId);
+    // if (!user) throw new NotFoundException('User not found');
+
+    // // check if the view already exist
+    // const existingView = await this.entityManager.findOne(EventView, {
+    //   where: { event: { id: event.id }, user: { id: user.id } },
+    // });
+    // if (existingView) {
+    //   existingView.updatedAt = new Date();
+    //   await this.entityManager.save(EventView, existingView);
+    //   return;
+    // }
+
+    const view = this.entityManager.create(EventView, { event });
+    await this.entityManager.save(EventView, view);
+    return;
+  }
+
   async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
+    const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
+    const { name } = updateEventDto;
+
     // check if event exists and belongs to authenticated user
     const event = await this.findOne(id, user);
     // check if update has image.
@@ -358,12 +414,27 @@ export class EventsService {
       await this.deleteImage(event.eventImageURL);
     }
 
+    let slugExists: Event;
+    let slug: string = event.slug;
+    // check if name is part of the payload
+    if (name) {
+      // check if name already exists
+      slugExists = await this.eventRepo
+        .createQueryBuilder('event')
+        .where('event.slug = :slug', { slug: slugify(name, { lower: true }) })
+        .andWhere('event.userId != :userId', { userId: user.userId })
+        .getOne();
+
+      slug = `${slugify(name, { lower: true })}${slugExists ? timestampInSeconds : ''}`;
+    }
+
     // update event
     const updatedEvent = await this.entityManager.transaction(
       async (manager) => {
         const { eventCoverImage, tickets, ...rest } = updateEventDto;
         const updatedFields = {
           ...rest,
+          slug,
           eventImageURL,
         };
 
@@ -384,6 +455,131 @@ export class EventsService {
     );
     // return updated event
     return updatedEvent;
+  }
+
+  /**
+   * A method to find all events in the database based on some query parameters
+   * @param params this is an object containing key value pairs of query parameters
+   * @returns the list of events
+   */
+  async findAll(params?: { [key: string]: any }) {
+    const today = new Date();
+    const todayISO = today.toISOString();
+    const queryBuilder = this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets');
+
+    // Base conditions
+    queryBuilder.where('event.eventVisibility = :publicVisibility', {
+      publicVisibility: 'public',
+    });
+    queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
+      publishedStatus: 'published',
+    });
+
+    if (params) {
+      // Date range filters
+      if (params['eventStartDateAndTime'] && params['eventEndDateAndTime']) {
+        queryBuilder.andWhere(
+          'event.eventStartDateAndTime <= :end AND event.eventEndDateAndTime >= :start',
+          {
+            start: params['eventStartDateAndTime'],
+            end: params['eventEndDateAndTime'],
+          },
+        );
+      } else if (params['eventStartDateAndTime']) {
+        queryBuilder.andWhere(
+          'event.eventStartDateAndTime >= :eventStartDate',
+          {
+            eventStartDate: params['eventStartDateAndTime'],
+          },
+        );
+      } else if (params['eventEndDateAndTime']) {
+        queryBuilder.andWhere('event.eventEndDateAndTime <= :eventEndDate', {
+          eventEndDate: params['eventEndDateAndTime'],
+        });
+      }
+
+      // Search conditions (tags, name, location)
+      const searchConditions: string[] = [];
+      const searchParams: any = {};
+
+      if (params['tags']) {
+        searchConditions.push(
+          `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
+        );
+        searchParams.tag = params['tags'];
+      }
+
+      if (params['name']) {
+        searchConditions.push('event.name ILIKE :searchName');
+        searchParams.searchName = `%${params['name']}%`;
+      }
+
+      if (params['locationName']) {
+        searchConditions.push('event.locationName ILIKE :searchLocation');
+        searchParams.searchLocation = `%${params['locationName']}%`;
+      }
+
+      // Combine search conditions with OR
+      if (searchConditions.length > 0) {
+        queryBuilder.andWhere(
+          `(${searchConditions.join(' OR ')})`,
+          searchParams,
+        );
+      }
+
+      // Geolocation search
+      if (params['latitude'] && params['longitude']) {
+        const radius = 5000;
+        const lat = parseFloat(params['latitude']);
+        const lon = parseFloat(params['longitude']);
+
+        queryBuilder
+          .addSelect(
+            `(
+            6371 * acos(
+              least(1::float, 
+                cos(radians(:lat::float)) * 
+                cos(radians(CAST(event.latitude AS float))) * 
+                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
+                sin(radians(:lat::float)) * 
+                sin(radians(CAST(event.latitude AS float)))
+              )
+            )
+          )`,
+            'distance',
+          )
+          .addSelect('event.latitude', 'event_latitude')
+          .addSelect('event.longitude', 'event_longitude')
+          .andWhere(
+            `(
+            6371 * acos(
+              least(1::float, 
+                cos(radians(:lat::float)) * 
+                cos(radians(CAST(event.latitude AS float))) * 
+                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
+                sin(radians(:lat::float)) * 
+                sin(radians(CAST(event.latitude AS float)))
+              )
+            ) <= :radius
+            OR (CAST(event.latitude AS float) = :lat AND CAST(event.longitude AS float) = :lon)
+          )`,
+            { lat, lon, radius },
+          )
+          .andWhere(
+            'event.latitude IS NOT NULL AND event.longitude IS NOT NULL',
+          )
+          .orderBy('distance', 'ASC');
+      }
+    }
+
+    // Debug logs
+    console.log('Generated SQL:', queryBuilder.getSql());
+    console.log('Parameters:', params);
+
+    return queryBuilder;
   }
 
   async remove(id: string, user: TJwtPayload) {
@@ -422,16 +618,58 @@ export class EventsService {
         'Event does not belong to authenticated user',
       );
 
-    // check if the event already has a team
-    if (event.team)
-      throw new NotAcceptableException('Event already has a team');
+    // // check if the event already has a team
+    return await this.entityManager.transaction(async (manager) => {
+      // unassign the tasks of the team
+      await manager
+        .createQueryBuilder()
+        .update(Task)
+        .set({ assignee: null })
+        .where('eventId = :eventId', { eventId: event.id })
+        .execute();
 
-    // find the team
-    const team = await this.entityManager.findOneBy(Team, { id: teamId });
-    if (!team) throw new NotFoundException('Team not found');
+      // find the team
+      const team = await manager.findOneBy(Team, { id: teamId });
+      if (!team) throw new NotFoundException('Team not found');
 
-    // assign the team to the event
-    event.team = team;
-    return await this.eventRepo.save(event);
+      // assign the team to the event
+      event.team = team;
+      return await manager.save(Event, event);
+    });
+  }
+
+  async deallocateTeam(eventId: string, userId: string) {
+    // get the teamId from the body
+    // const { teamId } = body;
+
+    // find the event
+    const event = await this.eventRepo
+      .createQueryBuilder('event')
+      .where('event.id = :eventId', { eventId })
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('event.user', 'user')
+      .getOne();
+
+    if (!event) throw new NotFoundException('Event not found');
+
+    // check if the event belongs to the user
+    if (event.user.id !== userId)
+      throw new BadRequestException(
+        'Event does not belong to authenticated user',
+      );
+
+    return await this.entityManager.transaction(async (manager) => {
+      // unassign the tasks of the team
+      await manager
+        .createQueryBuilder()
+        .update(Task)
+        .set({ assignee: null })
+        .where('eventId = :eventId', { eventId: event.id })
+        .execute();
+
+      event.team = null;
+      await manager.save(Event, event);
+      return true;
+    });
   }
 }

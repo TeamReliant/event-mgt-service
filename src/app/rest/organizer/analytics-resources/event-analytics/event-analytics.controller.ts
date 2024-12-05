@@ -2,7 +2,9 @@ import {
   Controller,
   Get,
   HttpCode,
-  HttpStatus, Param, Query,
+  HttpStatus,
+  Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { EventAnalyticsService } from './event-analytics.service';
@@ -11,7 +13,8 @@ import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator
 import ResponseSerializer, {
   IResponseWithData,
 } from '@libs/helpers/ResponseSerializer';
-import {EventAnalyticsParamsDto} from "@app/rest/organizer/analytics-resources/event-analytics/dto/event-analytics-params.dto";
+import { EventAnalyticsParamsDto } from '@app/rest/organizer/analytics-resources/event-analytics/dto/event-analytics-params.dto';
+import { FetchEventAnalyticsQueriesDto } from '@app/rest/organizer/analytics-resources/event-analytics/dto/fetch-event-analytics-queries.dto';
 
 @Controller()
 export class EventAnalyticsController {
@@ -23,10 +26,12 @@ export class EventAnalyticsController {
   async getAnalytics(
     @GetCurrentUserId() userId: string,
     @Param() params: EventAnalyticsParamsDto,
+    @Query() query: FetchEventAnalyticsQueriesDto,
   ): Promise<IResponseWithData> {
     const data = await this.eventAnalyticsService.getAnalytics(
       userId,
       params.eventId,
+      query,
     );
     return ResponseSerializer.data(data);
   }

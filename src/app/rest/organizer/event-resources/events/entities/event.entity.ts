@@ -6,11 +6,16 @@ import { AbstractEntity } from '@libs/database';
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { LineItem } from '@app/rest/organizer/event-resources/line-items/entities/line-item.entity';
+import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
+import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 
 @Entity({ name: 'events' })
 export class Event extends AbstractEntity<Event> {
   @Column()
   name: string;
+
+  @Column({ name: 'slug', unique: true, nullable: true })
+  slug: string;
 
   @Column({ name: 'location', type: 'varchar', length: 255, nullable: true })
   location?: string;
@@ -73,6 +78,19 @@ export class Event extends AbstractEntity<Event> {
   @Column({ default: true })
   isAvailable?: boolean;
 
+  //sum of all tickets sold for all ticket types
+  @Column({ nullable: true, default: 0 })
+  totalNumberOfTicketsSold?: number;
+
+  @Column({
+    name: 'revenue',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  revenue?: number;
+
   //cascade true automatically saves tickets when an event is saved
   @OneToMany(() => Ticket, (ticket) => ticket.event, { cascade: true })
   tickets: Ticket[];
@@ -88,6 +106,14 @@ export class Event extends AbstractEntity<Event> {
 
   @ManyToOne(() => Team, (team) => team.events)
   team: Team;
+
+  @OneToMany(() => Booking, (booking) => booking.event, { cascade: true })
+  bookings: Booking[];
+
+  @OneToMany(() => EventView, (view) => view.event, {
+    cascade: true,
+  })
+  eventViews?: EventView[];
 
   constructor(event: Partial<Event>) {
     super(event);

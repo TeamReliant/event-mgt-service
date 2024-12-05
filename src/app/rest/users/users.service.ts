@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import axios from 'axios';
 
 @Injectable()
 export class UsersService {
@@ -123,5 +128,29 @@ export class UsersService {
 
     // Step 3: Save the updated entity
     return await this.repo.save(entityToUpdate);
+  }
+
+  async getUserLocation(ip: string) {
+    if (!ip) throw new BadRequestException('Invalid IP address');
+    const url = `http://ip-api.com/json/${ip}?fields=country,regionName,city,lat,lon,query&key=${process.env.IP_INFO_TOKEN}`;
+
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'axios/0.21.1',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        throw new BadRequestException(
+          `Request limit exceeded. Please try again later`,
+        );
+      }
+      throw new BadRequestException(
+        `Failed to get location data for IP: ${ip}`,
+      );
+    }
   }
 }

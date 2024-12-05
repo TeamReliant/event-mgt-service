@@ -50,12 +50,12 @@ export class PaymentController {
   async createSubscription(
     @Body() createSubDto: CreateSubscriptionDto,
     @CurrentUser() user: TJwtPayload,
-    @Query('paymentMethod') paymentMethod: string,
+    @Req() req: Request,
   ) {
     const { statusCode, data } = await this.paymentService.createSubscription(
       user,
       createSubDto,
-      paymentMethod,
+      req,
     );
     return ResponseSerializer.data({ statusCode, data });
   }
@@ -112,6 +112,9 @@ export class PaymentController {
         break;
       case 'customer.subscription.deleted':
         await this.paymentService.handleSubscriptionDeleted(event);
+        break;
+      case 'checkout.session.completed':
+        await this.paymentService.handleBookingsCheckoutSessionCompleted(event);
         break;
       default:
         console.warn(`Unhandled event type: ${event.type}`);

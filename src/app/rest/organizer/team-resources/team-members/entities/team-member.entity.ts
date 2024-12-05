@@ -38,7 +38,9 @@ export class TeamMember extends AbstractEntity<TeamMember> {
   @JoinColumn({ name: 'teamId' })
   team: Team;
 
-  @OneToOne(() => TeamInvitation, (invitation) => invitation.member)
+  @OneToOne(() => TeamInvitation, (invitation) => invitation.member, {
+    cascade: true,
+  })
   @JoinColumn({ name: 'invitationId' })
   invitation: TeamInvitation;
 
