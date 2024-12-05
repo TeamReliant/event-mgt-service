@@ -242,8 +242,10 @@ export class TasksService {
     });
 
     if (assigneeId && assigneeId !== 'unassigned') {
+      const savedTask = await this.findOne(eventId, id);
       // emit an event for the task assignment
-      this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
+      this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(savedTask));
+      return savedTask;
     }
 
     // find the updated data and return it
