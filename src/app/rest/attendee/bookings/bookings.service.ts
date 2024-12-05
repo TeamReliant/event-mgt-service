@@ -187,12 +187,9 @@ export class BookingsService {
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('bookings.userId = :userId', { userId })
-      .andWhere('bookings.status != :bookingStatus', {
-        bookingStatus: BookingStatus.PENDING,
-      });
+      .where('bookings.userId = :userId', { userId });
 
-    const { search, dateRangeStart, dateRangeEnd, status } = query;
+    const { search, dateRangeStart, dateRangeEnd, status, transferStatus } = query;
     console.log(query);
 
     // check if a search key is supplied
@@ -205,11 +202,24 @@ export class BookingsService {
       );
     }
 
+    if (!status) {
+      queryBuilder.andWhere('bookings.status != :bookingStatus', {
+        bookingStatus: BookingStatus.PENDING,
+      });
+    }
+
     // Check if status is supplied
-    if (status)
+    if (status) {
       queryBuilder.andWhere('bookings.status = :bookingStatus', {
         bookingStatus: status,
       });
+    }
+
+    if (transferStatus) {
+      queryBuilder.andWhere('bookings.transfer_status = :transferStatus', {
+        transferStatus,
+      });
+    }
 
     // check if date supplied
     // if (date) {
