@@ -189,7 +189,8 @@ export class BookingsService {
       .leftJoinAndSelect('bookings.event', 'event')
       .where('bookings.userId = :userId', { userId });
 
-    const { search, dateRangeStart, dateRangeEnd, status, transferStatus } = query;
+    const { search, dateRangeStart, dateRangeEnd, status, transferStatus } =
+      query;
     console.log(query);
 
     // check if a search key is supplied
@@ -492,6 +493,10 @@ export class BookingsService {
           lastName,
           user,
           event: ticket.event,
+          reaction:
+            ticket.category === TicketCategory.FREE
+              ? FreeTicketReaction.MAYBE
+              : null,
           ticket,
           bookingId: await this.generateBookingId(),
           processed: true,

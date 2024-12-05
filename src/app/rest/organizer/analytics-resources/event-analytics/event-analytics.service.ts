@@ -168,7 +168,15 @@ export class EventAnalyticsService {
 
     const pgRange = rangeMapping[range]; // Resolve PostgreSQL-compatible unit
 
-    // fetch event views
+    // Adjust start and end dates for weekly and monthly
+    if (range === 'weekly') {
+      const dayOfWeek = startOfDay.getDay(); // Get the current day of the week (0 = Sunday)
+      startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Align to the start of the week (Monday)
+    } else if (range === 'monthly') {
+      startOfDay.setDate(1); // Align to the first day of the month
+    }
+
+    // Generate the query
     const queryBuilder = this.entityManager
       .createQueryBuilder(EventView, 'views')
       .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
@@ -188,27 +196,34 @@ export class EventAnalyticsService {
     const currentDate = new Date(startOfDay);
 
     while (currentDate <= endOfDay) {
+      fullRange.push(currentDate.toISOString());
+
       if (range === 'daily') {
-        fullRange.push(currentDate.toISOString());
         currentDate.setDate(currentDate.getDate() + 1); // Increment by 1 day
       } else if (range === 'weekly') {
-        fullRange.push(currentDate.toISOString());
         currentDate.setDate(currentDate.getDate() + 7); // Increment by 7 days
       } else if (range === 'monthly') {
-        fullRange.push(currentDate.toISOString());
         currentDate.setMonth(currentDate.getMonth() + 1); // Increment by 1 month
       }
     }
 
-    // Format response based on range
-    const formattedResults: Record<string, number> = {};
-
+    // Map raw results to a dictionary for quick lookups
     const resultMap = new Map(
       rawResults.map(({ timeGroup, viewCount }) => [
         new Date(timeGroup).toISOString(),
         parseInt(viewCount, 10),
       ]),
     );
+
+    // Format response based on range
+    const formattedResults: Record<string, number> = {};
+
+    // const resultMap = new Map(
+    //   rawResults.map(({ timeGroup, viewCount }) => [
+    //     new Date(timeGroup).toISOString(),
+    //     parseInt(viewCount, 10),
+    //   ]),
+    // );
 
     fullRange.forEach((period) => {
       const date = new Date(period);
