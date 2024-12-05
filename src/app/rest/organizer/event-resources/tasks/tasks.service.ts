@@ -242,8 +242,20 @@ export class TasksService {
     });
 
     if (assigneeId && assigneeId !== 'unassigned') {
+      const savedTask = await this._repo
+        .createQueryBuilder('task')
+        .leftJoinAndSelect('task.assignee', 'assignee')
+        .leftJoinAndSelect('task.event', 'event')
+        .leftJoinAndSelect('event.team', 'team')
+        .leftJoinAndSelect('event.user', 'host')
+        .leftJoinAndSelect('assignee.user', 'user')
+
+        .where('task.id = :id', { id })
+        .andWhere('task.eventId = :eventId', { eventId })
+        .getOne();
+
       // emit an event for the task assignment
-      this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
+      this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(savedTask));
     }
 
     // find the updated data and return it
