@@ -22,6 +22,7 @@ import { Request } from 'express';
 import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/assign-team.dto';
 import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
 import { UsersService } from '@app/rest/users/users.service';
+import { EventStatus, EventVisibility } from './enums';
 
 @Injectable()
 export class EventsService {
@@ -65,6 +66,8 @@ export class EventsService {
     eventVisibility: string,
     eventStatus: string,
   ) {
+
+    if (!user.isOnboarded && eventStatus !== "draft") throw new BadRequestException("Please complete stripe payout account setup to publish event");
     const { subscribedPlan, numOfPrivateEventsCreated } = user;
 
     const plan = subscribedPlan.toLowerCase();
