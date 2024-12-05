@@ -174,6 +174,7 @@ export class TasksService {
       .createQueryBuilder(Event, 'event')
       .leftJoinAndSelect('event.team', 'team')
       .leftJoinAndSelect('team.members', 'members')
+       .leftJoinAndSelect('members.user', 'user')
       .where('event.id = :eventId', { eventId })
       .getOne();
 
@@ -201,7 +202,7 @@ export class TasksService {
         'Authenticated user is not the owner of the event',
       );
 
-    const currentAssigneeId = task.assignee?.id;
+    // const currentAssigneeId = task.assignee?.id;
 
     // check if the team exists
     if (!task.event?.team) throw new NotFoundException('Event has no team');
@@ -241,12 +242,14 @@ export class TasksService {
     });
 
     if (assigneeId && assigneeId !== 'unassigned') {
+      console.log(`---------------------${assigneeId}------------------------`);
+      console.log(`---------------------${task}----------------------------`);
       // emit an event for the task assignment
       this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
     }
 
-    // emit an event for the task assignment
-    this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
+    // // emit an event for the task assignment
+    // this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
 
     // find the updated data and return it
     return this.findOne(eventId, id);
