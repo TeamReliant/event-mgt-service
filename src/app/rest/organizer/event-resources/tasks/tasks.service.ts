@@ -174,7 +174,7 @@ export class TasksService {
       .createQueryBuilder(Event, 'event')
       .leftJoinAndSelect('event.team', 'team')
       .leftJoinAndSelect('team.members', 'members')
-       .leftJoinAndSelect('members.user', 'user')
+      .leftJoinAndSelect('members.user', 'user')
       .where('event.id = :eventId', { eventId })
       .getOne();
 
@@ -241,10 +241,7 @@ export class TasksService {
       await manager.save(task);
     });
 
-    const wasAssigneeChanged =
-      currentAssigneeId !== assigneeId && assigneeId !== 'unassigned';
-
-    if (wasAssigneeChanged) {
+    if (assigneeId && assigneeId !== 'unassigned') {
       // emit an event for the task assignment
       this._eventEmitter.emit(events.TASK_ASSIGNED, new TaskEvent(task));
     }
