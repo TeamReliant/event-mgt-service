@@ -580,11 +580,6 @@ export class EventsService {
           .orderBy('distance', 'ASC');
       }
     }
-
-    // Debug logs
-    console.log('Generated SQL:', queryBuilder.getSql());
-    console.log('Parameters:', params);
-
     return queryBuilder;
   }
 
