@@ -6,11 +6,12 @@ WORKDIR /usr/src/app
 
 # Install build essentials, Python, and make
 RUN apt-get update && \
-    apt-get install -y build-essential python3 && \
-    apt-get clean
-
-# Install necessary libraries for Puppeteer and Chromium
-RUN apt-get install -y \
+    apt-get install -y \
+    build-essential \
+    python3 \
+    chromium \
+    chromium-browser \
+    wget \
     libnss3 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
@@ -28,7 +29,8 @@ RUN apt-get install -y \
     fonts-liberation \
     libappindicator3-1 \
     libx11-xcb1 \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Chromium
 RUN apt-get install -y chromium
