@@ -6,12 +6,12 @@ WORKDIR /usr/src/app
 
 # Install build essentials, Python, and make
 RUN apt-get update && \
-    apt-get install -y \
-    build-essential \
-    python3 \
-    chromium \
-    chromium-browser \
-    wget \
+    apt-get install -y build-essential python3 && \
+    apt-get clean
+
+
+# Install necessary libraries for Puppeteer and Chromium
+RUN apt-get install -y \
     libnss3 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
@@ -29,11 +29,13 @@ RUN apt-get update && \
     fonts-liberation \
     libappindicator3-1 \
     libx11-xcb1 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean
 
 # Install Chromium
-RUN apt-get install -y chromium
+RUN apt-get update && \
+    apt-get install -y chromium-browser && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install node-gyp globally
 RUN npm install -g node-gyp
