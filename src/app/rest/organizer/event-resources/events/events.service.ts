@@ -265,7 +265,9 @@ export class EventsService {
       .leftJoinAndSelect('event.tickets', 'tickets')
       .leftJoinAndSelect('event.team', 'team')
       .leftJoinAndSelect('team.members', 'teamMembers')
-      .leftJoinAndSelect('teamMembers.user', 'teamMember');
+      .leftJoinAndSelect('teamMembers.user', 'teamMember')
+      .leftJoinAndSelect('teamMembers.permissions', 'permissions')
+      .leftJoinAndSelect('permissions.team', 'permissionTeam');
 
     //select event where user is the owner or a team member
     queryBuilder.andWhere(
@@ -337,6 +339,8 @@ export class EventsService {
         'team',
         'team.members',
         'team.members.user',
+        'team.members.permissions',
+        'team.members.permissions.team',
       ],
     });
 
