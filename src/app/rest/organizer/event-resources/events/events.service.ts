@@ -327,6 +327,7 @@ export class EventsService {
       });
     }
 
+    queryBuilder.orderBy('event.createdAt', 'DESC');
     return queryBuilder;
   }
 

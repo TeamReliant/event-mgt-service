@@ -187,11 +187,13 @@ export class BookingsService {
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('bookings.userId = :userId', { userId });
+      .where('bookings.userId = :userId', { userId })
+      .andWhere('bookings.transferStatus != :transferStatus', {
+        transferStatus: TicketTransferStatus.TRANSFERRED,
+      });
 
     const { search, dateRangeStart, dateRangeEnd, status, transferStatus } =
       query;
-    console.log(query);
 
     // check if a search key is supplied
     if (search) {

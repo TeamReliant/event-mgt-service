@@ -121,8 +121,19 @@ export class TeamsService {
       .leftJoinAndSelect('teams.members', 'members')
       .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('teams.admin', 'admin')
+      .leftJoinAndSelect('admin.publicProfile', 'publicProfile')
       .where('members.userId = :userId', { userId })
-      .select(['teams', 'permissions', 'members.id']);
+      .select([
+        'teams',
+        'permissions',
+        'admin.id',
+        'admin.firstname',
+        'admin.lastname',
+        'admin.email',
+        'admin.picture',
+        'publicProfile',
+        'members.id',
+      ]);
 
     // check for search query and apply it to the query builder
     if (query.search) {
