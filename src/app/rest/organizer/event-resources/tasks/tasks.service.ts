@@ -126,6 +126,7 @@ export class TasksService {
       'user.email',
     ]);
 
+    queryBuilder.orderBy('tasks.createdAt', 'DESC');
     // return the query builder
     return queryBuilder;
   }

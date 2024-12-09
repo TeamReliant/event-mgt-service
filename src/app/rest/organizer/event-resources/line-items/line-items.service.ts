@@ -286,6 +286,7 @@ export class LineItemsService {
     if (status === 'over-budget')
       queryBuilder.andWhere('lineItems.amountSpent > lineItems.intendedBudget');
 
+    queryBuilder.orderBy('lineItems.createdAt', 'DESC');
     return queryBuilder;
   }
 
