@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import { User } from '@app/rest/users/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
 import {
   BookingStatus,
@@ -46,18 +45,18 @@ export class EventAnalyticsService {
     const ticketsScanned = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId })
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
+      .andWhere('bookings.transfer_status != :transferStatus', {
+        transferStatus: TicketTransferStatus.TRANSFERRED,
+      })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
     const ticketsScannedWithin7Days = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId })
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
+      .andWhere('bookings.transfer_status != :transferStatus', {
+        transferStatus: TicketTransferStatus.TRANSFERRED,
+      })
       .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
       .andWhere('bookings.createdAt <= :today', { today })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })

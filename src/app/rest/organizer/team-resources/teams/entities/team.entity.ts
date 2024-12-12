@@ -15,7 +15,7 @@ import { User } from '@app/rest/users/entities/user.entity';
 
 @Entity({ name: 'teams' })
 export class Team extends AbstractEntity<Team> {
-  @Column({ name: 'name', type: 'varchar', nullable: false })
+  @Column({ name: 'name', type: 'varchar', nullable: true })
   name: string;
 
   @Column({

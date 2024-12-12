@@ -51,6 +51,9 @@ export class GuestsService {
       .andWhere('bookings.status != :status', {
         status: BookingStatus.PENDING,
       })
+      .andWhere('bookings.transfer_status != :transferStatus', {
+        transferStatus: TicketTransferStatus.TRANSFERRED,
+      })
       .select([
         'bookings',
         'event',

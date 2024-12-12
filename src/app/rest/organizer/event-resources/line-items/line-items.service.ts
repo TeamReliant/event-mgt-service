@@ -212,11 +212,7 @@ export class LineItemsService {
   roundToTwo(digits: number) {
     return Math.ceil(digits * 100) / 100;
   }
-  async create(
-    body: CreateLineItemDto,
-    eventId: string,
-    userId: string,
-  ): Promise<LineItem> {
+  async create(body: CreateLineItemDto, eventId: string): Promise<LineItem> {
     // destructuring the body
     const { name } = body;
 
@@ -234,10 +230,10 @@ export class LineItemsService {
       throw new NotFoundException(`Event with id ${eventId} not found`);
 
     // check if the current user is the owner of the event
-    if (event.user?.id !== userId)
-      throw new NotFoundException(
-        'Authenticated user is not the owner of the event',
-      );
+    // if (event.user?.id !== userId)
+    //   throw new NotFoundException(
+    //     'Authenticated user is not the owner of the event',
+    //   );
 
     // check if the line item name already exists
     const lineItem = await this._repo
@@ -329,7 +325,6 @@ export class LineItemsService {
   async update(
     eventId: string,
     id: string,
-    userId: string,
     updateLineItemDto: UpdateLineItemDto,
   ) {
     // find the event, team and its members with the provided
@@ -347,10 +342,10 @@ export class LineItemsService {
 
     // check if the current user is the owner of the event
 
-    if (event.user?.id !== userId)
-      throw new NotFoundException(
-        'Authenticated user is not the owner of the event',
-      );
+    // if (event.user?.id !== userId)
+    //   throw new NotFoundException(
+    //     'Authenticated user is not the owner of the event',
+    //   );
 
     // find the line item
     const lineItem = await this.findOne(eventId, id);
@@ -360,7 +355,7 @@ export class LineItemsService {
     return this._repo.save(updatedLineItem);
   }
 
-  async remove(eventId: string, id: string, userId: string) {
+  async remove(eventId: string, id: string) {
     // find the event, team and its members with the provided
     const event = await this._entityManager
       .createQueryBuilder(Event, 'event')
@@ -375,10 +370,10 @@ export class LineItemsService {
       throw new NotFoundException(`Event with id ${eventId} not found`);
 
     // check if the current user is the owner of the event
-    if (event.user?.id !== userId)
-      throw new NotFoundException(
-        'Authenticated user is not the owner of the event',
-      );
+    // if (event.user?.id !== userId)
+    //   throw new NotFoundException(
+    //     'Authenticated user is not the owner of the event',
+    //   );
 
     // find the line item
     const lineItem = await this.findOne(eventId, id);
