@@ -121,9 +121,18 @@ export class TicketsService {
     user: TJwtPayload,
   ) {
     try {
+      const { name, price, category, availableTickets, minNumberOfTicketsOrderable, maxNumberOfTicketsOrderable, description } = updateTicketDto;
       const ticket = await this.findOne(ticketId, user);
 
-      Object.assign(ticket, updateTicketDto);
+      Object.assign(ticket, {
+        name,
+        price,
+        category,
+        availableTickets: availableTickets ?? null,
+        minNumberOfTicketsOrderable,
+        maxNumberOfTicketsOrderable: maxNumberOfTicketsOrderable ?? null,
+        description,
+      });
 
       const updatedTicket = await this.entityManager.transaction(
         async (manager) => {

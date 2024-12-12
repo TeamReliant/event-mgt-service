@@ -95,7 +95,7 @@ export class BookingsService {
         quantity < ticket.minNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
-          `Minimum number of tickets for ${ticketId} is ${ticket.minNumberOfTicketsOrderable}`,
+          `Minimum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.minNumberOfTicketsOrderable}`,
         );
 
       if (
@@ -103,7 +103,7 @@ export class BookingsService {
         quantity > ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
-          `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}`,
+          `Maximum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.maxNumberOfTicketsOrderable}`,
         );
 
       // find if the user has a pending booking of same ticket
@@ -133,7 +133,7 @@ export class BookingsService {
           ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
-          `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
+          `Maximum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
         );
 
       if (
@@ -141,7 +141,7 @@ export class BookingsService {
         quantity > ticket.availableTickets - ticket.numberOfTicketsSold
       )
         throw new NotAcceptableException(
-          `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
+          `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticket.name.toUpperCase()}`,
         );
 
       if (category === TicketCategory.PAID) foundPaid = true;
@@ -323,12 +323,12 @@ export class BookingsService {
         );
 
       const {
-        ticket: { availableTickets, numberOfTicketsSold },
+        ticket: { availableTickets, numberOfTicketsSold, name },
       } = booking;
       const unsoldTickets = availableTickets - numberOfTicketsSold;
       if (availableTickets && booking?.quantity > unsoldTickets)
         throw new NotFoundException(
-          `Only ${booking?.ticket.availableTickets - booking?.ticket.numberOfTicketsSold} tickets are available for ${id}`,
+          `Only ${booking?.ticket.availableTickets - booking?.ticket.numberOfTicketsSold} tickets are available for ${name.toUpperCase()}`,
         );
 
       if (booking.category === TicketCategory.PAID) foundPaid = true;
