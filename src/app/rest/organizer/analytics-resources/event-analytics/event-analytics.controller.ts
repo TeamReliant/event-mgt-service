@@ -41,7 +41,6 @@ export class EventAnalyticsController {
     );
 
     const data = await this.eventAnalyticsService.getAnalytics(
-      userId,
       params.eventId,
       query,
     );
