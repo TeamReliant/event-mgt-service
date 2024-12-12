@@ -108,7 +108,7 @@ export class TasksService {
       });
 
     if (priority)
-      queryBuilder.andWhere('LOWER(tasks.priority) = LOWER(:prioriy)', {
+      queryBuilder.andWhere('tasks.priority = :priority', {
         priority,
       });
 
