@@ -130,6 +130,26 @@ export class UsersService {
     return await this.repo.save(entityToUpdate);
   }
 
+  async getUserPermissions(userId: string) {
+    const user = await this.repo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.teamMembers', 'teamMembers')
+      .leftJoinAndSelect('teamMembers.role', 'role')
+      .leftJoinAndSelect('role.permissions', 'permissions')
+      .where('user.id = :userId', { userId })
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    // const permissions = user.teamMembers.flatMap((teamMember) =>
+    //   teamMember.role.permissions.map((permission) => permission.name),
+    // );
+
+    // return [...new Set(permissions)];
+  }
+
   async getUserLocation(ip: string) {
     if (!ip) throw new BadRequestException('Invalid IP address');
     const url = `http://ip-api.com/json/${ip}?fields=country,regionName,city,lat,lon,query&key=${process.env.IP_INFO_TOKEN}`;

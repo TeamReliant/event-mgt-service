@@ -15,10 +15,15 @@ import ResponseSerializer, {
 } from '@libs/helpers/ResponseSerializer';
 import { EventAnalyticsParamsDto } from '@app/rest/organizer/analytics-resources/event-analytics/dto/event-analytics-params.dto';
 import { FetchEventAnalyticsQueriesDto } from '@app/rest/organizer/analytics-resources/event-analytics/dto/fetch-event-analytics-queries.dto';
+import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/enums/team-permissions';
+import { PermissionsService } from '@app/rest/organizer/team-resources/permissions/permissions.service';
 
 @Controller()
 export class EventAnalyticsController {
-  constructor(private readonly eventAnalyticsService: EventAnalyticsService) {}
+  constructor(
+    private readonly eventAnalyticsService: EventAnalyticsService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
 
   @Get('event-analytics/:eventId')
   @HttpCode(HttpStatus.OK)
@@ -28,6 +33,13 @@ export class EventAnalyticsController {
     @Param() params: EventAnalyticsParamsDto,
     @Query() query: FetchEventAnalyticsQueriesDto,
   ): Promise<IResponseWithData> {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.ANALYTICS,
+    );
+
     const data = await this.eventAnalyticsService.getAnalytics(
       userId,
       params.eventId,

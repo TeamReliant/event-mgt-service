@@ -23,14 +23,14 @@ import ResponseSerializer, {
 } from '@libs/helpers/ResponseSerializer';
 import { FetchTasksParamsDto } from '@app/rest/organizer/event-resources/tasks/dto/fetch-tasks-params.dto';
 import { FetchTasksQueriesDto } from '@app/rest/organizer/event-resources/tasks/dto/fetch-tasks-queries.dto';
-import { PaginationService } from '@libs/helpers/pagination/pagination.service';
-import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 import { ShowTaskParamsDto } from '@app/rest/organizer/event-resources/tasks/dto/show-task-params.dto';
 import { UpdateTaskParamsDto } from '@app/rest/organizer/event-resources/tasks/dto/update-task-params.dto';
 import { DeleteTaskParamsDto } from '@app/rest/organizer/event-resources/tasks/dto/delete-task-params.dto';
 import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
 import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
 import { Request } from 'express';
+import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/enums/team-permissions';
+import { PermissionsService } from '@app/rest/organizer/team-resources/permissions/permissions.service';
 
 @UseGuards(JwtAuthGuard, SubscriptionPlanGuard)
 @RestrictedPlans(['free', 'pro'])
@@ -38,7 +38,7 @@ import { Request } from 'express';
 export class TasksController {
   constructor(
     private readonly tasksService: TasksService,
-    private readonly paginationProvider: PaginationService,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   @Post()
@@ -48,6 +48,13 @@ export class TasksController {
     @Param() params: AssignTaskParamsDto,
     @GetCurrentUserId() userId: string,
   ): Promise<IResponseWithData> {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.TASK,
+    );
+
     const data = await this.tasksService.assign(body, params.eventId, userId);
     delete data.event;
     return ResponseSerializer.data(data);
@@ -59,7 +66,15 @@ export class TasksController {
     @Param() params: FetchTasksParamsDto,
     @Query() query: FetchTasksQueriesDto,
     @Req() req: Request,
+    @GetCurrentUserId() userId: string,
   ): Promise<IResponseWithData> {
+    // check if the user is permitted
+    this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.TASK,
+    );
+
     const queryBuilder = this.tasksService.findAll(params.eventId, query);
     return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
@@ -68,7 +83,15 @@ export class TasksController {
   @HttpCode(HttpStatus.OK)
   async findOne(
     @Param() params: ShowTaskParamsDto,
+    @GetCurrentUserId() userId: string,
   ): Promise<IResponseWithData> {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.TASK,
+    );
+
     const data = await this.tasksService.findOne(params.eventId, params.id);
     return ResponseSerializer.data(data);
   }
@@ -80,6 +103,13 @@ export class TasksController {
     @Body() updateTaskDto: UpdateTaskDto,
     @GetCurrentUserId() userId: string,
   ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.TASK,
+    );
+
     const data = await this.tasksService.update(
       params.id,
       params.eventId,
@@ -95,6 +125,13 @@ export class TasksController {
     @Param() params: DeleteTaskParamsDto,
     @GetCurrentUserId() userId: string,
   ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.TASK,
+    );
+
     await this.tasksService.remove(params.id, params.eventId, userId);
     return ResponseSerializer.message('Task deleted successfully');
   }

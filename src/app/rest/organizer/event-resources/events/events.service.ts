@@ -154,7 +154,7 @@ export class EventsService {
         throw new NotFoundException('User not found');
       }
 
-      this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
+      // this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
       this.updateUserEventCounts(eventCreator, eventVisibility);
 
       const createdEvent = await this.entityManager.transaction(
@@ -407,12 +407,28 @@ export class EventsService {
     return;
   }
 
-  async update(id: string, updateEventDto: UpdateEventDto, user: TJwtPayload) {
+  async update(id: string, updateEventDto: UpdateEventDto) {
     const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
     const { name } = updateEventDto;
 
     // check if event exists and belongs to authenticated user
-    const event = await this.findOne(id, user);
+    const event = await this.entityManager.findOne(Event, {
+      where: { id },
+      relations: [
+        'user',
+        'tickets',
+        'team',
+        'team.members',
+        'team.members.user',
+        'team.members.permissions',
+        'team.members.permissions.team',
+      ],
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
     // check if update has image.
     //upload image
     let eventImageURL = event.eventImageURL;
@@ -429,7 +445,7 @@ export class EventsService {
       slugExists = await this.eventRepo
         .createQueryBuilder('event')
         .where('event.slug = :slug', { slug: slugify(name, { lower: true }) })
-        .andWhere('event.userId != :userId', { userId: user.userId })
+        // .andWhere('event.userId != :userId', { userId: user.userId })
         .getOne();
 
       slug = `${slugify(name, { lower: true })}${slugExists ? timestampInSeconds : ''}`;
