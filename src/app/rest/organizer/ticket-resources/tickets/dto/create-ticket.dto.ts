@@ -29,7 +29,7 @@ export class CreateTicketDto {
   availableTickets?: number;
 
   @IsNumber()
-  @Min(0)
+  @Min(1)
   @IsOptional()
   minNumberOfTicketsOrderable?: number;
 
