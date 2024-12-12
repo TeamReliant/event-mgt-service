@@ -107,29 +107,45 @@ export class BookingsService {
         );
 
       // find if the user has a pending booking of same ticket
-      const existingBooking = await this._repo.findOneBy({
-        status: BookingStatus.PENDING,
-        processed: false,
-        email,
-        ticket: { id: ticketId },
-      });
+      const existingBookings = await this._repo
+        .createQueryBuilder('bookings')
+        .leftJoinAndSelect('bookings.ticket', 'ticket')
+        .where('bookings.status = :status', { status: BookingStatus.PENDING })
+        .andWhere('bookings.processed = :processed', { processed: false })
+        .andWhere('bookings.email = :email', { email })
+        .andWhere('ticket.id = :ticketId', { ticketId })
+        .getMany();
+      
+      // const existingBooking = await this._repo.findOneBy({
+      //   status: BookingStatus.PENDING,
+      //   processed: false,
+      //   email,
+      //   ticket: { id: ticketId },
+      // });
 
-      if (existingBooking && !existingBooking.processed)
-        await this._repo.remove(existingBooking);
+      if (existingBookings)
+        await this._repo.remove(existingBookings);
 
       // find existing processed tickets
-      const existingProcessedBooking = await this._repo.findOneBy({
-        processed: true,
-        email,
-        ticket: { id: ticketId },
-      });
+      const existingProcessedBooking = await this._repo
+        .createQueryBuilder('bookings')
+        .leftJoinAndSelect('bookings.ticket', 'ticket')
+        .where('bookings.processed = :processed', { processed: true })
+        .andWhere('bookings.email = :email', { email })
+        .andWhere('ticket.id = :ticketId', { ticketId })
+        .getCount();
+      
+      // const existingProcessedBooking = await this._repo.findOneBy({
+      //   processed: true,
+      //   email,
+      //   ticket: { id: ticketId },
+      // });
 
       // Prevent user from going beyond allowed limit.
       if (
         ticket.maxNumberOfTicketsOrderable &&
         quantity > ticket.maxNumberOfTicketsOrderable &&
-        existingProcessedBooking &&
-        existingProcessedBooking.quantity + quantity >
+        existingProcessedBooking + quantity >
           ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(

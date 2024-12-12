@@ -48,12 +48,12 @@ export class GuestsService {
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId })
       .andWhere('event.userId = :userId', { userId })
-      .andWhere('bookings.status != :status', {
-        status: BookingStatus.PENDING,
+      .andWhere('bookings.status = :status', {
+        status: BookingStatus.VALID,
       })
-      .andWhere('bookings.transfer_status != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      })
+      // .andWhere('bookings.transfer_status != :transferStatus', {
+      //   transferStatus: TicketTransferStatus.TRANSFERRED,
+      // })
       .select([
         'bookings',
         'event',
