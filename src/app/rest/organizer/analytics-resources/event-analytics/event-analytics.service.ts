@@ -16,7 +16,7 @@ export class EventAnalyticsService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getAnalytics(userId: string, eventId: string, { ...query }) {
+  async getAnalytics(eventId: string, { ...query }) {
     // get the date of 7 days ago
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -30,7 +30,6 @@ export class EventAnalyticsService {
     const event = await this.entityManager
       .createQueryBuilder(Event, 'event')
       .where('event.id = :eventId', { eventId })
-      .andWhere('event.userId = :userId', { userId })
       .getOne();
 
     const { revenue, totalNumberOfTicketsSold } = event;
@@ -66,8 +65,7 @@ export class EventAnalyticsService {
     const successfulBookingsWithin7Days = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('event.userId = :userId', { userId })
-      .andWhere('event.id = :eventId', { eventId })
+      .where('event.id = :eventId', { eventId })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
       .andWhere('bookings.createdAt <= :today', { today })
