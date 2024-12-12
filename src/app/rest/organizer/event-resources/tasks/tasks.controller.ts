@@ -55,21 +55,21 @@ export class TasksController {
       TeamPermissions.TASK,
     );
 
-    const data = await this.tasksService.assign(body, params.eventId, userId);
+    const data = await this.tasksService.assign(body, params.eventId);
     delete data.event;
     return ResponseSerializer.data(data);
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll(
+  async findAll(
     @Param() params: FetchTasksParamsDto,
     @Query() query: FetchTasksQueriesDto,
     @Req() req: Request,
     @GetCurrentUserId() userId: string,
   ): Promise<IResponseWithData> {
     // check if the user is permitted
-    this.permissionsService.isUserPermitted(
+    await this.permissionsService.isUserPermitted(
       userId,
       params.eventId,
       TeamPermissions.TASK,
@@ -113,7 +113,6 @@ export class TasksController {
     const data = await this.tasksService.update(
       params.id,
       params.eventId,
-      userId,
       updateTaskDto,
     );
     return ResponseSerializer.data(data);
@@ -132,7 +131,7 @@ export class TasksController {
       TeamPermissions.TASK,
     );
 
-    await this.tasksService.remove(params.id, params.eventId, userId);
+    await this.tasksService.remove(params.id, params.eventId);
     return ResponseSerializer.message('Task deleted successfully');
   }
 }
