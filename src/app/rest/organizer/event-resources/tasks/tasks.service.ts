@@ -25,7 +25,7 @@ export class TasksService {
     private readonly _entityManager: EntityManager,
   ) {}
 
-  async assign(body: AssignTaskDto, eventId: string, userId: string) {
+  async assign(body: AssignTaskDto, eventId: string) {
     // destructuring the body
     const { title, description, dueDate, priority, assigneeId } = body;
 
@@ -44,10 +44,10 @@ export class TasksService {
       throw new NotFoundException(`Event with id ${eventId} not found`);
 
     // check if the current user is the owner of the event
-    if (event.user?.id !== userId)
-      throw new NotFoundException(
-        'Authenticated user is not the owner of the event',
-      );
+    // if (event.user?.id !== userId)
+    //   throw new NotFoundException(
+    //     'Authenticated user is not the owner of the event',
+    //   );
 
     // check if the team exists
     if (!event.team) throw new NotFoundException('Event has no team');
@@ -103,7 +103,9 @@ export class TasksService {
     }
 
     if (status)
-      queryBuilder.andWhere('LOWER(tasks.status) = LOWER(:status)', { status });
+      queryBuilder.andWhere('tasks.status = :taskStatus', {
+        taskStatus: status,
+      });
 
     if (priority)
       queryBuilder.andWhere('LOWER(tasks.priority) = LOWER(:prioriy)', {
@@ -161,12 +163,7 @@ export class TasksService {
     return task;
   }
 
-  async update(
-    id: string,
-    eventId: string,
-    userId: string,
-    body: UpdateTaskDto,
-  ) {
+  async update(id: string, eventId: string, body: UpdateTaskDto) {
     // destructuring the body
     const { title, description, dueDate, priority, status, assigneeId } = body;
 
@@ -198,10 +195,10 @@ export class TasksService {
     if (!task) throw new NotFoundException(`Task with the id ${id} not found`);
 
     // check if the current user is the owner of the event
-    if (task.event?.user?.id !== userId)
-      throw new NotFoundException(
-        'Authenticated user is not the owner of the event',
-      );
+    // if (task.event?.user?.id !== userId)
+    //   throw new NotFoundException(
+    //     'Authenticated user is not the owner of the event',
+    //   );
 
     // const currentAssigneeId = task.assignee?.id;
 
@@ -263,7 +260,7 @@ export class TasksService {
     return this.findOne(eventId, id);
   }
 
-  async remove(id: string, eventId: string, userId: string) {
+  async remove(id: string, eventId: string) {
     // find the task, event and the assignee
     const task = await this._repo
       .createQueryBuilder('task')
@@ -276,10 +273,10 @@ export class TasksService {
     if (!task) throw new NotFoundException(`Task with the id ${id} not found`);
 
     // check if the current user is the owner of the event
-    if (task.event?.user?.id !== userId)
-      throw new NotFoundException(
-        'Authenticated user is not the owner of the event',
-      );
+    // if (task.event?.user?.id !== userId)
+    //   throw new NotFoundException(
+    //     'Authenticated user is not the owner of the event',
+    //   );
 
     // delete the task
     await this._repo.remove(task);
