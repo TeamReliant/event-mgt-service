@@ -115,7 +115,7 @@ export class BookingsService {
         .andWhere('bookings.email = :email', { email })
         .andWhere('ticket.id = :ticketId', { ticketId })
         .getMany();
-      
+
       // const existingBooking = await this._repo.findOneBy({
       //   status: BookingStatus.PENDING,
       //   processed: false,
@@ -123,8 +123,7 @@ export class BookingsService {
       //   ticket: { id: ticketId },
       // });
 
-      if (existingBookings)
-        await this._repo.remove(existingBookings);
+      if (existingBookings) await this._repo.remove(existingBookings);
 
       // find existing processed tickets
       const existingProcessedBooking = await this._repo
@@ -134,7 +133,7 @@ export class BookingsService {
         .andWhere('bookings.email = :email', { email })
         .andWhere('ticket.id = :ticketId', { ticketId })
         .getCount();
-      
+
       // const existingProcessedBooking = await this._repo.findOneBy({
       //   processed: true,
       //   email,
@@ -145,8 +144,7 @@ export class BookingsService {
       if (
         ticket.maxNumberOfTicketsOrderable &&
         quantity > ticket.maxNumberOfTicketsOrderable &&
-        existingProcessedBooking + quantity >
-          ticket.maxNumberOfTicketsOrderable
+        existingProcessedBooking + quantity > ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
           `Maximum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
@@ -199,14 +197,14 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
-    let queryBuilder = this._repo
+    const queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('bookings.userId = :userId', { userId })
-      .andWhere('bookings.transferStatus != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      });
+      .where('bookings.userId = :userId', { userId });
+    // .andWhere('bookings.transferStatus != :transferStatus', {
+    //   transferStatus: TicketTransferStatus.TRANSFERRED,
+    // });
 
     const { search, dateRangeStart, dateRangeEnd, status, transferStatus } =
       query;
@@ -233,6 +231,12 @@ export class BookingsService {
         bookingStatus: status,
       });
     }
+
+    // if (!status) {
+    //   queryBuilder.andWhere('bookings.status = :bookingStatus', {
+    //     bookingStatus: BookingStatus.VALID,
+    //   });
+    // }
 
     if (transferStatus) {
       queryBuilder.andWhere('bookings.transfer_status = :transferStatus', {
