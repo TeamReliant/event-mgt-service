@@ -413,6 +413,8 @@ export class BookingsService {
 
   private async processFreeBookings(bookings: Booking[]): Promise<any> {
     const newBookings: Booking[] = [];
+    let ticket: Ticket;
+
     await this._entityManager.transaction(async (manager) => {
       for (const booking of bookings) {
         // spread the booking based on the quantity
@@ -444,9 +446,9 @@ export class BookingsService {
             booking.ticket.isAvailable = false;
           }
 
+          if (!ticket) ticket = booking.ticket;
           // increase the number of tickets sold for the ticket
-          booking.ticket.numberOfTicketsSold += 1;
-          await manager.save(Ticket, booking.ticket);
+          ticket.numberOfTicketsSold += 1;
           // push the new booking to the list to be saved
           newBookings.push(newBooking);
         }
@@ -456,6 +458,7 @@ export class BookingsService {
       }
       // save the newly generated bookings
       await manager.save(Booking, newBookings);
+      await manager.save(Ticket, ticket);
     });
 
     this._eventEmitter.emit(
