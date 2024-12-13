@@ -151,7 +151,7 @@ export class PermissionsService {
       .where('event.id = :eventId', { eventId })
       .getOne();
 
-    if(!event) throw new NotFoundException('Event not found');
+    if (!event) throw new NotFoundException('Event not found');
 
     // check if the user is the owner of the event
     if (event.user.id === userId) return true;

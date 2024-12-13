@@ -121,7 +121,15 @@ export class TicketsService {
     user: TJwtPayload,
   ) {
     try {
-      const { name, price, category, availableTickets, minNumberOfTicketsOrderable, maxNumberOfTicketsOrderable, description } = updateTicketDto;
+      const {
+        name,
+        price,
+        category,
+        availableTickets,
+        minNumberOfTicketsOrderable,
+        maxNumberOfTicketsOrderable,
+        description,
+      } = updateTicketDto;
       const ticket = await this.findOne(ticketId, user);
 
       Object.assign(ticket, {
