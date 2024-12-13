@@ -448,7 +448,7 @@ export class BookingsService {
 
           if (!ticket) ticket = booking.ticket;
           // increase the number of tickets sold for the ticket
-          ticket.numberOfTicketsSold += 1;
+          ticket.numberOfTicketsSold = +ticket.numberOfTicketsSold + 1;
           // push the new booking to the list to be saved
           newBookings.push(newBooking);
         }
