@@ -95,7 +95,7 @@ export class BookingsService {
         quantity < ticket.minNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
-          `Minimum number of tickets for ${ticketId} is ${ticket.minNumberOfTicketsOrderable}`,
+          `Minimum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.minNumberOfTicketsOrderable}`,
         );
 
       if (
@@ -103,37 +103,51 @@ export class BookingsService {
         quantity > ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
-          `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}`,
+          `Maximum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.maxNumberOfTicketsOrderable}`,
         );
 
       // find if the user has a pending booking of same ticket
-      const existingBooking = await this._repo.findOneBy({
-        status: BookingStatus.PENDING,
-        processed: false,
-        email,
-        ticket: { id: ticketId },
-      });
+      const existingBookings = await this._repo
+        .createQueryBuilder('bookings')
+        .leftJoinAndSelect('bookings.ticket', 'ticket')
+        .where('bookings.status = :status', { status: BookingStatus.PENDING })
+        .andWhere('bookings.processed = :processed', { processed: false })
+        .andWhere('bookings.email = :email', { email })
+        .andWhere('ticket.id = :ticketId', { ticketId })
+        .getMany();
 
-      if (existingBooking && !existingBooking.processed)
-        await this._repo.remove(existingBooking);
+      // const existingBooking = await this._repo.findOneBy({
+      //   status: BookingStatus.PENDING,
+      //   processed: false,
+      //   email,
+      //   ticket: { id: ticketId },
+      // });
+
+      if (existingBookings) await this._repo.remove(existingBookings);
 
       // find existing processed tickets
-      const existingProcessedBooking = await this._repo.findOneBy({
-        processed: true,
-        email,
-        ticket: { id: ticketId },
-      });
+      const existingProcessedBooking = await this._repo
+        .createQueryBuilder('bookings')
+        .leftJoinAndSelect('bookings.ticket', 'ticket')
+        .where('bookings.processed = :processed', { processed: true })
+        .andWhere('bookings.email = :email', { email })
+        .andWhere('ticket.id = :ticketId', { ticketId })
+        .getCount();
+
+      // const existingProcessedBooking = await this._repo.findOneBy({
+      //   processed: true,
+      //   email,
+      //   ticket: { id: ticketId },
+      // });
 
       // Prevent user from going beyond allowed limit.
       if (
         ticket.maxNumberOfTicketsOrderable &&
         quantity > ticket.maxNumberOfTicketsOrderable &&
-        existingProcessedBooking &&
-        existingProcessedBooking.quantity + quantity >
-          ticket.maxNumberOfTicketsOrderable
+        existingProcessedBooking + quantity > ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
-          `Maximum number of tickets for ${ticketId} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
+          `Maximum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
         );
 
       if (
@@ -141,7 +155,7 @@ export class BookingsService {
         quantity > ticket.availableTickets - ticket.numberOfTicketsSold
       )
         throw new NotAcceptableException(
-          `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticketId}`,
+          `Only ${ticket.availableTickets - ticket.numberOfTicketsSold} tickets are available for ${ticket.name.toUpperCase()}`,
         );
 
       if (category === TicketCategory.PAID) foundPaid = true;
@@ -183,14 +197,17 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
-    let queryBuilder = this._repo
+    const queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('bookings.userId = :userId', { userId });
+    // .andWhere('bookings.transferStatus != :transferStatus', {
+    //   transferStatus: TicketTransferStatus.TRANSFERRED,
+    // });
 
-    const { search, dateRangeStart, dateRangeEnd, status, transferStatus } = query;
-    console.log(query);
+    const { search, dateRangeStart, dateRangeEnd, status, transferStatus } =
+      query;
 
     // check if a search key is supplied
     if (search) {
@@ -214,6 +231,12 @@ export class BookingsService {
         bookingStatus: status,
       });
     }
+
+    // if (!status) {
+    //   queryBuilder.andWhere('bookings.status = :bookingStatus', {
+    //     bookingStatus: BookingStatus.VALID,
+    //   });
+    // }
 
     if (transferStatus) {
       queryBuilder.andWhere('bookings.transfer_status = :transferStatus', {
@@ -320,12 +343,12 @@ export class BookingsService {
         );
 
       const {
-        ticket: { availableTickets, numberOfTicketsSold },
+        ticket: { availableTickets, numberOfTicketsSold, name },
       } = booking;
       const unsoldTickets = availableTickets - numberOfTicketsSold;
       if (availableTickets && booking?.quantity > unsoldTickets)
         throw new NotFoundException(
-          `Only ${booking?.ticket.availableTickets - booking?.ticket.numberOfTicketsSold} tickets are available for ${id}`,
+          `Only ${booking?.ticket.availableTickets - booking?.ticket.numberOfTicketsSold} tickets are available for ${name.toUpperCase()}`,
         );
 
       if (booking.category === TicketCategory.PAID) foundPaid = true;
@@ -390,6 +413,8 @@ export class BookingsService {
 
   private async processFreeBookings(bookings: Booking[]): Promise<any> {
     const newBookings: Booking[] = [];
+    let ticket: Ticket;
+
     await this._entityManager.transaction(async (manager) => {
       for (const booking of bookings) {
         // spread the booking based on the quantity
@@ -421,9 +446,9 @@ export class BookingsService {
             booking.ticket.isAvailable = false;
           }
 
+          if (!ticket) ticket = booking.ticket;
           // increase the number of tickets sold for the ticket
-          booking.ticket.numberOfTicketsSold += 1;
-          await manager.save(Ticket, booking.ticket);
+          ticket.numberOfTicketsSold = +ticket.numberOfTicketsSold + 1;
           // push the new booking to the list to be saved
           newBookings.push(newBooking);
         }
@@ -433,6 +458,7 @@ export class BookingsService {
       }
       // save the newly generated bookings
       await manager.save(Booking, newBookings);
+      await manager.save(Ticket, ticket);
     });
 
     this._eventEmitter.emit(
@@ -492,6 +518,10 @@ export class BookingsService {
           lastName,
           user,
           event: ticket.event,
+          reaction:
+            ticket.category === TicketCategory.FREE
+              ? FreeTicketReaction.MAYBE
+              : null,
           ticket,
           bookingId: await this.generateBookingId(),
           processed: true,

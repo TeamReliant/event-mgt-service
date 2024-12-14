@@ -23,6 +23,7 @@ import ResponseSerializer, {
 } from '@libs/helpers/ResponseSerializer';
 import { SerializeResponse } from '@libs/interceptors/serialize-response.interceptor';
 import { TicketDto } from './dto/ticket.dto';
+import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/enums/team-permissions';
 
 @Controller('tickets')
 export class TicketsController {

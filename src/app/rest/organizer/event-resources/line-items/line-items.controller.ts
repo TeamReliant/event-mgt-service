@@ -30,6 +30,8 @@ import { FetchAnalyticsParamsDto } from '@app/rest/organizer/event-resources/lin
 import { SubscriptionPlanGuard } from '@libs/Guards/subscription-plan/subscription-plan.guard';
 import { RestrictedPlans } from '@libs/decorators/restrict-plans-decorators';
 import { Request } from 'express';
+import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/enums/team-permissions';
+import { PermissionsService } from '@app/rest/organizer/team-resources/permissions/permissions.service';
 
 @UseGuards(JwtAuthGuard, SubscriptionPlanGuard)
 @RestrictedPlans('free')
@@ -38,6 +40,7 @@ export class LineItemsController {
   constructor(
     private readonly lineItemsService: LineItemsService,
     private readonly paginationProvider: PaginationService,
+    private readonly permissionsService: PermissionsService,
   ) {}
 
   @Post()
@@ -47,41 +50,68 @@ export class LineItemsController {
     @GetCurrentUserId() userId: string,
     @Param() params: CreateLineItemParamsDto,
   ) {
-    const data = await this.lineItemsService.create(
-      body,
-      params.eventId,
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
       userId,
+      params.eventId,
+      TeamPermissions.BUDGETING,
     );
+
+    const data = await this.lineItemsService.create(body, params.eventId);
     delete data.event;
     return ResponseSerializer.data(data);
   }
 
   @Get('budget/analytics')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async getAnalytics(@Param() params: FetchAnalyticsParamsDto) {
+  async getAnalytics(
+    @Param() params: FetchAnalyticsParamsDto,
+    @GetCurrentUserId() userId: string,
+  ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.BUDGETING,
+    );
+
     const data = await this.lineItemsService.getAnalytics(params.eventId);
     return ResponseSerializer.data(data);
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  findAll(
+  async findAll(
     @Param() params: FetchLineItemsParamsDto,
     @Query() query: FetchLineItemsQueriesDto,
     @Req() req: Request,
+    @GetCurrentUserId() userId: string,
   ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.BUDGETING,
+    );
+
     const queryBuilder = this.lineItemsService.findAll(params.eventId, query);
     return ResponseSerializer.applyHTEAOS(req, queryBuilder);
   }
 
   @Get('categories/all')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
   async findCategories(
     @Param() params: FetchLineItemsParamsDto,
     @Query() query: FetchLineItemsQueriesDto,
+    @GetCurrentUserId() userId: string,
   ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.BUDGETING,
+    );
+
     const queryBuilder = await this.lineItemsService.findCategories(
       params.eventId,
       query,
@@ -91,7 +121,17 @@ export class LineItemsController {
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async findOne(@Param() params: ShowLineItemParamsDto) {
+  async findOne(
+    @Param() params: ShowLineItemParamsDto,
+    @GetCurrentUserId() userId: string,
+  ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.BUDGETING,
+    );
+
     const data = await this.lineItemsService.findOne(params.eventId, params.id);
     return ResponseSerializer.data(data);
   }
@@ -103,10 +143,16 @@ export class LineItemsController {
     @GetCurrentUserId() userId: string,
     @Body() updateLineItemDto: UpdateLineItemDto,
   ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.BUDGETING,
+    );
+
     const data = await this.lineItemsService.update(
       params.eventId,
       params.id,
-      userId,
       updateLineItemDto,
     );
     return ResponseSerializer.data(data);
@@ -118,7 +164,14 @@ export class LineItemsController {
     @Param() params: DeleteLineItemParamsDto,
     @GetCurrentUserId() userId: string,
   ) {
-    await this.lineItemsService.remove(params.eventId, params.id, userId);
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      userId,
+      params.eventId,
+      TeamPermissions.BUDGETING,
+    );
+
+    await this.lineItemsService.remove(params.eventId, params.id);
     return ResponseSerializer.message('Line item removed successfully');
   }
 }

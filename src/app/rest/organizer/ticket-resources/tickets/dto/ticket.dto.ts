@@ -32,6 +32,9 @@ export class TicketDto {
   minNumberOfTicketsOrderable: number;
 
   @Expose()
+  numberOfTicketsSold: number;
+
+  @Expose()
   createdAt: Date;
 
   @Expose()

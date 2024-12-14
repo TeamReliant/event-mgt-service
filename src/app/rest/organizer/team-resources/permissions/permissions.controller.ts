@@ -39,7 +39,7 @@ export class PermissionsController {
   }
 
   // find all permissions of a member
-  @Get('teams/:teamId/members/:memberId')
+  @Get('teams/:teamId/team-members/:memberId')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async findAll(
