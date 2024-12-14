@@ -8,7 +8,7 @@ import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TJwtPayload } from '@libs/types';
 import { EventsService } from '@app/rest/organizer/event-resources/events/events.service';
-import { EntityManager, ILike, Like, Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Ticket } from './entities/ticket.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
@@ -96,17 +96,19 @@ export class TicketsService {
       throw new BadRequestException('Error fetching ticket, please try again');
     }
   }
+
   async findAll(eventId: string, user: TJwtPayload) {
     try {
       await this.eventService.findOne(eventId, user);
 
-      const tickets = await this.ticketRepository.find({
+      return await this.ticketRepository.find({
         where: {
           event: { id: eventId },
         },
+        order: {
+          createdAt: 'DESC',
+        },
       });
-
-      return tickets;
     } catch (error) {
       console.error(error);
       throw new BadRequestException('Error fetching tickets, please try again');
@@ -119,9 +121,26 @@ export class TicketsService {
     user: TJwtPayload,
   ) {
     try {
+      const {
+        name,
+        price,
+        category,
+        availableTickets,
+        minNumberOfTicketsOrderable,
+        maxNumberOfTicketsOrderable,
+        description,
+      } = updateTicketDto;
       const ticket = await this.findOne(ticketId, user);
 
-      Object.assign(ticket, updateTicketDto);
+      Object.assign(ticket, {
+        name,
+        price,
+        category,
+        availableTickets: availableTickets ?? null,
+        minNumberOfTicketsOrderable,
+        maxNumberOfTicketsOrderable: maxNumberOfTicketsOrderable ?? null,
+        description,
+      });
 
       const updatedTicket = await this.entityManager.transaction(
         async (manager) => {

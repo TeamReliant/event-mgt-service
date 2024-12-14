@@ -25,7 +25,6 @@ import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
 import { CurrentUser } from '@libs/decorators/current-user.decorator';
 import { TJwtPayload } from '@libs/types';
 import ResponseSerializer, {
-  IResponseWithData,
   IResponseWithMessage,
 } from '@libs/helpers/ResponseSerializer';
 import { Request } from 'express';
@@ -39,15 +38,19 @@ import { GetOneEventResponseDto } from './dto/get-one-event-response.dto';
 import { GetAllEventsResponseDto } from './dto/get-all-events-response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
-import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
-import { roles } from '@config/app.config';
 import { AttendeeShowEventParamsDto } from '@app/rest/organizer/event-resources/events/dto/attendee-show-event-params.dto';
+import { PermissionsService } from '@app/rest/organizer/team-resources/permissions/permissions.service';
+import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/enums/team-permissions';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
 @Controller('events')
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly permissionsService: PermissionsService,
+  ) {}
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -207,11 +210,18 @@ export class EventsController {
     )
     eventCoverImage?: Express.Multer.File,
   ) {
+    // check if the user is permitted
+    await this.permissionsService.isUserPermitted(
+      user.userId,
+      params.id,
+      TeamPermissions.EVENT_BUILDER,
+    );
+
     try {
       if (eventCoverImage) {
         updateEventDto.eventCoverImage = eventCoverImage;
       }
-      return await this.eventsService.update(params.id, updateEventDto, user);
+      return await this.eventsService.update(params.id, updateEventDto);
     } catch (error) {
       if (error?.status === HttpStatus.UNPROCESSABLE_ENTITY) {
         throw new HttpException(

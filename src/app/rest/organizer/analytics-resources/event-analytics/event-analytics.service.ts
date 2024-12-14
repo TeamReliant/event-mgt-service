@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import { User } from '@app/rest/users/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
 import {
   BookingStatus,
@@ -17,7 +16,7 @@ export class EventAnalyticsService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getAnalytics(userId: string, eventId: string, { ...query }) {
+  async getAnalytics(eventId: string, { ...query }) {
     // get the date of 7 days ago
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -31,7 +30,6 @@ export class EventAnalyticsService {
     const event = await this.entityManager
       .createQueryBuilder(Event, 'event')
       .where('event.id = :eventId', { eventId })
-      .andWhere('event.userId = :userId', { userId })
       .getOne();
 
     const { revenue, totalNumberOfTicketsSold } = event;
@@ -46,18 +44,18 @@ export class EventAnalyticsService {
     const ticketsScanned = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId })
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
+      .andWhere('bookings.transfer_status != :transferStatus', {
+        transferStatus: TicketTransferStatus.TRANSFERRED,
+      })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
     const ticketsScannedWithin7Days = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId })
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
+      .andWhere('bookings.transfer_status != :transferStatus', {
+        transferStatus: TicketTransferStatus.TRANSFERRED,
+      })
       .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
       .andWhere('bookings.createdAt <= :today', { today })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
@@ -67,8 +65,7 @@ export class EventAnalyticsService {
     const successfulBookingsWithin7Days = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('event.userId = :userId', { userId })
-      .andWhere('event.id = :eventId', { eventId })
+      .where('event.id = :eventId', { eventId })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
       .andWhere('bookings.createdAt <= :today', { today })
@@ -168,7 +165,15 @@ export class EventAnalyticsService {
 
     const pgRange = rangeMapping[range]; // Resolve PostgreSQL-compatible unit
 
-    // fetch event views
+    // Adjust start and end dates for weekly and monthly
+    if (range === 'weekly') {
+      const dayOfWeek = startOfDay.getDay(); // Get the current day of the week (0 = Sunday)
+      startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Align to the start of the week (Monday)
+    } else if (range === 'monthly') {
+      startOfDay.setDate(1); // Align to the first day of the month
+    }
+
+    // Generate the query
     const queryBuilder = this.entityManager
       .createQueryBuilder(EventView, 'views')
       .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
@@ -188,27 +193,34 @@ export class EventAnalyticsService {
     const currentDate = new Date(startOfDay);
 
     while (currentDate <= endOfDay) {
+      fullRange.push(currentDate.toISOString());
+
       if (range === 'daily') {
-        fullRange.push(currentDate.toISOString());
         currentDate.setDate(currentDate.getDate() + 1); // Increment by 1 day
       } else if (range === 'weekly') {
-        fullRange.push(currentDate.toISOString());
         currentDate.setDate(currentDate.getDate() + 7); // Increment by 7 days
       } else if (range === 'monthly') {
-        fullRange.push(currentDate.toISOString());
         currentDate.setMonth(currentDate.getMonth() + 1); // Increment by 1 month
       }
     }
 
-    // Format response based on range
-    const formattedResults: Record<string, number> = {};
-
+    // Map raw results to a dictionary for quick lookups
     const resultMap = new Map(
       rawResults.map(({ timeGroup, viewCount }) => [
         new Date(timeGroup).toISOString(),
         parseInt(viewCount, 10),
       ]),
     );
+
+    // Format response based on range
+    const formattedResults: Record<string, number> = {};
+
+    // const resultMap = new Map(
+    //   rawResults.map(({ timeGroup, viewCount }) => [
+    //     new Date(timeGroup).toISOString(),
+    //     parseInt(viewCount, 10),
+    //   ]),
+    // );
 
     fullRange.forEach((period) => {
       const date = new Date(period);
