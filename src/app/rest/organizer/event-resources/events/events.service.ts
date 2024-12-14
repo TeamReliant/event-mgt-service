@@ -543,6 +543,9 @@ export class EventsService {
         const lon = parseFloat(params['longitude']);
 
         queryBuilder
+          .andWhere(
+            '(CAST(event.latitude AS float) != 0 OR CAST(event.longitude AS float) != 0)',
+          )
           .addSelect(
             `(
             6371 * acos(
