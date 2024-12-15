@@ -349,9 +349,9 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    const isOwner = event.user.id === user.userId;
+    const isOwner = event.user?.id === user?.userId;
     const isTeamMember = event.team?.members?.some(
-      (member) => member.user.id === user.userId,
+      (member) => member?.user?.id === user?.userId,
     );
 
     //check if event belongs to existing user

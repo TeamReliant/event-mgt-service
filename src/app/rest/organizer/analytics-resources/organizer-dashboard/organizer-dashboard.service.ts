@@ -11,14 +11,18 @@ export class OrganizerDashboardService {
   constructor(private readonly _entityManager: EntityManager) {}
 
   public async getAnalytics(userId: string) {
-    // get the date of 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
-    sevenDaysAgo.setHours(1, 0, 0, 0);
+    // get the date of yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
 
     // get the current date
     const today = new Date();
-    today.setHours(1, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    console.log(
+      `------------------------yesterday: ${yesterday}, ------- today: ${today}`,
+    );
 
     // find the user with the userId
     const user = await this._entityManager.findOneBy(User, { id: userId });
@@ -47,36 +51,45 @@ export class OrganizerDashboardService {
       .getCount();
 
     // fetch successful bookings within the last 7 days
-    const successfulBookingsWithin7Days = await this._entityManager
+    const ticketsBookedYesterday = await this._entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.userId = :userId', { userId })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
-      .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
+      .andWhere('bookings.createdAt >= :yesterday', { yesterday })
       .andWhere('bookings.createdAt < :today', { today })
       .select(['bookings.id', 'bookings.unitAmount'])
       .getMany();
 
+    const ticketsBookedToday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
     // fetch event published within the last 7 days
-    const eventsPublishedWithin7Days = await this._entityManager
+    const eventsPublishedYesterday = await this._entityManager
       .createQueryBuilder(Event, 'events')
       .leftJoinAndSelect('events.user', 'user')
       .where('user.id = :userId', { userId })
       .andWhere('events.eventStatus = :status', {
         status: EventStatus.PUBLISHED,
       })
-      .andWhere('events.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
+      .andWhere('events.createdAt >= :yesterday', { yesterday })
       .andWhere('events.createdAt < :today', { today })
       .getCount();
 
-    // fetch all events ever published by the user
-    const totalEventsPublished = await this._entityManager
+    const eventsPublishedToday = await this._entityManager
       .createQueryBuilder(Event, 'events')
       .leftJoinAndSelect('events.user', 'user')
       .where('user.id = :userId', { userId })
       .andWhere('events.eventStatus = :status', {
         status: EventStatus.PUBLISHED,
       })
+      .andWhere('events.createdAt >= :today', { today })
       .getCount();
 
     const allBookingCount = await this._entityManager
@@ -90,39 +103,45 @@ export class OrganizerDashboardService {
       (usedBookingsCount / allBookingCount) * 100;
 
     // sum the unitAmount of the booking
-    const totalRevenueWithin7Days = successfulBookingsWithin7Days.reduce(
+    const totalRevenueYesterday = ticketsBookedYesterday.reduce(
       (acc, booking) => acc + +booking.unitAmount,
       0,
     );
 
-    // calculate the revenue percentage change
-    const percentageRevenueChangeWithin7Days =
-      (totalRevenueWithin7Days / user.totalRevenue) * 100;
+    const totalRevenueToday = ticketsBookedToday.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
 
-    // calculate the ticketsSold percentage change
-    const percentageChangeTicketsSoldWithin7Days =
-      (successfulBookingsWithin7Days.length / user.ticketsSold) * 100;
-
-    // calculate the events percentage change
-    const percentageChangeEventsWithin7Days =
-      (eventsPublishedWithin7Days / totalEventsPublished) * 100;
+    // console.log(
+    //   `------------------------totalRevenueYesterday: ${ticketsBookedYesterday.length}, ------- totalRevenueToday: ${ticketsBookedToday.length}`
+    // );
 
     return {
       totalRevenue: {
         value: user.totalRevenue,
-        change: this._roundToTwo(percentageRevenueChangeWithin7Days), // Placeholder for future calculation
+        change: this._percentageChange(
+          totalRevenueToday,
+          totalRevenueYesterday,
+        ),
       },
       ticketsSold: {
         value: user.ticketsSold,
-        change: this._roundToTwo(percentageChangeTicketsSoldWithin7Days), // Placeholder for future calculation
+        change: this._percentageChange(
+          ticketsBookedToday.length,
+          ticketsBookedYesterday.length,
+        ),
       },
       publishedEvents: {
         value: totalEvents,
-        change: this._roundToTwo(percentageChangeEventsWithin7Days), // Placeholder for future calculation
+        change: this._percentageChange(
+          eventsPublishedToday,
+          eventsPublishedYesterday,
+        ),
       },
       attendanceRate: {
         value: usedBookingsCount,
-        change: this._roundToTwo(attendancePercentageChange), // Placeholder for future calculation
+        change: this._roundToTwo(attendancePercentageChange),
       },
       recentEvents,
       usefulResources: [
@@ -140,105 +159,24 @@ export class OrganizerDashboardService {
     };
   }
 
+  _percentageChange(today: number, yesterday: number) {
+    if (yesterday === 0) {
+      if (today === 0) {
+        // No change if both are zero
+        return 0;
+      }
+
+      // value * 100 if yesterday is 0 and today is greater than 0
+      return today * 100;
+    }
+
+    // Standard percentage change calculation if yesterday is non-zero
+    return this._roundToTwo(((today - yesterday) / yesterday) * 100);
+  }
+
   private _roundToTwo(digits: number) {
     return Math.ceil(digits * 100) / 100;
   }
-
-  // Helper to fetch past analytics (e.g., for the last month)
-  // private async getPastAnalytics(userId: string) {
-  //   const pastQueryBuilder = this.entityManager
-  //     .createQueryBuilder(Event, 'events')
-  //     .leftJoinAndSelect('events.tickets', 'tickets')
-  //     .where('events.eventStatus = :status', { status: 'published' })
-  //     .andWhere('events.userId = :userId', { userId });
-  //
-  //   // Get yesterday's date
-  //   const yesterday = new Date();
-  //   yesterday.setDate(yesterday.getDate() - 1);
-  //
-  //   // Get two days ago
-  //   const twoDaysAgo = new Date();
-  //   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  //
-  //   const formattedYesterday = yesterday.toISOString().split('T')[0];
-  //   const formattedTwoDaysAgo = twoDaysAgo.toISOString().split('T')[0];
-  //
-  //   const start = new Date(formattedTwoDaysAgo);
-  //   start.setHours(1, 0, 0, 0);
-  //
-  //   const end = new Date(formattedYesterday);
-  //   end.setHours(24, 59, 59, 999);
-  //
-  //   pastQueryBuilder.andWhere('events.createdAt BETWEEN :start AND :end', {
-  //     start,
-  //     end,
-  //   });
-  //
-  //   const pastEvents = await pastQueryBuilder.getMany();
-  //
-  //   const { totalTicketSold, totalRevenue } =
-  //     this.calculateEventMetrics(pastEvents);
-  //
-  //   return {
-  //     totalTicketSold,
-  //     totalRevenue,
-  //     totalEvents: pastEvents.length,
-  //   };
-  // }
-  //
-  // // Helper to calculate percentage increase/decrease
-  // private calculatePercentageChange(
-  //   currentMetrics: {
-  //     totalTicketSold: number;
-  //     totalRevenue: number;
-  //     totalEvents: number;
-  //   },
-  //   pastMetrics: {
-  //     totalTicketSold: number;
-  //     totalRevenue: number;
-  //     totalEvents: number;
-  //   },
-  // ) {
-  //   return {
-  //     totalTicketSoldChange: this.getPercentageChange(
-  //       currentMetrics.totalTicketSold,
-  //       pastMetrics.totalTicketSold,
-  //     ),
-  //     totalRevenueChange: this.getPercentageChange(
-  //       currentMetrics.totalRevenue,
-  //       pastMetrics.totalRevenue,
-  //     ),
-  //     totalEventsChange: this.getPercentageChange(
-  //       currentMetrics.totalEvents,
-  //       pastMetrics.totalEvents,
-  //     ),
-  //   };
-  // }
-  //
-  // // Helper to calculate percentage change between two numbers
-  // private getPercentageChange(current: number, past: number): number {
-  //   if (past === 0) {
-  //     return current === 0 ? 0 : 100; // If there's no past data, return 100% if there's current data
-  //   }
-  //   return ((current - past) / past) * 100;
-  // }
-  //
-  // // Helper to calculate metrics such as total tickets sold and revenue
-  // private calculateEventMetrics(events: Event[]): {
-  //   totalTicketSold: number;
-  //   totalRevenue: number;
-  // } {
-  //   return events.reduce(
-  //     (acc, event) => {
-  //       event.tickets?.forEach((ticket) => {
-  //         acc.totalTicketSold += ticket.numberOfTicketsSold;
-  //         acc.totalRevenue += ticket.price * ticket.numberOfTicketsSold;
-  //       });
-  //       return acc;
-  //     },
-  //     { totalTicketSold: 0, totalRevenue: 0 },
-  //   );
-  // }
 
   // Helper to fetch the most recent 5 events
   private async getRecentEvents(
