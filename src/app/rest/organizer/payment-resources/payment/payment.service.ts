@@ -544,9 +544,17 @@ export class PaymentService {
     bookings: Booking[],
     cancelUrl: string = null,
   ): Promise<any> {
+    const stripeFee = +this.configService.get<number>('STRIPE_FEE');
+    const percentageCut = +this.configService.get<number>(
+      'TICKET_PERCENTAGE_CUT',
+    );
+
     const totalAmount = bookings.reduce((currentAmount, booking) => {
       return currentAmount + booking.ticket.price * booking.quantity;
     }, 0);
+
+    // calculate the percentage cut of the totalAmount
+    const percentageCutAmount = (totalAmount * percentageCut) / 100;
 
     const booking = bookings.find((booking) => booking);
 
@@ -565,7 +573,7 @@ export class PaymentService {
               name: `EVENT BOOKING - ${booking.event.name.toUpperCase()}`,
               description: `By ${booking.firstName} ${booking.lastName}, Email: ${booking.email}`,
             },
-            unit_amount: totalAmount * 100, // Amount in cents, adjust based on ticket price
+            unit_amount: (totalAmount + percentageCutAmount + stripeFee) * 100, // Amount in cents, adjust based on ticket price
           },
           quantity: 1,
         },
@@ -614,10 +622,7 @@ export class PaymentService {
 
     // Create database transaction for the database changes
     await this.entityManager.transaction(async (manager) => {
-      if (
-        session.payment_status === 'paid' &&
-        transaction.totalAmount === session.amount_total / 100
-      ) {
+      if (session.payment_status === 'paid') {
         transaction.processed = true;
         transaction.paid = true;
         transaction.currency = session.currency;
@@ -678,16 +683,10 @@ export class PaymentService {
 
           if (booking.category === TicketCategory.PAID) {
             // update the event's revenue
-            const percentage = +this.configService.get<number>(
-              'TICKET_PERCENTAGE_CUT',
-            );
-
             const price = +booking.unitAmount * booking.quantity;
-            const percentageCut = (price * percentage) / 100;
-            const revenue = price - percentageCut;
 
             if (!event) event = booking.event;
-            totalRevenue += revenue;
+            totalRevenue += price;
             totalTicketsSold = totalTicketsSold + booking.quantity;
           }
 
