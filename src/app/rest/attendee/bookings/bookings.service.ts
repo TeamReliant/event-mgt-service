@@ -395,11 +395,25 @@ export class BookingsService {
       // Check if the checkout session creation failed
       if (!response?.url) throw new NotAcceptableException(response?.message);
 
+      // calculate the total amount
+      const totalAmount = bookings.reduce((currentAmount, booking) => {
+        return currentAmount + booking.ticket.price * booking.quantity;
+      }, 0);
+
+      const stripeFee = +this._configService.get<number>('STRIPE_FEE');
+      const percentageCut = +this._configService.get<number>(
+        'TICKET_PERCENTAGE_CUT',
+      );
+      // calculate the percentage cut of the totalAmount
+      const percentageCutAmount = (totalAmount * percentageCut) / 100;
+
       // Save the transaction details
       const transaction = manager.create(BookingsTransaction, {
         stripeCheckoutId: response?.id,
         stripeCheckoutUrl: response?.url,
-        totalAmount: response?.amount_total / 100,
+        totalAmount,
+        stripeFee,
+        fee: percentageCutAmount,
         currency: response?.currency,
         user,
         bookings,

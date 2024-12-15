@@ -90,7 +90,8 @@ ENV NODE_ENV=production \
     STRIPE_CHECKOUT_SESSION_SUCCESS_URL="https://plaventi.dev/booking-result" \
     STRIPE_CHECKOUT_SESSION_CANCEL_URL="https://webhook.site/1120a4e3-70f2-4516-b2b8-d324b68b9a47" \
     STRIPE_CHECKOUT_SESSION_CURRENCY=usd \
-    TICKET_PERCENTAGE_CUT=10
+    TICKET_PERCENTAGE_CUT=2.9 \
+    STRIPE_FEE=0.50
 
 # Install Nest CLI globally
 RUN npm install -g @nestjs/cli@latest

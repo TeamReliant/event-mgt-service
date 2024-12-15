@@ -14,6 +14,12 @@ export class BookingsTransaction extends AbstractEntity<BookingsTransaction> {
   @Column({ name: 'total_amount', nullable: false, type: 'float' })
   totalAmount: number;
 
+  @Column({ name: 'fee', nullable: true, type: 'float' })
+  fee?: number;
+
+  @Column({ name: 'stripe_fee', nullable: true, type: 'float' })
+  stripeFee?: number;
+
   @Column({ name: 'currency', nullable: true, type: 'varchar' })
   currency: string;
 

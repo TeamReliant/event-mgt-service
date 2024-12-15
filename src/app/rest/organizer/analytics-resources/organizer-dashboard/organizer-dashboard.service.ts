@@ -53,7 +53,7 @@ export class OrganizerDashboardService {
       .where('event.userId = :userId', { userId })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
-      .andWhere('bookings.createdAt <= :today', { today })
+      .andWhere('bookings.createdAt < :today', { today })
       .select(['bookings.id', 'bookings.unitAmount'])
       .getMany();
 
@@ -66,7 +66,7 @@ export class OrganizerDashboardService {
         status: EventStatus.PUBLISHED,
       })
       .andWhere('events.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
-      .andWhere('events.createdAt <= :today', { today })
+      .andWhere('events.createdAt < :today', { today })
       .getCount();
 
     // fetch all events ever published by the user

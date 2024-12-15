@@ -18,7 +18,6 @@ import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator
 import { CreateBookingParamsDto } from '@app/rest/attendee/bookings/dto/create-booking-params.dto';
 import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
-import { PaginationService } from '@libs/helpers/pagination/pagination.service';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { ShowBookingParamsDto } from '@app/rest/attendee/bookings/dto/show-booking-params.dto';
 import { DeleteBookingParamsDto } from '@app/rest/attendee/bookings/dto/delete-booking-params.dto';
@@ -35,10 +34,7 @@ import { UpdateFreeBookingDto } from '@app/rest/attendee/bookings/dto/update-fre
 
 @Controller()
 export class BookingsController {
-  constructor(
-    private readonly _bookingsService: BookingsService,
-    private readonly _paginationService: PaginationService,
-  ) {}
+  constructor(private readonly _bookingsService: BookingsService) {}
 
   @Post('events/:eventId/bookings')
   @HttpCode(HttpStatus.CREATED)
