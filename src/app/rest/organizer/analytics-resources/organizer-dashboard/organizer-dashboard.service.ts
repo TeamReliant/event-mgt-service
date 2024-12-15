@@ -13,12 +13,12 @@ export class OrganizerDashboardService {
   public async getAnalytics(userId: string) {
     // get the date of 7 days ago
     const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
     sevenDaysAgo.setHours(1, 0, 0, 0);
 
     // get the current date
     const today = new Date();
-    today.setHours(24, 59, 59, 999);
+    today.setHours(1, 0, 0, 0);
 
     // find the user with the userId
     const user = await this._entityManager.findOneBy(User, { id: userId });
