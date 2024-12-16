@@ -364,7 +364,7 @@ export class EventsService {
     return event;
   }
 
-  async findOneForAttendee(slug: string) {
+  async findOneForAttendee(slug: string, userId?: string) {
     const event = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
@@ -383,26 +383,34 @@ export class EventsService {
     if (!event) throw new NotFoundException('Event not found');
 
     // update the views
-    await this.updateView(event);
+    await this.updateView(event, userId);
     // return the found event
     return event;
   }
 
-  async updateView(event: Event) {
-    // const user = await this.userService.findOne(userId);
-    // if (!user) throw new NotFoundException('User not found');
+  async updateView(event: Event, userId?: string) {
+    let user: User;
+    if (userId) {
+      user = await this.userService.findOne(userId);
+      if (!user) throw new NotFoundException('User not found');
+    }
 
-    // // check if the view already exist
-    // const existingView = await this.entityManager.findOne(EventView, {
-    //   where: { event: { id: event.id }, user: { id: user.id } },
-    // });
-    // if (existingView) {
-    //   existingView.updatedAt = new Date();
-    //   await this.entityManager.save(EventView, existingView);
-    //   return;
-    // }
+    let existingView: EventView;
 
-    const view = this.entityManager.create(EventView, { event });
+    if (user) {
+      // check if the view already exist
+      existingView = await this.entityManager.findOne(EventView, {
+        where: { event: { id: event.id }, user: { id: user.id } },
+      });
+    }
+
+    if (existingView) {
+      existingView.updatedAt = new Date();
+      await this.entityManager.save(EventView, existingView);
+      return;
+    }
+
+    const view = this.entityManager.create(EventView, { event, user });
     await this.entityManager.save(EventView, view);
     return;
   }
