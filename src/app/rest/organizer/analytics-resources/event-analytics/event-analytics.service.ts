@@ -12,10 +12,7 @@ import { LineItem } from '@app/rest/organizer/event-resources/line-items/entitie
 
 @Injectable()
 export class EventAnalyticsService {
-  constructor(
-    private readonly entityManager: EntityManager,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly entityManager: EntityManager) {}
 
   async getAnalytics(eventId: string, { ...query }) {
     // get the date of yesterday

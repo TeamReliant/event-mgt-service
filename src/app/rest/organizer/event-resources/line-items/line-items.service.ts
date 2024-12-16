@@ -16,7 +16,6 @@ export class LineItemsService {
     @InjectRepository(LineItem)
     private readonly _repo: Repository<LineItem>,
     private readonly _entityManager: EntityManager,
-    private readonly _configService: ConfigService,
   ) {}
 
   async create(body: CreateLineItemDto, eventId: string): Promise<LineItem> {
