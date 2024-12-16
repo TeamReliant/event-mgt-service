@@ -111,7 +111,7 @@ export class EventAnalyticsService {
       .getCount();
 
     return {
-      value: event.totalNumberOfTicketsSold,
+      value: +event.totalNumberOfTicketsSold,
       change: this._percentageChange(
         successfulBookingsToday,
         successfulBookingsYesterday,
@@ -221,7 +221,7 @@ export class EventAnalyticsService {
       .getCount();
 
     return {
-      value: ticketsScanned,
+      value: +ticketsScanned,
       change: this._percentageChange(
         ticketsScannedToday,
         ticketsScannedYesterday,
@@ -270,10 +270,6 @@ export class EventAnalyticsService {
       0,
     );
 
-    console.log(
-      `------------------------grossRevenueYesterday: ${grossRevenueYesterday}, ------- grossRevenueToday: ${grossRevenueToday}`
-    );
-
     return {
       value: +event.revenue,
       change: this._percentageChange(grossRevenueToday, grossRevenueYesterday),
@@ -285,6 +281,8 @@ export class EventAnalyticsService {
   }
 
   _percentageChange(today: number, yesterday: number) {
+    if (yesterday === 0 || today === 0) return 0;
+
     if (yesterday === 0) {
       if (today === 0) {
         // No change if both are zero

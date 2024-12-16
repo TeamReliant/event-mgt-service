@@ -115,7 +115,7 @@ export class GuestsService {
 
     if (dateRangeStart && dateRangeEnd) {
       const startOfDay = new Date(dateRangeStart);
-      startOfDay.setHours(1, 0, 0, 0);
+      startOfDay.setHours(0, 0, 0, 0);
 
       const endOfDay = new Date(dateRangeEnd);
       endOfDay.setHours(24, 59, 59, 999);
@@ -126,6 +126,9 @@ export class GuestsService {
       });
     }
 
+    if (!sort) {
+      queryBuilder.orderBy('bookings.createdAt', 'DESC');
+    }
     return queryBuilder;
   }
 
