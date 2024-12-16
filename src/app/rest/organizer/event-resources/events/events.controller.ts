@@ -44,7 +44,7 @@ import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/
 import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
 import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
-import {  Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
@@ -130,11 +130,7 @@ export class EventsController {
     //   GetAllEventsResponseDto,
     // );
 
-    const response =
-      await ResponseSerializer.applyHTEAOS(
-        req,
-        queryBuilder
-      );
+    const response = await ResponseSerializer.applyHTEAOS(req, queryBuilder);
     const { data } = response;
     response.data = data.map((event) => {
       let totalAvailableTickets = 0;

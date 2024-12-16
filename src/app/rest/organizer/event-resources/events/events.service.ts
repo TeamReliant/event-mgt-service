@@ -154,7 +154,7 @@ export class EventsService {
         throw new NotFoundException('User not found');
       }
 
-      // this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
+      this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
       this.updateUserEventCounts(eventCreator, eventVisibility);
 
       const createdEvent = await this.entityManager.transaction(

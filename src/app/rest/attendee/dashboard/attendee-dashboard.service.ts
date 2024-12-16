@@ -50,8 +50,8 @@ export class AttendeeDashboardService {
       .createQueryBuilder(Event, 'events')
       .innerJoinAndSelect('events.user', 'user')
       .leftJoinAndSelect('events.tickets', 'tickets')
-      .where('events.eventVisibility != :eventVisibility', {
-        eventVisibility: EventVisibility.PRIVATE,
+      .where('events.eventVisibility = :eventVisibility', {
+        eventVisibility: EventVisibility.PUBLIC,
       })
       .orderBy('RANDOM()') // Fetch random rows each time
       .limit(10)

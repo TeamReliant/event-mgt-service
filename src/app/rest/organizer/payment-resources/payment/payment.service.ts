@@ -558,6 +558,18 @@ export class PaymentService {
 
     const booking = bookings.find((booking) => booking);
 
+    // find the organizer that owns the event
+    const event = await this.entityManager
+      .createQueryBuilder(Event, 'event')
+      .leftJoinAndSelect('event.user', 'user')
+      .where('event.id = :eventId', { eventId: booking.event.id })
+      .getOne();
+
+    if (!event.user.stripeConnectedAccountId)
+      throw new BadRequestException(
+        `Organizer cannot accept ticket payment at the moment, try again after some time!`,
+      );
+
     return await this.stripe.checkout.sessions.create({
       payment_method_types: [
         'card', // Credit/Debit cards
@@ -580,6 +592,12 @@ export class PaymentService {
       ],
       mode: 'payment',
       customer_email: booking.email,
+      payment_intent_data: {
+        application_fee_amount: percentageCutAmount + stripeFee, // Fee to our platform
+        transfer_data: {
+          destination: event.user.stripeConnectedAccountId, // Organizer's connected account
+        },
+      },
       currency: this.configService.get<string>(
         'STRIPE_CHECKOUT_SESSION_CURRENCY',
       ),
