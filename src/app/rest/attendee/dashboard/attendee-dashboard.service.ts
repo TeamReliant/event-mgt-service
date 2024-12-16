@@ -42,7 +42,7 @@ export class AttendeeDashboardService {
       .innerJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.tickets', 'tickets')
       .where('view.userId = :userId', { userId })
-      .orderBy('event.createdAt', 'DESC')
+      .orderBy('event.updatedAt', 'DESC')
       .limit(10)
       .getMany();
 
