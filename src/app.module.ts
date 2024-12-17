@@ -29,6 +29,7 @@ import { BookingsModule } from '@app/rest/attendee/bookings/bookings.module';
 import { BookingsTransactionsModule } from '@app/rest/attendee/bookings-transactions/bookings-transactions.module';
 import { AttendeeDashboardModule } from '@app/rest/attendee/dashboard/attendee-dashboard.module';
 import { GuestsModule } from './app/rest/organizer/guest-resources/guests/guests.module';
+import { DashboardModule } from './app/rest/admin/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { GuestsModule } from './app/rest/organizer/guest-resources/guests/guests
     BookingsTransactionsModule,
     AttendeeDashboardModule,
     GuestsModule,
+    DashboardModule,
   ],
   providers: [JwtStrategy],
 })
