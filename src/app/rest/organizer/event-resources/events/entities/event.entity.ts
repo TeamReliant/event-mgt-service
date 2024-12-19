@@ -112,6 +112,7 @@ export class Event extends AbstractEntity<Event> {
 
   @OneToMany(() => EventView, (view) => view.event, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
   eventViews?: EventView[];
 
