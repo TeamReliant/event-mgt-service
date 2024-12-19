@@ -160,6 +160,12 @@ export class User extends AbstractEntity<User> {
   @Column({ name: 'tickets_sold', type: 'bigint', nullable: true })
   ticketsSold: number;
 
+  @Column({ name: 'last_logged_in', type: 'timestamp', nullable: true })
+  lastLoggedIn?: Date;
+
+  @Column({ default: false })
+  blocked: boolean;
+
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];
 

@@ -30,6 +30,7 @@ import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status'
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { Request } from 'express';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 
 @Injectable()
 export class PaymentService {
@@ -648,6 +649,7 @@ export class PaymentService {
         // Keep track of total revenue and event
         let totalRevenue: number = 0.0;
         let totalTicketsSold: number = 0;
+        let totalTicketsProcessed: number = 0;
         const bookings: Booking[] = [];
         let event: Event = undefined;
 
@@ -708,6 +710,9 @@ export class PaymentService {
             totalTicketsSold = totalTicketsSold + booking.quantity;
           }
 
+          // update the total tickets processed variable
+          totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
+
           // save the newly generated bookings
           newBookings = await manager.save(Booking, bookings);
 
@@ -729,6 +734,17 @@ export class PaymentService {
           // update the event
           await manager.save(Event, event);
         }
+
+        // fetch the system register
+        const systemRegister = await manager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
+
+        // update the system register
+        systemRegister.totalRevenue += transaction.fee;
+        systemRegister.ticketsSold += totalTicketsSold;
+        systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+        await manager.save<SystemRegister>(systemRegister);
 
         // delete old transactions from memory
         delete transaction.bookings;

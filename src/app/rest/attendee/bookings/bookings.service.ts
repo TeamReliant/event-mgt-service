@@ -29,6 +29,7 @@ import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/sen
 import { UserType } from '@app/rest/users/enums/user-type';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 import { UpdateFreeBookingDto } from '@app/rest/attendee/bookings/dto/update-free-booking.dto';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 
 @Injectable()
 export class BookingsService {
@@ -430,6 +431,8 @@ export class BookingsService {
     let ticket: Ticket;
 
     await this._entityManager.transaction(async (manager) => {
+      let totalTicketsProcessed: number = 0;
+
       for (const booking of bookings) {
         // spread the booking based on the quantity
         for (let i = 1; i <= booking.quantity; i++) {
@@ -467,9 +470,22 @@ export class BookingsService {
           newBookings.push(newBooking);
         }
 
+        // update the total tickets processed variable
+        totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
+
         // remove the initial booking
         await manager.remove(Booking, booking);
       }
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // update the system register
+      systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+      await manager.save<SystemRegister>(systemRegister);
+
       // save the newly generated bookings
       await manager.save(Booking, newBookings);
       await manager.save(Ticket, ticket);
@@ -710,6 +726,17 @@ export class BookingsService {
       booking.transferStatus = TicketTransferStatus.TRANSFERRED;
       booking.transferredTo = savedBooking;
       await manager.save(Booking, booking);
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // increase the number of tickets transferred
+      systemRegister.ticketsTransferred =
+        +systemRegister.ticketsTransferred + 1;
+      await manager.save(SystemRegister, systemRegister);
+
       return booking;
     });
 

@@ -14,6 +14,7 @@ import { events } from '@config/app.config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BroadcastMessageEvent } from '@app/rest/organizer/guest-resources/guests/events/BroadcastMessage.event';
 import { CheckGuestDto } from '@app/rest/organizer/guest-resources/guests/dto/check-guest.dto';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 
 @Injectable()
 export class GuestsService {
@@ -262,8 +263,21 @@ export class GuestsService {
     if (check === 'out' && booking.status !== BookingStatus.USED)
       throw new NotAcceptableException('Ticket has not been used');
 
-    // update the ticket accordinly
-    booking.status = check === 'in' ? BookingStatus.USED : BookingStatus.VALID;
-    return this._entityManager.getRepository(Booking).save(booking);
+    return await this._entityManager.transaction(async (manager) => {
+      // update the ticket accordinly
+      booking.status =
+        check === 'in' ? BookingStatus.USED : BookingStatus.VALID;
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // update the register
+      systemRegister.scannedTickets += 1;
+      await manager.save<SystemRegister>(systemRegister);
+
+      return manager.getRepository(Booking).save(booking);
+    });
   }
 }
