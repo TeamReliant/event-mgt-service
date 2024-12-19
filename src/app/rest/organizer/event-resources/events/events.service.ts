@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import slugify from 'slugify';
@@ -20,6 +19,8 @@ import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.ent
 import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 
 @Injectable()
 export class EventsService {
@@ -174,6 +175,21 @@ export class EventsService {
           }
 
           await manager.save<User>(eventCreator);
+
+          // fetch the system register
+          const systemRegister = await manager
+            .createQueryBuilder(SystemRegister, 'system')
+            .getOne();
+
+          // update the register
+          systemRegister.totalEvents += 1;
+          if (eventStatus === EventStatus.PUBLISHED)
+            systemRegister.publishedEvents += 1;
+
+          // save the register changes
+          await manager.save<SystemRegister>(systemRegister);
+
+          // save and return the event
           return await manager.save<Event>(eventInstance);
         },
       );
@@ -623,6 +639,18 @@ export class EventsService {
       userEntity.numOfEventsCreated--;
       await manager.save(User, userEntity);
       await this.deleteImage(event.eventImageURL);
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // update the register
+      systemRegister.totalEvents -= 1;
+      if (event.eventStatus === EventStatus.PUBLISHED)
+        systemRegister.publishedEvents -= 1;
+
+      await manager.save<SystemRegister>(systemRegister);
     });
     return;
   }

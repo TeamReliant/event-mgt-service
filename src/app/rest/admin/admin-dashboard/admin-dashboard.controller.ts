@@ -1,0 +1,32 @@
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import { AdminDashboardService } from './admin-dashboard.service';
+import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { UserType } from '@app/rest/users/enums/user-type';
+import ResponseSerializer, {
+  IResponseWithData,
+} from '@libs/helpers/ResponseSerializer';
+import { FetchActiveUsersAnalyticsQueryDto } from '@app/rest/admin/admin-dashboard/dto/fetch-active-users-analytics-query.dto';
+
+@Controller('admin-dashboard')
+@UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
+export class AdminDashboardController {
+  constructor(private readonly _adminDashboardService: AdminDashboardService) {}
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async assign(
+    @Param() { range }: FetchActiveUsersAnalyticsQueryDto,
+  ): Promise<IResponseWithData> {
+    // check if the user is permitted
+    const data = await this._adminDashboardService.getActiveUserChart(range);
+    return ResponseSerializer.data(data);
+  }
+}

@@ -28,8 +28,9 @@ import { SubscribersModule } from '@app/rest/attendee/subscribers/subscribers.mo
 import { BookingsModule } from '@app/rest/attendee/bookings/bookings.module';
 import { BookingsTransactionsModule } from '@app/rest/attendee/bookings-transactions/bookings-transactions.module';
 import { AttendeeDashboardModule } from '@app/rest/attendee/dashboard/attendee-dashboard.module';
-import { GuestsModule } from './app/rest/organizer/guest-resources/guests/guests.module';
-import { DashboardModule } from './app/rest/admin/dashboard/dashboard.module';
+import { GuestsModule } from '@app/rest/organizer/guest-resources/guests/guests.module';
+import { AdminDashboardModule } from '@app/rest/admin/admin-dashboard/admin-dashboard.module';
+import { SystemRegisterModule } from '@app/rest/admin/system-register/system-register.module';
 
 @Module({
   imports: [
@@ -42,7 +43,6 @@ import { DashboardModule } from './app/rest/admin/dashboard/dashboard.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         ...configService.get('database'),
-        // entities: [Event, Ticket, User],
       }),
       inject: [ConfigService],
     }),
@@ -81,7 +81,8 @@ import { DashboardModule } from './app/rest/admin/dashboard/dashboard.module';
     BookingsTransactionsModule,
     AttendeeDashboardModule,
     GuestsModule,
-    DashboardModule,
+    AdminDashboardModule,
+    SystemRegisterModule,
   ],
   providers: [JwtStrategy],
 })
