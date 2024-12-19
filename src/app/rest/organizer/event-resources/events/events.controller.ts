@@ -41,6 +41,10 @@ import { extname } from 'path';
 import { AttendeeShowEventParamsDto } from '@app/rest/organizer/event-resources/events/dto/attendee-show-event-params.dto';
 import { PermissionsService } from '@app/rest/organizer/team-resources/permissions/permissions.service';
 import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/enums/team-permissions';
+import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
+import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
+import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
+import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
@@ -126,24 +130,19 @@ export class EventsController {
     //   GetAllEventsResponseDto,
     // );
 
-    const response =
-      await ResponseSerializer.applyHTEAOSWithDtoFormatter<GetAllEventsResponseDto>(
-        req,
-        queryBuilder,
-        GetAllEventsResponseDto,
-      );
+    const response = await ResponseSerializer.applyHTEAOS(req, queryBuilder);
     const { data } = response;
     response.data = data.map((event) => {
       let totalAvailableTickets = 0;
       let totalTicketSold = 0;
-      event.tickets.forEach((ticket) => {
-        totalAvailableTickets += ticket.availableTickets;
-        totalTicketSold += ticket.numberOfTicketsSold;
+      event.tickets.forEach((ticket: Ticket) => {
+        totalAvailableTickets += +ticket.availableTickets;
+        totalTicketSold += +ticket.numberOfTicketsSold;
       });
 
       event.totalTickets = totalAvailableTickets;
       event.totalTicketSold = totalTicketSold;
-      delete event.tickets;
+      // delete event.tickets;
       delete event.user.password;
       delete event.user.refreshToken;
       delete event.user.passwordResetToken;
@@ -166,9 +165,13 @@ export class EventsController {
   }
 
   @Get(':slug/attendee')
+  @UseGuards(SoftJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async findOneForAttendee(@Param() { slug }: AttendeeShowEventParamsDto) {
-    const data = await this.eventsService.findOneForAttendee(slug);
+  async findOneForAttendee(
+    @Param() { slug }: AttendeeShowEventParamsDto,
+    @GetCurrentUserId() userId: string,
+  ) {
+    const data = await this.eventsService.findOneForAttendee(slug, userId);
     return ResponseSerializer.data(data);
   }
 

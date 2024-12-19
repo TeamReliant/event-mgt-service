@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import slugify from 'slugify';
@@ -20,6 +19,8 @@ import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.ent
 import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 
 @Injectable()
 export class EventsService {
@@ -154,7 +155,7 @@ export class EventsService {
         throw new NotFoundException('User not found');
       }
 
-      // this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
+      this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
       this.updateUserEventCounts(eventCreator, eventVisibility);
 
       const createdEvent = await this.entityManager.transaction(
@@ -174,6 +175,21 @@ export class EventsService {
           }
 
           await manager.save<User>(eventCreator);
+
+          // fetch the system register
+          const systemRegister = await manager
+            .createQueryBuilder(SystemRegister, 'system')
+            .getOne();
+
+          // update the register
+          systemRegister.totalEvents += 1;
+          if (eventStatus === EventStatus.PUBLISHED)
+            systemRegister.publishedEvents += 1;
+
+          // save the register changes
+          await manager.save<SystemRegister>(systemRegister);
+
+          // save and return the event
           return await manager.save<Event>(eventInstance);
         },
       );
@@ -337,6 +353,7 @@ export class EventsService {
       relations: [
         'user',
         'tickets',
+        'eventViews',
         'team',
         'team.members',
         'team.members.user',
@@ -349,9 +366,9 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    const isOwner = event.user.id === user.userId;
+    const isOwner = event.user?.id === user?.userId;
     const isTeamMember = event.team?.members?.some(
-      (member) => member.user.id === user.userId,
+      (member) => member?.user?.id === user?.userId,
     );
 
     //check if event belongs to existing user
@@ -364,7 +381,7 @@ export class EventsService {
     return event;
   }
 
-  async findOneForAttendee(slug: string) {
+  async findOneForAttendee(slug: string, userId?: string) {
     const event = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
@@ -383,26 +400,34 @@ export class EventsService {
     if (!event) throw new NotFoundException('Event not found');
 
     // update the views
-    await this.updateView(event);
+    await this.updateView(event, userId);
     // return the found event
     return event;
   }
 
-  async updateView(event: Event) {
-    // const user = await this.userService.findOne(userId);
-    // if (!user) throw new NotFoundException('User not found');
+  async updateView(event: Event, userId?: string) {
+    let user: User;
+    if (userId) {
+      user = await this.userService.findOne(userId);
+      if (!user) throw new NotFoundException('User not found');
+    }
 
-    // // check if the view already exist
-    // const existingView = await this.entityManager.findOne(EventView, {
-    //   where: { event: { id: event.id }, user: { id: user.id } },
-    // });
-    // if (existingView) {
-    //   existingView.updatedAt = new Date();
-    //   await this.entityManager.save(EventView, existingView);
-    //   return;
-    // }
+    let existingView: EventView;
 
-    const view = this.entityManager.create(EventView, { event });
+    if (user) {
+      // check if the view already exist
+      existingView = await this.entityManager.findOne(EventView, {
+        where: { event: { id: event.id }, user: { id: user.id } },
+      });
+    }
+
+    if (existingView) {
+      existingView.updatedAt = new Date();
+      await this.entityManager.save(EventView, existingView);
+      return;
+    }
+
+    const view = this.entityManager.create(EventView, { event, user });
     await this.entityManager.save(EventView, view);
     return;
   }
@@ -610,11 +635,24 @@ export class EventsService {
 
     //delete event and it's related tickets
     await this.entityManager.transaction(async (manager) => {
+      await manager.delete(EventView, { event: { id: event.id } });
       await manager.delete(Ticket, { event: { id: event.id } });
       await manager.delete(Event, id);
       userEntity.numOfEventsCreated--;
       await manager.save(User, userEntity);
       await this.deleteImage(event.eventImageURL);
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // update the register
+      systemRegister.totalEvents -= 1;
+      if (event.eventStatus === EventStatus.PUBLISHED)
+        systemRegister.publishedEvents -= 1;
+
+      await manager.save<SystemRegister>(systemRegister);
     });
     return;
   }

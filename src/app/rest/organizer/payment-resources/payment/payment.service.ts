@@ -30,6 +30,7 @@ import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status'
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { Request } from 'express';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 
 @Injectable()
 export class PaymentService {
@@ -544,11 +545,31 @@ export class PaymentService {
     bookings: Booking[],
     cancelUrl: string = null,
   ): Promise<any> {
+    const stripeFee = +this.configService.get<number>('STRIPE_FEE');
+    const percentageCut = +this.configService.get<number>(
+      'TICKET_PERCENTAGE_CUT',
+    );
+
     const totalAmount = bookings.reduce((currentAmount, booking) => {
       return currentAmount + booking.ticket.price * booking.quantity;
     }, 0);
 
+    // calculate the percentage cut of the totalAmount
+    const percentageCutAmount = (totalAmount * percentageCut) / 100;
+
     const booking = bookings.find((booking) => booking);
+
+    // find the organizer that owns the event
+    const event = await this.entityManager
+      .createQueryBuilder(Event, 'event')
+      .leftJoinAndSelect('event.user', 'user')
+      .where('event.id = :eventId', { eventId: booking.event.id })
+      .getOne();
+
+    if (!event.user.stripeConnectedAccountId)
+      throw new BadRequestException(
+        `Organizer cannot accept ticket payment at the moment, try again after some time!`,
+      );
 
     return await this.stripe.checkout.sessions.create({
       payment_method_types: [
@@ -565,13 +586,19 @@ export class PaymentService {
               name: `EVENT BOOKING - ${booking.event.name.toUpperCase()}`,
               description: `By ${booking.firstName} ${booking.lastName}, Email: ${booking.email}`,
             },
-            unit_amount: totalAmount * 100, // Amount in cents, adjust based on ticket price
+            unit_amount: (totalAmount + percentageCutAmount + stripeFee) * 100, // Amount in cents, adjust based on ticket price
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
       customer_email: booking.email,
+      payment_intent_data: {
+        application_fee_amount: percentageCutAmount + stripeFee, // Fee to our platform
+        transfer_data: {
+          destination: event.user.stripeConnectedAccountId, // Organizer's connected account
+        },
+      },
       currency: this.configService.get<string>(
         'STRIPE_CHECKOUT_SESSION_CURRENCY',
       ),
@@ -614,10 +641,7 @@ export class PaymentService {
 
     // Create database transaction for the database changes
     await this.entityManager.transaction(async (manager) => {
-      if (
-        session.payment_status === 'paid' &&
-        transaction.totalAmount === session.amount_total / 100
-      ) {
+      if (session.payment_status === 'paid') {
         transaction.processed = true;
         transaction.paid = true;
         transaction.currency = session.currency;
@@ -625,6 +649,7 @@ export class PaymentService {
         // Keep track of total revenue and event
         let totalRevenue: number = 0.0;
         let totalTicketsSold: number = 0;
+        let totalTicketsProcessed: number = 0;
         const bookings: Booking[] = [];
         let event: Event = undefined;
 
@@ -678,18 +703,15 @@ export class PaymentService {
 
           if (booking.category === TicketCategory.PAID) {
             // update the event's revenue
-            const percentage = +this.configService.get<number>(
-              'TICKET_PERCENTAGE_CUT',
-            );
-
             const price = +booking.unitAmount * booking.quantity;
-            const percentageCut = (price * percentage) / 100;
-            const revenue = price - percentageCut;
 
             if (!event) event = booking.event;
-            totalRevenue += revenue;
+            totalRevenue += price;
             totalTicketsSold = totalTicketsSold + booking.quantity;
           }
+
+          // update the total tickets processed variable
+          totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
 
           // save the newly generated bookings
           newBookings = await manager.save(Booking, bookings);
@@ -712,6 +734,17 @@ export class PaymentService {
           // update the event
           await manager.save(Event, event);
         }
+
+        // fetch the system register
+        const systemRegister = await manager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
+
+        // update the system register
+        systemRegister.totalRevenue += transaction.fee;
+        systemRegister.ticketsSold += totalTicketsSold;
+        systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+        await manager.save<SystemRegister>(systemRegister);
 
         // delete old transactions from memory
         delete transaction.bookings;

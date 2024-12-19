@@ -63,6 +63,9 @@ export class GetAllEventsResponseDto {
   eventEndDateAndTime?: string;
 
   @Expose()
+  totalNumberOfTicketsSold?: string;
+
+  @Expose()
   isAvailable: boolean;
 
   @Expose()
