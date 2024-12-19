@@ -353,6 +353,7 @@ export class EventsService {
       relations: [
         'user',
         'tickets',
+        'eventViews',
         'team',
         'team.members',
         'team.members.user',
@@ -634,6 +635,7 @@ export class EventsService {
 
     //delete event and it's related tickets
     await this.entityManager.transaction(async (manager) => {
+      await manager.delete(EventView, { event: { id: event.id } });
       await manager.delete(Ticket, { event: { id: event.id } });
       await manager.delete(Event, id);
       userEntity.numOfEventsCreated--;
