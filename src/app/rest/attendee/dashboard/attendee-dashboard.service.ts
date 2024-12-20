@@ -8,6 +8,7 @@ import {
   EventStatus,
   EventVisibility,
 } from '@app/rest/organizer/event-resources/events/enums';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 
 @Injectable()
 export class AttendeeDashboardService {
@@ -24,8 +25,11 @@ export class AttendeeDashboardService {
       .where('event.eventStartDateAndTime > :currentDate', {
         currentDate: new Date(),
       })
-      .andWhere('booking.processed = :processed', { processed: true })
-      .andWhere('booking.paid = :paid', { paid: true })
+      // .andWhere('booking.processed = :processed', { processed: true })
+      // .andWhere('booking.paid = :paid', { paid: true })
+      .andWhere('booking.status = :bookingStatus', {
+        bookingStatus: BookingStatus.VALID,
+      })
       .orderBy('event.eventStartDateAndTime', 'ASC');
 
     // Main query to get bookings with the unique event IDs
