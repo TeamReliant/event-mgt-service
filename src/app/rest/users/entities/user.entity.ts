@@ -169,7 +169,6 @@ export class User extends AbstractEntity<User> {
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];
 
-  // teams where the user is an admin
   @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
   teamMembers?: TeamMember[];
 
