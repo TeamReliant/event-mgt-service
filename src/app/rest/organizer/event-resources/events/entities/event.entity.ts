@@ -91,6 +91,24 @@ export class Event extends AbstractEntity<Event> {
   })
   revenue?: number;
 
+  @Column({
+    name: 'total_platform_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalPlatformFee: number;
+
+  @Column({
+    name: 'total_stripe_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalStripeFee: number;
+
   //cascade true automatically saves tickets when an event is saved
   @OneToMany(() => Ticket, (ticket) => ticket.event, { cascade: true })
   tickets: Ticket[];

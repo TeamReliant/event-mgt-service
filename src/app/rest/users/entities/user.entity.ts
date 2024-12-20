@@ -157,6 +157,24 @@ export class User extends AbstractEntity<User> {
   })
   totalRevenue: number;
 
+  @Column({
+    name: 'total_platform_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalPlatformFee: number;
+
+  @Column({
+    name: 'total_stripe_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalStripeFee: number;
+
   @Column({ name: 'tickets_sold', type: 'bigint', nullable: true })
   ticketsSold: number;
 
@@ -169,7 +187,6 @@ export class User extends AbstractEntity<User> {
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];
 
-  // teams where the user is an admin
   @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
   teamMembers?: TeamMember[];
 

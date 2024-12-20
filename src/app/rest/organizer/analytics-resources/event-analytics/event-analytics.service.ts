@@ -9,6 +9,8 @@ import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { LineItem } from '@app/rest/organizer/event-resources/line-items/entities/line-item.entity';
+import { Transaction } from '@app/rest/organizer/transaction-resources/transactions/entities/transaction.entity';
+import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 
 @Injectable()
 export class EventAnalyticsService {
@@ -126,12 +128,6 @@ export class EventAnalyticsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // fetch all event line items
-    const eventLineItems = await this.entityManager
-      .createQueryBuilder(LineItem, 'lineItems')
-      .where('lineItems.eventId = :eventId', { eventId: event.id })
-      .getMany();
-
     // fetch successful bookings within the last 7 days
     const successfulBookingsTillYesterday = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
@@ -162,16 +158,11 @@ export class EventAnalyticsService {
       0,
     );
 
-    const totalExpenses = eventLineItems.reduce(
-      (acc, lineItem) => acc + +lineItem.amountSpent,
-      0,
-    );
-
     return {
-      value: +event.revenue - totalExpenses,
+      value: +event.revenue,
       change: this._percentageChange(
-        netRevenueTillToday - totalExpenses,
-        netRevenueTillYesterday - totalExpenses,
+        netRevenueTillToday,
+        netRevenueTillYesterday,
       ),
     };
   }
@@ -268,7 +259,7 @@ export class EventAnalyticsService {
     );
 
     return {
-      value: +event.revenue,
+      value: +event.revenue + +event.totalStripeFee + +event.totalPlatformFee,
       change: this._percentageChange(grossRevenueToday, grossRevenueYesterday),
     };
   }
