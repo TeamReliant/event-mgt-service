@@ -157,6 +157,24 @@ export class User extends AbstractEntity<User> {
   })
   totalRevenue: number;
 
+  @Column({
+    name: 'total_platform_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalPlatformFee: number;
+
+  @Column({
+    name: 'total_stripe_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalStripeFee: number;
+
   @Column({ name: 'tickets_sold', type: 'bigint', nullable: true })
   ticketsSold: number;
 

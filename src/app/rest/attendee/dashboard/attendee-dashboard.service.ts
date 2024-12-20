@@ -4,7 +4,10 @@ import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
-import { EventStatus, EventVisibility } from '@app/rest/organizer/event-resources/events/enums';
+import {
+  EventStatus,
+  EventVisibility,
+} from '@app/rest/organizer/event-resources/events/enums';
 
 @Injectable()
 export class AttendeeDashboardService {

@@ -725,10 +725,16 @@ export class PaymentService {
           event.revenue = +event.revenue + totalRevenue;
           event.totalNumberOfTicketsSold =
             +event.totalNumberOfTicketsSold + totalTicketsSold;
+          event.totalStripeFee = +event.totalStripeFee + transaction.stripeFee;
+          event.totalPlatformFee = +event.totalPlatformFee + transaction.fee;
 
           // update the user's revenue and tickets sold
           event.user.totalRevenue = +event.user.totalRevenue + totalRevenue;
           event.user.ticketsSold = +event.user.ticketsSold + totalTicketsSold;
+          event.user.totalStripeFee =
+            +event.user.totalStripeFee + transaction.stripeFee;
+          event.user.totalPlatformFee =
+            +event.user.totalPlatformFee + transaction.fee;
 
           await manager.save(User, event.user);
           // update the event
