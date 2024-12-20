@@ -439,19 +439,46 @@ export class PaymentService {
   }
 
   async handleAccountUpdated(event: Stripe.Event) {
+    //logs for debug purposes
+    console.log('Stripe Event:', {
+      id: event.id,
+      type: event.type,
+      created: new Date(event.created * 1000).toISOString(),
+      data: JSON.stringify(event.data.object, null, 2),
+    });
+
     const account = event.data.object as Stripe.Account;
+
+    console.log('Account Status:', {
+      id: account.id,
+      email: account.email,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+    });
+
     const user = await this.checkUserExists(account.email);
 
     if (!user.stripeConnectedAccountId)
       user.stripeConnectedAccountId = account.id;
+
+    // Check onboarding status
+    const wasOnboarded = user.isOnboarded;
+    if (account.charges_enabled && account.payouts_enabled)
+      user.isOnboarded = true;
 
     await this.userService.findOneByIdAndUpdate(user.id, user);
 
     const paymentNotification: Payment = {
       user,
     };
+
+    if (account.charges_enabled && account.payouts_enabled) {
+      user.isOnboarded = true;
+    }
+    await this.userService.findOneByIdAndUpdate(user.id, user);
+
     if (account.charges_enabled) {
-      //TODO notify user of charges enabled and encourage them to enable payouts
       this.eventEmitter.emit(
         events.CHARGES_ENABLED,
         new PaymentEvent(paymentNotification),
@@ -465,14 +492,13 @@ export class PaymentService {
       );
     }
 
-    if (account.charges_enabled && account.payouts_enabled) {
-      user.isOnboarded = true;
+    // Only emit onboarding completed if it wasn't previously onboarded
+    if (user.isOnboarded && !wasOnboarded) {
       this.eventEmitter.emit(
         events.STRIPE_PAYMENT_ONBOARDING_COMPLETED,
         new PaymentEvent(paymentNotification),
       );
     }
-    await this.userService.findOneByIdAndUpdate(user.id, user);
   }
 
   async handleCustomerCreated(event: Stripe.Event) {
