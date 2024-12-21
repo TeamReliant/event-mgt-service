@@ -1,4 +1,10 @@
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Column,
+  DeleteDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { EventStatus, EventVisibility } from '../enums';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { User } from '@app/rest/users/entities/user.entity';
@@ -108,6 +114,9 @@ export class Event extends AbstractEntity<Event> {
     scale: 2,
   })
   totalStripeFee: number;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 
   //cascade true automatically saves tickets when an event is saved
   @OneToMany(() => Ticket, (ticket) => ticket.event, { cascade: true })
