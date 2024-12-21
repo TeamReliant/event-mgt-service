@@ -170,22 +170,16 @@ export class PaymentService {
     }
   }
 
-  async cancelSubscription(
-    user: TJwtPayload,
-    cancelSubDto: CancelSubscriptionDto,
-    paymentMethod: string,
-  ) {
+  async cancelSubscription(user: TJwtPayload, paymentMethod: string) {
     const paymentStrategy =
       this.paymentStrategyResolver.getStrategy(paymentMethod);
     const currUser = await this.validateUserType(user, 'organizer');
 
-    if (currUser.subscriptionId !== cancelSubDto.subscriptionId) {
-      throw new BadRequestException(
-        'Subscription ID does not belong to currently logged in user',
-      );
+    if (!currUser.subscriptionId) {
+      throw new BadRequestException('No active subscription found');
     }
 
-    await this.stripe.subscriptions.update(cancelSubDto.subscriptionId, {
+    await this.stripe.subscriptions.update(currUser.subscriptionId, {
       cancel_at_period_end: true,
     });
 

@@ -64,15 +64,10 @@ export class PaymentController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
   async cancelSubscription(
-    @Body() cancelSubDto: CancelSubscriptionDto,
     @CurrentUser() user: TJwtPayload,
     @Query('paymentMethod') paymentMethod: string,
   ) {
-    await this.paymentService.cancelSubscription(
-      user,
-      cancelSubDto,
-      paymentMethod,
-    );
+    await this.paymentService.cancelSubscription(user, paymentMethod);
     return ResponseSerializer.message('Subscription cancelled successfully');
   }
 
