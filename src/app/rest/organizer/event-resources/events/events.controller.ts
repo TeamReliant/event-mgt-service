@@ -58,6 +58,14 @@ export class EventsController {
     private readonly permissionsService: PermissionsService,
   ) {}
 
+  @Get('user-onboarded-status')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @SerializeResponse(UserProfileDto, 'data')
+  async getUserOnboardedStatus(@CurrentUser() user: TJwtPayload) {
+    return await this.eventsService.getUserOnboardedStatus(user.userId);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -169,7 +177,7 @@ export class EventsController {
 
   @Get(':id/soft-deleted-event')
   @HttpCode(HttpStatus.OK)
-  @SerializeResponse(GetOneEventResponseDto, "collection")
+  @SerializeResponse(GetOneEventResponseDto, 'collection')
   async findSoftDeletedEvent(@Req() req: Request, @Param('id') userId: string) {
     return await this.eventsService.findSoftDeletedEvents(userId);
   }
@@ -183,15 +191,6 @@ export class EventsController {
   ) {
     const data = await this.eventsService.findOneForAttendee(slug, userId);
     return ResponseSerializer.data(data);
-  }
-
-  @Get("user-onboarded-status")
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @SerializeResponse(UserProfileDto, 'data')
-  async getUserOnboardedStatus(@CurrentUser() user: TJwtPayload)
-  {
-    return await this.eventsService.getUserOnboardedStatus(user.userId);
   }
 
   @Patch(':id')
