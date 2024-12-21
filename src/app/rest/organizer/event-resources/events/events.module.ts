@@ -9,11 +9,14 @@ import { Event } from './entities/event.entity';
 import { UsersService } from '@app/rest/users/users.service';
 import { User } from '@app/rest/users/entities/user.entity';
 import { PermissionsModule } from '@app/rest/organizer/team-resources/permissions/permissions.module';
+import { Payment } from '../../payment-resources/payment/entities/payment.entity';
+import { PaymentModule } from '../../payment-resources/payment/payment.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Event, Ticket, User]),
     UsersModule,
+    PaymentModule,
     PermissionsModule,
   ],
   controllers: [EventsController],
