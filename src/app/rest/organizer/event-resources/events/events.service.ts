@@ -457,8 +457,7 @@ export class EventsService {
         user = await this.userService.findOneByIdAndUpdate(user.id, user);
         if (!user.stripeConnectedAccountId)
           await this.paymentService.createStripeConnectedAccountId(user);
-
-        this.eventEmitter.emit(events.STRIPE_PAYMENT_ONBOARDING_COMPLETED);
+        //TODO EMIT STRIPE ONBOARDING EVENT
       }
     }
 
