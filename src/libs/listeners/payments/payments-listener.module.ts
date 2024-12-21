@@ -42,9 +42,7 @@ export class PaymentListener {
   @OnEvent(events.STRIPE_PAYMENT_ONBOARDING_COMPLETED)
   async dispatchStripeOnboardingCompletedNotification(payload: PaymentEvent) {
     const { paymentNotification } = payload;
-    await this.paymentsEmailService.sendStripePaymentOnboardingCompletedMessage(
-      paymentNotification,
-    );
+    await this.paymentsEmailService.sendStripePaymentOnboardingCompletedMessage();
 
     // Remove the event from the queue when done
     this.eventEmitter.removeListener(
