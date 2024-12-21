@@ -21,6 +21,9 @@ import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.enti
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
+import { PaymentService } from '../../payment-resources/payment/payment.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { events } from '@config/app.config';
 
 @Injectable()
 export class EventsService {
@@ -29,6 +32,8 @@ export class EventsService {
     private readonly entityManager: EntityManager,
     private readonly userService: UsersService,
     private readonly azureBlobService: AzureBlobFileSystemService,
+    private readonly paymentService: PaymentService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private async uploadImage(file: Express.Multer.File): Promise<string> {
@@ -430,6 +435,34 @@ export class EventsService {
     const view = this.entityManager.create(EventView, { event, user });
     await this.entityManager.save(EventView, view);
     return;
+  }
+
+  async getUserOnboardedStatus(userId: string) {
+    let user = await this.userService.findOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const wasOnboarded = user.isOnboarded;
+
+    if (!user.stripeConnectedAccountId)
+      await this.paymentService.createStripeConnectedAccountId(user);
+
+    if (!wasOnboarded) {
+      const userAccount = await this.paymentService.getUserAccountDetails(
+        user.stripeConnectedAccountId,
+      );
+      console.log(
+        `$Charges Enabled: ${userAccount.charges_enabled}\n Payouts Enabled: ${userAccount.payouts_enabled}`,
+      );
+      if (userAccount.charges_enabled && userAccount.payouts_enabled) {
+        user.isOnboarded = true;
+        user = await this.userService.findOneByIdAndUpdate(user.id, user);
+        if (!user.stripeConnectedAccountId)
+          await this.paymentService.createStripeConnectedAccountId(user);
+
+        this.eventEmitter.emit(events.STRIPE_PAYMENT_ONBOARDING_COMPLETED);
+      }
+    }
+
+    return user;
   }
 
   async update(id: string, updateEventDto: UpdateEventDto) {

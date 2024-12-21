@@ -11,6 +11,7 @@ import {
   Patch,
   Post,
   Req,
+  Res,
   UnprocessableEntityException,
   UploadedFile,
   UseGuards,
@@ -45,6 +46,8 @@ import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
 import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { UserDto } from '@app/rest/users/dto/shared/user.dto';
+import { UserProfileDto } from '@app/rest/users/dto/shared/user-profile.dto';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
@@ -170,7 +173,7 @@ export class EventsController {
   async findSoftDeletedEvent(@Req() req: Request, @Param('id') userId: string) {
     return await this.eventsService.findSoftDeletedEvents(userId);
   }
-  
+
   @Get(':slug/attendee')
   @UseGuards(SoftJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -180,6 +183,15 @@ export class EventsController {
   ) {
     const data = await this.eventsService.findOneForAttendee(slug, userId);
     return ResponseSerializer.data(data);
+  }
+
+  @Post("user-onboarded-status")
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @SerializeResponse(UserProfileDto, 'data')
+  async getUserOnboardedStatus(@CurrentUser() user: TJwtPayload)
+  {
+    return await this.eventsService.getUserOnboardedStatus(user.userId);
   }
 
   @Patch(':id')

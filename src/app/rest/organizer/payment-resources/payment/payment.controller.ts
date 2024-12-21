@@ -100,9 +100,9 @@ export class PaymentController {
       case 'invoice.payment_failed':
         await this.paymentService.handlePayment(event);
         break;
-      case 'account.updated':
-        await this.paymentService.handleAccountUpdated(event);
-        break;
+      // case 'account.updated':
+      //   await this.paymentService.handleAccountUpdated(event);
+      //   break;
       case 'payout.paid':
       case 'payout.failed':
         await this.paymentService.handlePayout(event, events.PAYOUT_FAILED);
