@@ -416,8 +416,7 @@ export class PaymentService {
     }
   }
 
-  async getUserAccountDetails(acccountId: string)
-  {
+  async getUserAccountDetails(acccountId: string) {
     return await this.stripe.accounts.retrieve(acccountId);
   }
   async handleSubscriptionDeleted(event: Stripe.Event) {
@@ -442,6 +441,47 @@ export class PaymentService {
     //TODO notify user of subscription cancellation
   }
 
+  /**
+   * Calculates total revenue from subscription
+   * @returns total revenue from subscription
+   */
+  public async getSubscriptionRevenue() {
+    let totalRevenue = 0;
+    let hasMore = true;
+    let startingAfter: string | undefined = undefined;
+
+    while (hasMore) {
+      const paginationParams = startingAfter
+        ? { starting_after: startingAfter }
+        : {};
+      const balanceTransactions = await this.stripe.balanceTransactions.list({
+        limit: 100,
+        type: 'charge',
+        expand: ['data.source'],
+        ...paginationParams,
+      });
+
+      for (const transaction of balanceTransactions.data) {
+        const source = transaction.source as Stripe.Charge;
+        if (
+          transaction.status === 'available' &&
+          source &&
+          source.invoice &&
+          !source.transfer &&
+          transaction.reporting_category === 'charge'
+        ) {
+          totalRevenue += transaction.net;
+        }
+      }
+
+      hasMore = balanceTransactions.has_more;
+      if (hasMore && balanceTransactions.data.length > 0) {
+        startingAfter =
+          balanceTransactions.data[balanceTransactions.data.length - 1].id;
+      }
+    }
+    return totalRevenue / 100;
+  }
   // async handleAccountUpdated(event: Stripe.Event) {
   //   //logs for debug purposes
   //   console.log('Stripe Event:', {
