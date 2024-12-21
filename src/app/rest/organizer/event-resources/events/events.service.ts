@@ -8,7 +8,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import { Brackets, EntityManager, Repository } from 'typeorm';
+import { Brackets, EntityManager, IsNull, Not, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -628,6 +628,12 @@ export class EventsService {
     return queryBuilder;
   }
 
+  /**
+   * This method is used to SOFT delete an event from the database
+   * @param id ID of the event to be deleted
+   * @param user Creator of the event
+   * @returns nothing
+   */
   async remove(id: string, user: TJwtPayload) {
     //check if event exists and belongs to authenticated user
     const event = await this.findOne(id, user);
@@ -635,12 +641,12 @@ export class EventsService {
 
     //delete event and it's related tickets
     await this.entityManager.transaction(async (manager) => {
-      await manager.delete(EventView, { event: { id: event.id } });
-      await manager.delete(Ticket, { event: { id: event.id } });
-      await manager.delete(Event, id);
+      await manager.softDelete(EventView, { event: { id: event.id } });
+      await manager.softDelete(Ticket, { event: { id: event.id } });
+      await manager.softDelete(Event, id);
       userEntity.numOfEventsCreated--;
       await manager.save(User, userEntity);
-      await this.deleteImage(event.eventImageURL);
+      //await this.deleteImage(event.eventImageURL);
 
       // fetch the system register
       const systemRegister = await manager
@@ -655,6 +661,76 @@ export class EventsService {
       await manager.save<SystemRegister>(systemRegister);
     });
     return;
+  }
+
+  async restore(id: string, user: TJwtPayload) {
+    const event = await this.eventRepo.findOne({
+      where: { id, user: { id: user.userId }, deletedAt: Not(IsNull()) },
+      withDeleted: true,
+      relations: ['user', 'tickets', 'eventViews'],
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    await this.entityManager.transaction(async (manager) => {
+      await manager.restore(EventView, { event: { id: event.id } });
+      await manager.restore(Ticket, { event: { id: event.id } });
+      await manager.restore(Event, id);
+
+      const userEntity = await this.userService.findOne(user.userId);
+      userEntity.numOfEventsCreated++;
+      await manager.save(User, userEntity);
+
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      systemRegister.totalEvents += 1;
+      if (event.eventStatus === EventStatus.PUBLISHED) {
+        systemRegister.publishedEvents += 1;
+      }
+
+      await manager.save<SystemRegister>(systemRegister);
+    });
+  }
+
+  /**
+   * ADMIN METHOD
+   * find all soft deleted events for a particular user
+   * @param user
+   * @returns returns the list of soft deleted events
+   */
+  async findSoftDeletedEvents(userId: string): Promise<Event[]> {
+    return await this.eventRepo.find({
+      where: {
+        user: { id: userId },
+        deletedAt: Not(IsNull()),
+      },
+      withDeleted: true,
+      relations: ['user', 'tickets', 'eventViews'],
+      order: {
+        deletedAt: 'DESC',
+      },
+    });
+  }
+
+  /**
+   * Finds the list of soft deleted events in the database
+   * @returns returns the list of soft deleted events
+   */
+  async findAllSoftDeletedEvents() {
+    const queryBuilder = this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets')
+      .leftJoinAndSelect('event.eventViews', 'eventViews')
+      .where('event.deletedAt IS NOT NULL')
+      .withDeleted()
+      .orderBy('event.deletedAt', 'DESC');
+
+    return queryBuilder;
   }
 
   async assignTeam(body: AssignTeamDto, eventId: string, userId: string) {

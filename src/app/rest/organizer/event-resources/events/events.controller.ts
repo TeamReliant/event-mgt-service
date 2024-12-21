@@ -164,6 +164,13 @@ export class EventsController {
     return await this.eventsService.findOne(params.id, user);
   }
 
+  @Get(':id/soft-deleted-event')
+  @HttpCode(HttpStatus.OK)
+  @SerializeResponse(GetOneEventResponseDto, "collection")
+  async findSoftDeletedEvent(@Req() req: Request, @Param('id') userId: string) {
+    return await this.eventsService.findSoftDeletedEvents(userId);
+  }
+  
   @Get(':slug/attendee')
   @UseGuards(SoftJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -248,6 +255,17 @@ export class EventsController {
   ): Promise<IResponseWithMessage> {
     await this.eventsService.remove(id, user);
     return ResponseSerializer.message('Event deleted successfully');
+  }
+
+  @Get('restore/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async restore(
+    @Param('id') eventId: string,
+    @CurrentUser() user: TJwtPayload,
+  ): Promise<IResponseWithMessage> {
+    await this.eventsService.restore(eventId, user);
+    return ResponseSerializer.message('Event restored successfully');
   }
 
   @Post(':id/team')

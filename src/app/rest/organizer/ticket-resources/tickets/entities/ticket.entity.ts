@@ -1,8 +1,15 @@
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import {
+  Column,
+  DeleteDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { TicketCategory } from '../enums';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { AbstractEntity } from '@libs/database';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
+import { Delete } from '@nestjs/common';
 
 @Entity()
 export class Ticket extends AbstractEntity<Ticket> {
@@ -37,6 +44,9 @@ export class Ticket extends AbstractEntity<Ticket> {
   // should be set to false when number of tickets sold is equal to availableTickets
   @Column({ default: true })
   isAvailable: boolean;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 
   @ManyToOne(() => Event, (event) => event.tickets)
   event: Event;

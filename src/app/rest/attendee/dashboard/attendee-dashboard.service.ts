@@ -4,7 +4,11 @@ import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
-import { EventVisibility } from '@app/rest/organizer/event-resources/events/enums';
+import {
+  EventStatus,
+  EventVisibility,
+} from '@app/rest/organizer/event-resources/events/enums';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 
 @Injectable()
 export class AttendeeDashboardService {
@@ -21,8 +25,11 @@ export class AttendeeDashboardService {
       .where('event.eventStartDateAndTime > :currentDate', {
         currentDate: new Date(),
       })
-      .andWhere('booking.processed = :processed', { processed: true })
-      .andWhere('booking.paid = :paid', { paid: true })
+      // .andWhere('booking.processed = :processed', { processed: true })
+      // .andWhere('booking.paid = :paid', { paid: true })
+      .andWhere('booking.status = :bookingStatus', {
+        bookingStatus: BookingStatus.VALID,
+      })
       .orderBy('event.eventStartDateAndTime', 'ASC');
 
     // Main query to get bookings with the unique event IDs
@@ -52,6 +59,9 @@ export class AttendeeDashboardService {
       .leftJoinAndSelect('events.tickets', 'tickets')
       .where('events.eventVisibility = :eventVisibility', {
         eventVisibility: EventVisibility.PUBLIC,
+      })
+      .andWhere('events.eventStatus = :eventStatus', {
+        eventStatus: EventStatus.PUBLISHED,
       })
       .orderBy('RANDOM()') // Fetch random rows each time
       .limit(10)
