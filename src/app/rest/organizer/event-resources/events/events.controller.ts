@@ -185,7 +185,7 @@ export class EventsController {
     return ResponseSerializer.data(data);
   }
 
-  @Post("user-onboarded-status")
+  @Get("user-onboarded-status")
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @SerializeResponse(UserProfileDto, 'data')
