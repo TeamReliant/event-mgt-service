@@ -566,7 +566,7 @@ export class PaymentService {
       .where('event.id = :eventId', { eventId: booking.event.id })
       .getOne();
 
-    if (!event.user.stripeConnectedAccountId)
+    if (!event.user?.stripeConnectedAccountId)
       throw new BadRequestException(
         `Organizer cannot accept ticket payment at the moment, try again after some time!`,
       );
@@ -594,7 +594,7 @@ export class PaymentService {
       mode: 'payment',
       customer_email: booking.email,
       payment_intent_data: {
-        application_fee_amount: percentageCutAmount + stripeFee, // Fee to our platform
+        application_fee_amount: (percentageCutAmount + stripeFee) * 100, // Fee to our platform
         transfer_data: {
           destination: event.user.stripeConnectedAccountId, // Organizer's connected account
         },
