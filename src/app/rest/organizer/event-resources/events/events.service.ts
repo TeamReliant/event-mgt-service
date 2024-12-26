@@ -287,18 +287,27 @@ export class EventsService {
       .leftJoinAndSelect('event.team', 'team')
       .leftJoinAndSelect('team.members', 'teamMembers')
       .leftJoinAndSelect('teamMembers.user', 'teamMember')
+      .leftJoinAndSelect('teamMembers.invitation', 'invitation')
       .leftJoinAndSelect('teamMembers.permissions', 'permissions')
-      .leftJoinAndSelect('permissions.team', 'permissionTeam');
+      .leftJoinAndSelect('permissions.team', 'permissionTeam')
+      .where('event.user = :userId')
+      .orWhere(
+        '(teamMember.id = :userId  AND invitation.status = :invitationStatus)',
+        {
+          userId,
+          invitationStatus: 'accepted',
+        },
+      );
 
     //select event where user is the owner or a team member
-    queryBuilder.andWhere(
-      new Brackets((qb) => {
-        qb.where('event.user = :userId', { userId }).orWhere(
-          'teamMember.id = :userId',
-          { userId },
-        );
-      }),
-    );
+    // queryBuilder.andWhere(
+    //   new Brackets((qb) => {
+    //     qb.where('event.user = :userId', { userId }).orWhere(
+    //       'teamMember.id = :userId',
+    //       { userId },
+    //     );
+    //   }),
+    // );
 
     if (name)
       queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });

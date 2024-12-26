@@ -650,7 +650,9 @@ export class PaymentService {
               name: `EVENT BOOKING - ${booking.event.name.toUpperCase()}`,
               description: `By ${booking.firstName} ${booking.lastName}, Email: ${booking.email}`,
             },
-            unit_amount: (totalAmount + percentageCutAmount + stripeFee) * 100, // Amount in cents, adjust based on ticket price
+            unit_amount: Math.round(
+              (totalAmount + percentageCutAmount + stripeFee) * 100,
+            ), // Amount in cents, adjust based on ticket price
           },
           quantity: 1,
         },
@@ -658,7 +660,9 @@ export class PaymentService {
       mode: 'payment',
       customer_email: booking.email,
       payment_intent_data: {
-        application_fee_amount: (percentageCutAmount + stripeFee) * 100, // Fee to our platform
+        application_fee_amount: Math.round(
+          (percentageCutAmount + stripeFee) * 100,
+        ), // Fee to our platform
         transfer_data: {
           destination: event.user.stripeConnectedAccountId, // Organizer's connected account
         },
