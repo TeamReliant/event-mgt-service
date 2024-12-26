@@ -83,7 +83,7 @@ export class PaymentService {
     return { invoice, user };
   }
 
-  private async createStripeConnectedAccountId(user: User) {
+  public async createStripeConnectedAccountId(user: User) {
     const account = await this.stripe.accounts.create({
       type: 'express',
       email: user.email,
@@ -170,22 +170,16 @@ export class PaymentService {
     }
   }
 
-  async cancelSubscription(
-    user: TJwtPayload,
-    cancelSubDto: CancelSubscriptionDto,
-    paymentMethod: string,
-  ) {
+  async cancelSubscription(user: TJwtPayload, paymentMethod: string) {
     const paymentStrategy =
       this.paymentStrategyResolver.getStrategy(paymentMethod);
     const currUser = await this.validateUserType(user, 'organizer');
 
-    if (currUser.subscriptionId !== cancelSubDto.subscriptionId) {
-      throw new BadRequestException(
-        'Subscription ID does not belong to currently logged in user',
-      );
+    if (!currUser.subscriptionId) {
+      throw new BadRequestException('No active subscription found');
     }
 
-    await this.stripe.subscriptions.update(cancelSubDto.subscriptionId, {
+    await this.stripe.subscriptions.update(currUser.subscriptionId, {
       cancel_at_period_end: true,
     });
 
@@ -416,6 +410,9 @@ export class PaymentService {
     }
   }
 
+  async getUserAccountDetails(acccountId: string) {
+    return await this.stripe.accounts.retrieve(acccountId);
+  }
   async handleSubscriptionDeleted(event: Stripe.Event) {
     const subscription = event.data.object as Stripe.Subscription;
     const user = await this.userService.findOneBySubscriptionId(
@@ -438,42 +435,109 @@ export class PaymentService {
     //TODO notify user of subscription cancellation
   }
 
-  async handleAccountUpdated(event: Stripe.Event) {
-    const account = event.data.object as Stripe.Account;
-    const user = await this.checkUserExists(account.email);
+  /**
+   * Calculates total revenue from subscription
+   * @returns total revenue from subscription
+   */
+  public async getSubscriptionRevenue() {
+    let totalRevenue = 0;
+    let hasMore = true;
+    let startingAfter: string | undefined = undefined;
 
-    if (!user.stripeConnectedAccountId)
-      user.stripeConnectedAccountId = account.id;
+    while (hasMore) {
+      const paginationParams = startingAfter
+        ? { starting_after: startingAfter }
+        : {};
+      const balanceTransactions = await this.stripe.balanceTransactions.list({
+        limit: 100,
+        type: 'charge',
+        expand: ['data.source'],
+        ...paginationParams,
+      });
 
-    await this.userService.findOneByIdAndUpdate(user.id, user);
+      for (const transaction of balanceTransactions.data) {
+        const source = transaction.source as Stripe.Charge;
+        if (
+          transaction.status === 'available' &&
+          source &&
+          source.invoice &&
+          !source.transfer &&
+          transaction.reporting_category === 'charge'
+        ) {
+          totalRevenue += transaction.net;
+        }
+      }
 
-    const paymentNotification: Payment = {
-      user,
-    };
-    if (account.charges_enabled) {
-      //TODO notify user of charges enabled and encourage them to enable payouts
-      this.eventEmitter.emit(
-        events.CHARGES_ENABLED,
-        new PaymentEvent(paymentNotification),
-      );
+      hasMore = balanceTransactions.has_more;
+      if (hasMore && balanceTransactions.data.length > 0) {
+        startingAfter =
+          balanceTransactions.data[balanceTransactions.data.length - 1].id;
+      }
     }
-    if (account.payouts_enabled) {
-      //TODO notify user of payouts enabled
-      this.eventEmitter.emit(
-        events.PAYOUT_ENABLED,
-        new PaymentEvent(paymentNotification),
-      );
-    }
-
-    if (account.charges_enabled && account.payouts_enabled) {
-      user.isOnboarded = true;
-      this.eventEmitter.emit(
-        events.STRIPE_PAYMENT_ONBOARDING_COMPLETED,
-        new PaymentEvent(paymentNotification),
-      );
-    }
-    await this.userService.findOneByIdAndUpdate(user.id, user);
+    return totalRevenue / 100;
   }
+  // async handleAccountUpdated(event: Stripe.Event) {
+  //   //logs for debug purposes
+  //   console.log('Stripe Event:', {
+  //     id: event.id,
+  //     type: event.type,
+  //     created: new Date(event.created * 1000).toISOString(),
+  //     data: JSON.stringify(event.data.object, null, 2),
+  //   });
+
+  //   const account = event.data.object as Stripe.Account;
+
+  //   console.log('Account Status:', {
+  //     id: account.id,
+  //     email: account.email,
+  //     charges_enabled: account.charges_enabled,
+  //     payouts_enabled: account.payouts_enabled,
+  //     details_submitted: account.details_submitted,
+  //   });
+
+  //   const user = await this.checkUserExists(account.email);
+
+  //   if (!user.stripeConnectedAccountId)
+  //     user.stripeConnectedAccountId = account.id;
+
+  //   // Check onboarding status
+  //   const wasOnboarded = user.isOnboarded;
+  //   if (account.charges_enabled && account.payouts_enabled)
+  //     user.isOnboarded = true;
+
+  //   await this.userService.findOneByIdAndUpdate(user.id, user);
+
+  //   const paymentNotification: Payment = {
+  //     user,
+  //   };
+
+  //   if (account.charges_enabled && account.payouts_enabled) {
+  //     user.isOnboarded = true;
+  //   }
+  //   await this.userService.findOneByIdAndUpdate(user.id, user);
+
+  //   if (account.charges_enabled) {
+  //     this.eventEmitter.emit(
+  //       events.CHARGES_ENABLED,
+  //       new PaymentEvent(paymentNotification),
+  //     );
+  //   }
+  //   if (account.payouts_enabled) {
+  //     //TODO notify user of payouts enabled
+  //     this.eventEmitter.emit(
+  //       events.PAYOUT_ENABLED,
+  //       new PaymentEvent(paymentNotification),
+  //     );
+  //   }
+
+  //   // Only emit onboarding completed if it wasn't previously onboarded
+  //   if (user.isOnboarded && !wasOnboarded) {
+  //     this.eventEmitter.emit(
+  //       events.STRIPE_PAYMENT_ONBOARDING_COMPLETED,
+  //       new PaymentEvent(paymentNotification),
+  //     );
+  //   }
+  // }
 
   async handleCustomerCreated(event: Stripe.Event) {
     const customer = event.data.object as Stripe.Customer;

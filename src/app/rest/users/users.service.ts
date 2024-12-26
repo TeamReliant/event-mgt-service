@@ -108,6 +108,8 @@ export class UsersService {
   async findOne(id: string) {
     return await this.repo
       .createQueryBuilder('user')
+      .leftJoinAndSelect('user.publicProfile', 'publicProfile')
+      .leftJoinAndSelect('user.teams', 'teams')
       .where('user.id = :id', { id: id })
       .getOne();
   }
@@ -116,17 +118,18 @@ export class UsersService {
     id: string,
     userData: Partial<User>,
   ): Promise<User> {
-    // Step 1: Retrieve the entity
-    const entityToUpdate = await this.repo.findOneBy({ id });
+    const entityToUpdate = await this.repo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.publicProfile', 'publicProfile')
+      .leftJoinAndSelect('user.teams', 'teams')
+      .where('user.id = :id', { id })
+      .getOne();
 
-    // Check if the entity exists
-    if (!entityToUpdate)
+    if (!entityToUpdate) {
       throw new NotFoundException(`User with ID ${id} not found`);
+    }
 
-    // Step 2: Modify the entity with new data
     Object.assign(entityToUpdate, userData);
-
-    // Step 3: Save the updated entity
     return await this.repo.save(entityToUpdate);
   }
 

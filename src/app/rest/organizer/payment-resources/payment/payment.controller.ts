@@ -64,15 +64,10 @@ export class PaymentController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
   async cancelSubscription(
-    @Body() cancelSubDto: CancelSubscriptionDto,
     @CurrentUser() user: TJwtPayload,
     @Query('paymentMethod') paymentMethod: string,
   ) {
-    await this.paymentService.cancelSubscription(
-      user,
-      cancelSubDto,
-      paymentMethod,
-    );
+    await this.paymentService.cancelSubscription(user, paymentMethod);
     return ResponseSerializer.message('Subscription cancelled successfully');
   }
 
@@ -100,9 +95,9 @@ export class PaymentController {
       case 'invoice.payment_failed':
         await this.paymentService.handlePayment(event);
         break;
-      case 'account.updated':
-        await this.paymentService.handleAccountUpdated(event);
-        break;
+      // case 'account.updated':
+      //   await this.paymentService.handleAccountUpdated(event);
+      //   break;
       case 'payout.paid':
       case 'payout.failed':
         await this.paymentService.handlePayout(event, events.PAYOUT_FAILED);

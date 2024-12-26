@@ -11,6 +11,7 @@ import {
   Patch,
   Post,
   Req,
+  Res,
   UnprocessableEntityException,
   UploadedFile,
   UseGuards,
@@ -45,6 +46,8 @@ import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
 import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { UserDto } from '@app/rest/users/dto/shared/user.dto';
+import { UserProfileDto } from '@app/rest/users/dto/shared/user-profile.dto';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];
 
@@ -54,6 +57,14 @@ export class EventsController {
     private readonly eventsService: EventsService,
     private readonly permissionsService: PermissionsService,
   ) {}
+
+  @Get('user-onboarded-status')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @SerializeResponse(UserProfileDto, 'data')
+  async getUserOnboardedStatus(@CurrentUser() user: TJwtPayload) {
+    return await this.eventsService.getUserOnboardedStatus(user.userId);
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -164,6 +175,13 @@ export class EventsController {
     return await this.eventsService.findOne(params.id, user);
   }
 
+  @Get(':id/soft-deleted-event')
+  @HttpCode(HttpStatus.OK)
+  @SerializeResponse(GetOneEventResponseDto, 'collection')
+  async findSoftDeletedEvent(@Req() req: Request, @Param('id') userId: string) {
+    return await this.eventsService.findSoftDeletedEvents(userId);
+  }
+
   @Get(':slug/attendee')
   @UseGuards(SoftJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -248,6 +266,17 @@ export class EventsController {
   ): Promise<IResponseWithMessage> {
     await this.eventsService.remove(id, user);
     return ResponseSerializer.message('Event deleted successfully');
+  }
+
+  @Get('restore/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async restore(
+    @Param('id') eventId: string,
+    @CurrentUser() user: TJwtPayload,
+  ): Promise<IResponseWithMessage> {
+    await this.eventsService.restore(eventId, user);
+    return ResponseSerializer.message('Event restored successfully');
   }
 
   @Post(':id/team')

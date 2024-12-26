@@ -12,7 +12,7 @@ export class PaymentsEmailService {
   ) {}
 
   private async sendEmail(
-    paymentNotification: Payment,
+    paymentNotification: Payment = null,
     subject: string,
     template: string,
     additionalPayload: any = {},
@@ -83,12 +83,10 @@ export class PaymentsEmailService {
     );
   }
 
-  async sendStripePaymentOnboardingCompletedMessage(
-    paymentNotification: Payment,
-  ) {
+  async sendStripePaymentOnboardingCompletedMessage() {
     const subject: string = `${appInfo.appName}: Stripe Payment Onboarding is Complete!`;
     const template = `payments/connect-onboarding-complete`;
-    await this.sendEmail(paymentNotification, subject, template);
+    await this.sendEmail(null, subject, template);
   }
 
   async sendPayoutSuccessMessage(payoutNotification: Payment) {

@@ -8,7 +8,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import { Brackets, EntityManager, Repository } from 'typeorm';
+import { Brackets, EntityManager, IsNull, Not, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -21,6 +21,9 @@ import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.enti
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
+import { PaymentService } from '../../payment-resources/payment/payment.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { events } from '@config/app.config';
 
 @Injectable()
 export class EventsService {
@@ -29,6 +32,8 @@ export class EventsService {
     private readonly entityManager: EntityManager,
     private readonly userService: UsersService,
     private readonly azureBlobService: AzureBlobFileSystemService,
+    private readonly paymentService: PaymentService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private async uploadImage(file: Express.Multer.File): Promise<string> {
@@ -362,6 +367,7 @@ export class EventsService {
       relations: [
         'user',
         'tickets',
+        'eventViews',
         'team',
         'team.members',
         'team.members.user',
@@ -438,6 +444,33 @@ export class EventsService {
     const view = this.entityManager.create(EventView, { event, user });
     await this.entityManager.save(EventView, view);
     return;
+  }
+
+  async getUserOnboardedStatus(userId: string) {
+    let user = await this.userService.findOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const wasOnboarded = user.isOnboarded;
+
+    if (!user.stripeConnectedAccountId)
+      await this.paymentService.createStripeConnectedAccountId(user);
+
+    if (!wasOnboarded) {
+      const userAccount = await this.paymentService.getUserAccountDetails(
+        user.stripeConnectedAccountId,
+      );
+      console.log(
+        `$Charges Enabled: ${userAccount.charges_enabled}\n Payouts Enabled: ${userAccount.payouts_enabled}`,
+      );
+      if (userAccount.charges_enabled && userAccount.payouts_enabled) {
+        user.isOnboarded = true;
+        user = await this.userService.findOneByIdAndUpdate(user.id, user);
+        if (!user.stripeConnectedAccountId)
+          await this.paymentService.createStripeConnectedAccountId(user);
+        //TODO EMIT STRIPE ONBOARDING EVENT
+      }
+    }
+
+    return user;
   }
 
   async update(id: string, updateEventDto: UpdateEventDto) {
@@ -636,6 +669,12 @@ export class EventsService {
     return queryBuilder;
   }
 
+  /**
+   * This method is used to SOFT delete an event from the database
+   * @param id ID of the event to be deleted
+   * @param user Creator of the event
+   * @returns nothing
+   */
   async remove(id: string, user: TJwtPayload) {
     //check if event exists and belongs to authenticated user
     const event = await this.findOne(id, user);
@@ -643,11 +682,12 @@ export class EventsService {
 
     //delete event and it's related tickets
     await this.entityManager.transaction(async (manager) => {
-      await manager.delete(Ticket, { event: { id: event.id } });
-      await manager.delete(Event, id);
+      await manager.softDelete(EventView, { event: { id: event.id } });
+      await manager.softDelete(Ticket, { event: { id: event.id } });
+      await manager.softDelete(Event, id);
       userEntity.numOfEventsCreated--;
       await manager.save(User, userEntity);
-      await this.deleteImage(event.eventImageURL);
+      //await this.deleteImage(event.eventImageURL);
 
       // fetch the system register
       const systemRegister = await manager
@@ -662,6 +702,76 @@ export class EventsService {
       await manager.save<SystemRegister>(systemRegister);
     });
     return;
+  }
+
+  async restore(id: string, user: TJwtPayload) {
+    const event = await this.eventRepo.findOne({
+      where: { id, user: { id: user.userId }, deletedAt: Not(IsNull()) },
+      withDeleted: true,
+      relations: ['user', 'tickets', 'eventViews'],
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    await this.entityManager.transaction(async (manager) => {
+      await manager.restore(EventView, { event: { id: event.id } });
+      await manager.restore(Ticket, { event: { id: event.id } });
+      await manager.restore(Event, id);
+
+      const userEntity = await this.userService.findOne(user.userId);
+      userEntity.numOfEventsCreated++;
+      await manager.save(User, userEntity);
+
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      systemRegister.totalEvents += 1;
+      if (event.eventStatus === EventStatus.PUBLISHED) {
+        systemRegister.publishedEvents += 1;
+      }
+
+      await manager.save<SystemRegister>(systemRegister);
+    });
+  }
+
+  /**
+   * ADMIN METHOD
+   * find all soft deleted events for a particular user
+   * @param user
+   * @returns returns the list of soft deleted events
+   */
+  async findSoftDeletedEvents(userId: string): Promise<Event[]> {
+    return await this.eventRepo.find({
+      where: {
+        user: { id: userId },
+        deletedAt: Not(IsNull()),
+      },
+      withDeleted: true,
+      relations: ['user', 'tickets', 'eventViews'],
+      order: {
+        deletedAt: 'DESC',
+      },
+    });
+  }
+
+  /**
+   * Finds the list of soft deleted events in the database
+   * @returns returns the list of soft deleted events
+   */
+  async findAllSoftDeletedEvents() {
+    const queryBuilder = this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets')
+      .leftJoinAndSelect('event.eventViews', 'eventViews')
+      .where('event.deletedAt IS NOT NULL')
+      .withDeleted()
+      .orderBy('event.deletedAt', 'DESC');
+
+    return queryBuilder;
   }
 
   async assignTeam(body: AssignTeamDto, eventId: string, userId: string) {
