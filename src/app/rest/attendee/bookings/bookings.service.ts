@@ -65,6 +65,12 @@ export class BookingsService {
     if (!event)
       throw new NotFoundException(`Event not found with the id: ${eventId}`);
 
+    // check if the end date of the event is passed already
+    if (event.eventEndDateAndTime < new Date())
+      throw new NotAcceptableException(
+        `The event ${event.name} has already ended`,
+      );
+
     const bookingsToToBeSaved: Booking[] = [];
     const invalidTickets: string[] = [];
     let foundPaid: boolean = false;
@@ -322,6 +328,18 @@ export class BookingsService {
     const { bookings, cancelUrl } = body;
     const invalidBookings: string[] = [];
     const validBookings: Booking[] = [];
+
+    const oneOfBookings = await this._repo
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.event', 'event')
+      .andWhere('booking.id = :id', { id: bookings[0] })
+      .getOne();
+
+    // check if the end date of the event is passed already
+    if (oneOfBookings.event.eventEndDateAndTime < new Date())
+      throw new NotAcceptableException(
+        `The event ${oneOfBookings.event.name} has already ended`,
+      );
 
     let foundPaid: boolean = false;
     for (const id of bookings) {
