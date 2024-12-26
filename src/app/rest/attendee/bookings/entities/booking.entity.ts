@@ -93,7 +93,7 @@ export class Booking extends AbstractEntity<Booking> {
   @OneToOne(() => Booking, (booking) => booking.transferredTo)
   transferredFrom: Booking;
 
-  @ManyToOne(() => Ticket, (ticket) => ticket.bookings, {onDelete: 'CASCADE'})
+  @ManyToOne(() => Ticket, (ticket) => ticket.bookings, { onDelete: 'CASCADE' })
   ticket: Ticket;
 
   @ManyToOne(() => Event, (event) => event.bookings)
