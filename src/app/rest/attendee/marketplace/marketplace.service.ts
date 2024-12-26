@@ -120,9 +120,7 @@ export class MarketplaceService {
         .andWhere('event.eventVisibility = :visibility', {
           visibility: 'public',
         })
-        .andWhere('event.eventStartDateAndTime > :currentDate', {
-          currentDate: new Date(),
-        });
+        .andWhere('event.eventStartDateAndTime >= CURRENT_TIMESTAMP');
 
       if (typeof countryName === 'string') {
         queryBuilder.andWhere('event.locationName ILIKE :countryName', {
