@@ -3,7 +3,6 @@ import { AdminManagementService } from './admin-management.service';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { AllUserDto } from './dto/fetch-all-user.dto';
 import { Request } from 'express';
-import { BlockUserDto } from './dto/block-user.dto';
 
 @Controller('admin-management')
 export class AdminManagementController {
