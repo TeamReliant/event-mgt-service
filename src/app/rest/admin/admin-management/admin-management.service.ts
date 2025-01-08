@@ -2,15 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { User } from '@app/rest/users/entities/user.entity';
 import { UsersService } from '@app/rest/users/users.service';
-import { TJwtPayload } from '@libs/types';
-import { UserStatus } from './enums/user-status.enums';
-import { Parser } from 'json2csv';
 import { join } from 'path';
-import { promises as fs, unlink } from 'fs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { events } from '@config/app.config';
-import { AllUsersExportEvent } from './events/export-all-users.event';
-import { ExportData } from './entities/export-data.entity';
 
 @Injectable()
 export class AdminManagementService {
