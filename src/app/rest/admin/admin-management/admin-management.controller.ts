@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Req} from '@nestjs/common';
+import { Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { AdminManagementService } from './admin-management.service';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { AllUserDto } from './dto/fetch-all-user.dto';
@@ -24,11 +24,11 @@ export class AdminManagementController {
       return {
         ...userData,
         status: this.getUserStatus(user.blocked, user.lastLoggedIn),
-        companyName: publicProfile.companyName,
-        country: publicProfile.country,
-        city: publicProfile.city,
-        address: publicProfile.address,
-        website: publicProfile.website,
+        companyName: publicProfile?.companyName || '',
+        country: publicProfile?.country || '',
+        city: publicProfile?.city || '',
+        address: publicProfile?.address || '',
+        website: publicProfile?.website || '',
       };
     });
     return response;
