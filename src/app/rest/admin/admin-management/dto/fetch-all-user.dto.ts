@@ -1,5 +1,7 @@
 import { UserType } from '@app/rest/users/enums/user-type';
 import { Expose } from 'class-transformer';
+import { UserStatus } from '../enums/user-status.enums';
+import { PublicProfileDto } from '@app/rest/users/dto/shared/public-profile.dto';
 
 export class AllUserDto {
   @Expose()
@@ -15,16 +17,7 @@ export class AllUserDto {
   email: string;
 
   @Expose()
-  emailVerifiedAt?: number;
-
-  @Expose()
   userType: UserType;
-
-  @Expose()
-  createdAt: Date;
-
-  @Expose()
-  updatedAt: Date;
 
   @Expose()
   numOfEventsCreated: number;
@@ -34,9 +27,6 @@ export class AllUserDto {
 
   @Expose()
   stripeConnectedAccountId?: string;
-
-  @Expose()
-  customerId?: string;
 
   @Expose()
   isOnboarded: boolean;
@@ -51,23 +41,14 @@ export class AllUserDto {
   visibility: boolean;
 
   @Expose()
-  subscriptionEndDate?: string;
-
-  @Expose()
-  website: boolean;
-
-  @Expose()
-  bio: string;
-
-  @Expose()
-  totalRevenue: number;
+  website: string;
 
   @Expose()
   blocked: boolean;
 
   @Expose()
-  totalPlatformFee: number;
+  lastLoggedIn: Date;
 
   @Expose()
-  totalStripeFee: number;
+  publicProfile: PublicProfileDto;
 }
