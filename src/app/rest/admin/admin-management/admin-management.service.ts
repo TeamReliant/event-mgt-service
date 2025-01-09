@@ -18,7 +18,7 @@ export class AdminManagementService {
     var queryBuilder = await this.entityManager
       .createQueryBuilder(User, 'user')
       .leftJoinAndSelect('user.publicProfile', 'publicProfile')
-      .select(['user', 'publicProfile']);
+      .orderBy('user.createdAt', 'DESC');
 
     return queryBuilder;
   }
