@@ -337,7 +337,7 @@ export class LineItemsService {
       totalBudget.percentageDiff - totalExpenses.percentageDiff;
 
     return {
-      value: availableBudget,
+      value: this._roundToTwo(availableBudget),
       percentageDiff,
     };
   }
