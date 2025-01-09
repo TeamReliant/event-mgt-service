@@ -4,7 +4,6 @@ import { User } from '@app/rest/users/entities/user.entity';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 import { Transaction } from '@app/rest/organizer/transaction-resources/transactions/entities/transaction.entity';
-import { endOfWeek, format, startOfWeek } from 'date-fns';
 
 @Injectable()
 export class AdminDashboardService {
@@ -138,34 +137,36 @@ export class AdminDashboardService {
     );
 
     // Process and format results
-    const formattedResults = rawResults.reduce((acc, row) => {
+    return rawResults.reduce((acc, row) => {
       const { label_date, user_count } = row;
+      let key = '';
 
-      let key = label_date;
+      // Daily granularity
+      if (granularity === 'daily') {
+        const date = new Date(label_date);
+        key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`;
+      }
 
-      // Handle weekly granularity
+      // Weekly granularity
       if (granularity === 'weekly') {
         const startOfWeek = new Date(label_date);
-        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
-        key = `${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()}`;
+
+        const startStr = `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()}`;
+        const endStr = `${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
+        key = `${startStr} - ${endStr}`;
       }
 
-      // Handle monthly granularity
+      // Monthly granularity
       if (granularity === 'monthly') {
-        key = new Date(label_date).toLocaleString('default', {
-          month: 'short',
-          year: 'numeric',
-        });
+        const date = new Date(label_date);
+        key = `${date.toLocaleString('default', { month: 'short' })}`;
       }
 
-      // Accumulate user counts for each date/week/month
-      acc[key] = (acc[key] || 0) + user_count;
+      acc[key] = user_count;
       return acc;
     }, {});
-
-    return formattedResults;
   }
 
   async getAnalytics() {
@@ -180,16 +181,16 @@ export class AdminDashboardService {
     const currentYear = new Date().getFullYear();
     const currentMonthStart = new Date(currentYear, currentMonth - 1, 1);
     const currentMonthEnd = new Date(currentYear, currentMonth, 0);
+
     const currentMonthBookingTransactions = await this._entityManager
-      .getRepository(BookingsTransaction)
-      .createQueryBuilder('transactions')
-      .andWhere('transactions.created_at >= :startOfMonth', {
+      .createQueryBuilder(BookingsTransaction, 'transactions')
+      .where('transactions.created_at >= :startOfMonth', {
         startOfMonth: currentMonthStart,
       })
       .andWhere('transactions.created_at <= :endOfMonth', {
         endOfMonth: currentMonthEnd,
       })
-      .select(['transactions.id', 'bookings.fee'])
+      .select(['transactions.id', 'transactions.fee'])
       .getMany();
 
     const bookingRevenue = currentMonthBookingTransactions.reduce(
@@ -203,13 +204,13 @@ export class AdminDashboardService {
     const currentMonthTransactions = await this._entityManager
       .getRepository(Transaction)
       .createQueryBuilder('transactions')
-      .andWhere('transactions.created_at >= :startOfMonth', {
+      .where('transactions.created_at >= :startOfMonth', {
         startOfMonth: currentMonthStart,
       })
       .andWhere('transactions.created_at <= :endOfMonth', {
         endOfMonth: currentMonthEnd,
       })
-      .select(['transactions.id', 'bookings.fee'])
+      .select(['transactions.id', 'transactions.amount'])
       .getMany();
 
     const subscriptionRevenue = currentMonthTransactions.reduce(
