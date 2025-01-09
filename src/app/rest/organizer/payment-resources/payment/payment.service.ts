@@ -835,6 +835,20 @@ export class PaymentService {
       );
   }
 
+  async getExpressDashboard(userId: string) {
+    // find the user with the userId
+    const user = await this.userService.findOne(userId);
+    if (!user.stripeConnectedAccountId)
+      throw new NotAcceptableException(
+        'Please complete your payout onboarding',
+      );
+
+    const expressUrl = await this.stripe.accounts.createLoginLink(
+      user.stripeConnectedAccountId,
+    );
+    return expressUrl.url;
+  }
+
   async generateBookingId(): Promise<string> {
     const randNum = Math.floor(10000 + Math.random() * 90000);
     const bookingId = `#${randNum}`;
@@ -847,5 +861,21 @@ export class PaymentService {
 
   async retrieveCheckoutSession(sessionId: string): Promise<any> {
     return await this.stripe.checkout.sessions.retrieve(sessionId);
+  }
+
+  async getFees(amount: number) {
+    const stripeFee = +this.configService.get<number>('STRIPE_FEE');
+    const percentageCut = +this.configService.get<number>(
+      'TICKET_PERCENTAGE_CUT',
+    );
+
+    // calculate the percentage cut of the totalAmount
+    const percentageCutAmount = (amount * percentageCut) / 100;
+
+    return {
+      platformFee: percentageCutAmount,
+      stripeFee,
+      total: percentageCutAmount + stripeFee + amount,
+    };
   }
 }
