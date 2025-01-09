@@ -20,6 +20,9 @@ export class AllUserDto {
   userType: UserType;
 
   @Expose()
+  createdAt: Date;
+
+  @Expose()
   numOfEventsCreated: number;
 
   @Expose()
