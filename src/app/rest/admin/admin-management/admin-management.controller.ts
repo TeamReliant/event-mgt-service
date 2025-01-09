@@ -1,9 +1,11 @@
-import { Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { AdminManagementService } from './admin-management.service';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { AllUserDto } from './dto/fetch-all-user.dto';
 import { Request } from 'express';
 import { UserStatus } from './enums/user-status.enums';
+import { GetAllUsersQueriesDto } from './dto/get-all-user-dto';
+import { plainToClass } from 'class-transformer';
 
 @Controller('admin-management')
 export class AdminManagementController {
@@ -12,8 +14,11 @@ export class AdminManagementController {
   ) {}
 
   @Get('get-all-users')
-  async getAllUsers(@Req() req: Request) {
-    var queryBuilder = await this.adminManagementService.getAllUsers();
+  async getAllUsers(
+    @Req() req: Request,
+    @Query() query: GetAllUsersQueriesDto,
+  ) {
+    var queryBuilder = await this.adminManagementService.getAllUsers(query);
     var response = await ResponseSerializer.applyHTEAOSWithDtoFormatter(
       req,
       queryBuilder,
@@ -32,6 +37,26 @@ export class AdminManagementController {
       };
     });
     return response;
+  }
+
+  @Get(':id')
+  async getSingleUser(@Param('id') userId: string) {
+    const user = await this.adminManagementService.getSingleUser(userId);
+    const { publicProfile, ...userData } = user;
+    const userDto = plainToClass(
+      AllUserDto,
+      { ...userData },
+      { excludeExtraneousValues: true },
+    );
+    return {
+      ...userDto,
+      status: this.getUserStatus(user.blocked, user.lastLoggedIn),
+      companyName: publicProfile?.companyName || '',
+      country: publicProfile?.country || '',
+      city: publicProfile?.city || '',
+      address: publicProfile?.address || '',
+      website: publicProfile?.website || '',
+    };
   }
 
   // @Post('export-all-users')
