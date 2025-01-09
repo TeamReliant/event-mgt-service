@@ -1,5 +1,5 @@
 import { UserType } from '@app/rest/users/enums/user-type';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { UserStatus } from '../enums/user-status.enums';
 import { PublicProfileDto } from '@app/rest/users/dto/shared/public-profile.dto';
 
@@ -50,5 +50,6 @@ export class AllUserDto {
   lastLoggedIn: Date;
 
   @Expose()
+  @Type(() => PublicProfileDto)
   publicProfile: PublicProfileDto;
 }
