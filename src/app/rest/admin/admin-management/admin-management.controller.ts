@@ -32,6 +32,8 @@ export class AdminManagementController {
         companyName: publicProfile?.companyName || '',
         country: publicProfile?.country || '',
         city: publicProfile?.city || '',
+        state: publicProfile?.state || '',
+        zip: publicProfile?.zip || '',
         address: publicProfile?.address || '',
         website: publicProfile?.website || '',
       };
@@ -48,15 +50,17 @@ export class AdminManagementController {
       { ...userData },
       { excludeExtraneousValues: true },
     );
-    return {
+    return ResponseSerializer.data({
       ...userDto,
       status: this.getUserStatus(user.blocked, user.lastLoggedIn),
       companyName: publicProfile?.companyName || '',
       country: publicProfile?.country || '',
       city: publicProfile?.city || '',
+      state: publicProfile?.state || '',
+      zip: publicProfile?.zip || '',
       address: publicProfile?.address || '',
       website: publicProfile?.website || '',
-    };
+    });
   }
 
   // @Post('export-all-users')
