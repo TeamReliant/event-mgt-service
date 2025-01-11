@@ -1,9 +1,9 @@
-import { IsDate, IsEnum, IsOptional } from 'class-validator';
+import { IsDate, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import { Transform } from 'class-transformer';
 
 export class FetchActiveUsersAnalyticsQueryDto {
-  @IsOptional()
+  @IsNotEmpty()
   @Transform(({ value }) => {
     const date = new Date(value);
     if (isNaN(date.getTime())) {
@@ -14,7 +14,7 @@ export class FetchActiveUsersAnalyticsQueryDto {
   @IsDate()
   dateRangeStart: Date;
 
-  @IsOptional()
+  @IsNotEmpty()
   @Transform(({ value }) => {
     const date = new Date(value);
     if (isNaN(date.getTime())) {

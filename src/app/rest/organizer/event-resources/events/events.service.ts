@@ -24,6 +24,7 @@ import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 import { PaymentService } from '../../payment-resources/payment/payment.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { events } from '@config/app.config';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
 export class EventsService {
@@ -386,7 +387,7 @@ export class EventsService {
     );
 
     //check if event belongs to existing user
-    if (!isOwner && !isTeamMember) {
+    if (!isOwner && !isTeamMember && user.userType != UserType.ADMIN) {
       throw new BadRequestException(
         'User is neither the event owner nor a team member',
       );
@@ -696,7 +697,10 @@ export class EventsService {
 
       // update the register
       systemRegister.totalEvents -= 1;
-      if (event.eventStatus === EventStatus.PUBLISHED)
+      if (
+        event.eventStatus === EventStatus.PUBLISHED &&
+        systemRegister.publishedEvents > 0
+      )
         systemRegister.publishedEvents -= 1;
 
       await manager.save<SystemRegister>(systemRegister);

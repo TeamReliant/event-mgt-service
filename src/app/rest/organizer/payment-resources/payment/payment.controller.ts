@@ -9,6 +9,7 @@ import {
   Req,
   Res,
   RawBodyRequest,
+  Get,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '@libs/decorators/current-user.decorator';
@@ -20,6 +21,9 @@ import Stripe from 'stripe';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { events } from '@config/app.config';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { UserType } from '@app/rest/users/enums/user-type';
+import { GetFeesDto } from '@app/rest/organizer/payment-resources/payment/dto/get-fees.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -116,5 +120,20 @@ export class PaymentController {
     }
 
     res.status(HttpStatus.OK).send();
+  }
+
+  @Get('express-dashboard')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ORGANIZER]))
+  async getExpressDashboard(@CurrentUser() user: TJwtPayload) {
+    const url = await this.paymentService.getExpressDashboard(user.userId);
+    return ResponseSerializer.data(url);
+  }
+
+  @Post('fees')
+  @HttpCode(HttpStatus.OK)
+  async getSystemFees(@Body() { amount }: GetFeesDto) {
+    const data = await this.paymentService.getFees(amount);
+    return ResponseSerializer.data(data);
   }
 }
