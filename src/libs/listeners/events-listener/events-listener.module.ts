@@ -11,6 +11,8 @@ import { BookingsListener } from '@libs/listeners/bookings/bookings.listener';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { BroadcastMessageEmailService } from '@libs/notifications/email/guests/broadcast-message-email.service';
 import { BroadcastMessageListener } from '@libs/listeners/guests/broadcast-message.listener';
+import { AdminEmailService } from '@libs/notifications/email/admin/admin.email.service';
+import { AdminEmailListener } from '../admin/admin.listener';
 
 @Module({
   providers: [
@@ -20,6 +22,8 @@ import { BroadcastMessageListener } from '@libs/listeners/guests/broadcast-messa
     TeamInvitationsEmailService,
     BookingsEmailService,
     BroadcastMessageEmailService,
+    AdminEmailService,
+    AdminEmailListener,
     TasksListener,
     TasksEmailService,
     PaymentsEmailService,
