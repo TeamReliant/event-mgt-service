@@ -697,7 +697,10 @@ export class EventsService {
 
       // update the register
       systemRegister.totalEvents -= 1;
-      if (event.eventStatus === EventStatus.PUBLISHED)
+      if (
+        event.eventStatus === EventStatus.PUBLISHED &&
+        systemRegister.publishedEvents > 0
+      )
         systemRegister.publishedEvents -= 1;
 
       await manager.save<SystemRegister>(systemRegister);
