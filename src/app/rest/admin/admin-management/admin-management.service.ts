@@ -4,8 +4,14 @@ import { User } from '@app/rest/users/entities/user.entity';
 import { UsersService } from '@app/rest/users/users.service';
 import { join } from 'path';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { query } from 'express';
 import { UserStatus } from './enums/user-status.enums';
+import { TJwtPayload } from '@libs/types';
+import { GetAllUsersQueriesDto } from './dto/get-all-user-dto';
+import { UserExportDto } from './dto/export-user-dto';
+import { plainToInstance } from 'class-transformer';
+import { ExportData } from './entities/export-data.entity';
+import { events } from '@config/app.config';
+import { AllUsersExportEvent } from './events/export-all-users.event';
 
 @Injectable()
 export class AdminManagementService {
@@ -26,53 +32,55 @@ export class AdminManagementService {
     'publicProfile.city',
     'publicProfile.website',
   ];
-  async getAllUsers({ ...query }) {
+  async getAllUsers(query?: GetAllUsersQueriesDto) {
     var queryBuilder = this.entityManager
       .createQueryBuilder(User, 'user')
       .leftJoinAndSelect('user.publicProfile', 'publicProfile');
 
-    const { search, dateRangeStart, dateRangeEnd, status } = query;
+    if (query) {
+      const { search, dateRangeStart, dateRangeEnd, status } = query;
 
-    if (search) {
-      const searchConditions = this.searchableFields
-        .map((field) => `${field} ILIKE :search`)
-        .join(' OR ');
+      if (search) {
+        const searchConditions = this.searchableFields
+          .map((field) => `${field} ILIKE :search`)
+          .join(' OR ');
 
-      queryBuilder.andWhere(`(${searchConditions})`, {
-        search: `%${search}%`,
-      });
-    }
+        queryBuilder.andWhere(`(${searchConditions})`, {
+          search: `%${search}%`,
+        });
+      }
 
-    // Check if status is supplied
-    this.handleStatusFilter(queryBuilder, status);
+      // Check if status is supplied
+      this.handleStatusFilter(queryBuilder, status);
 
-    // Check if date range is supplied
+      // Check if date range is supplied
 
-    if (dateRangeStart && dateRangeEnd) {
-      const startOfDay = new Date(dateRangeStart);
-      startOfDay.setHours(1, 0, 0, 0);
+      if (dateRangeStart && dateRangeEnd) {
+        const startOfDay = new Date(dateRangeStart);
+        startOfDay.setHours(1, 0, 0, 0);
 
-      const endOfDay = new Date(dateRangeEnd);
-      endOfDay.setHours(24, 59, 59, 999);
+        const endOfDay = new Date(dateRangeEnd);
+        endOfDay.setHours(24, 59, 59, 999);
 
-      queryBuilder.andWhere('user.createdAt BETWEEN :start AND :end', {
-        start: startOfDay,
-        end: endOfDay,
-      });
-    } else if (dateRangeStart) {
-      const startOfDay = new Date(dateRangeStart);
-      startOfDay.setHours(0, 0, 0, 0);
+        queryBuilder.andWhere('user.createdAt BETWEEN :start AND :end', {
+          start: startOfDay,
+          end: endOfDay,
+        });
+      } else if (dateRangeStart) {
+        const startOfDay = new Date(dateRangeStart);
+        startOfDay.setHours(0, 0, 0, 0);
 
-      queryBuilder.andWhere('user.createdAt >= :start', {
-        start: startOfDay,
-      });
-    } else if (dateRangeEnd) {
-      const endOfDay = new Date(dateRangeEnd);
-      endOfDay.setHours(23, 59, 59, 999);
+        queryBuilder.andWhere('user.createdAt >= :start', {
+          start: startOfDay,
+        });
+      } else if (dateRangeEnd) {
+        const endOfDay = new Date(dateRangeEnd);
+        endOfDay.setHours(23, 59, 59, 999);
 
-      queryBuilder.andWhere('user.createdAt <= :end', {
-        end: endOfDay,
-      });
+        queryBuilder.andWhere('user.createdAt <= :end', {
+          end: endOfDay,
+        });
+      }
     }
 
     queryBuilder.orderBy('user.createdAt', 'DESC');
@@ -106,82 +114,62 @@ export class AdminManagementService {
     await this.usersService.findOneByIdAndUpdate(userId, userExists);
   }
 
-  // async exportAllUsers(user: TJwtPayload) {
-  //   const users = await (await this.getAllUsers()).getMany();
-  //   const loggedInUser = await this.usersService.findOne(user.userId);
-  //   if (!loggedInUser) throw new BadRequestException('User does not exist');
+  async exportAllUsers(user: TJwtPayload) {
+    const users = await(await this.getAllUsers()).getMany();
+    const loggedInUser = await this.usersService.findOne(user.userId);
+    if (!loggedInUser) throw new BadRequestException('User does not exist');
 
-  //   console.log(`>>>>>>>>>>>>>>>>>>${loggedInUser.email}<<<<<<<<<<<<<<<<<<`);
+   const mappedData = users.map((user) => {
+     const { publicProfile } = user;
+     return {
+       fullName: `${user.firstname || ''} ${user.lastname || ''}`.trim(),
+       email: user.email,
+       createdAt: user.createdAt,
+       userType: user.userType,
+       lastLoggedIn: user.lastLoggedIn,
+       status: this.getUserStatus(user.blocked, user.lastLoggedIn),
+       subscribedPlan: user.subscribedPlan ?? 'free',
+       phoneNumber: user.phoneNumber ?? '',
+       companyName: publicProfile?.companyName ?? '',
+       country: publicProfile?.country ?? '',
+       city: publicProfile?.city ?? '',
+       state: publicProfile?.state ?? '',
+       address: publicProfile?.address ?? '',
+       zip: publicProfile?.zip ?? '',
+       website: publicProfile?.website ?? '',
+     };
+   });
 
-  //   await this.ensureTempDirExists();
+   // Transform with options
+   const records = plainToInstance(UserExportDto, mappedData, {
+     excludeExtraneousValues: false,
+     enableImplicitConversion: true,
+     exposeDefaultValues: true,
+   });
 
-  //   const records = users.map((user) => {
-  //     const { publicProfile, ...userData } = user;
-  //     console.log(`>>>>>>>>${userData.email}<<<<<<<<<<<<<`);
-  //     return {
-  //       Name: `${userData.firstname} ${userData.lastname}`,
-  //       'Email Address': userData.email,
-  //       'Date Added': userData.createdAt,
-  //       'User Type': userData.userType,
-  //       'Last Active': userData.lastLoggedIn,
-  //       status: this.getUserStatus(userData.blocked, userData.lastLoggedIn),
-  //       'Company Name': publicProfile.companyName,
-  //       Plan: userData.subscribedPlan,
-  //       'Phone Number': userData.phoneNumber,
-  //       country: publicProfile.country,
-  //       city: publicProfile.city,
-  //       address: publicProfile.address,
-  //       website: publicProfile.website,
-  //     };
-  //   });
+    const exportData = new ExportData();
+    exportData.userEmail = loggedInUser.email;
+    exportData.recordsToExport = records;
 
-  //   const fields = [
-  //     'Name',
-  //     'Email Address',
-  //     'Date Added',
-  //     'User Type',
-  //     'Last Active',
-  //     'Status',
-  //     'Company Name',
-  //     'Plan',
-  //     'Phone Number',
-  //     'Country',
-  //     'City',
-  //     'Address',
-  //     'Website Url',
-  //   ];
-  //   const parser = new Parser({ fields });
-  //   const csv = parser.parse(records);
+    await this.eventEmitter.emitAsync(
+      events.EXPORT_ALL_USERS_CSV,
+      new AllUsersExportEvent(exportData),
+    );
+  }
 
-  //   //save to temp file
-  //   const tempFile = join(process.cwd(), 'temp', `users-${Date.now()}.csv`);
-  //   await fs.writeFile(tempFile, csv, 'utf8');
+  private getUserStatus(blocked: boolean, lastLoggedIn: Date): UserStatus {
+    if (blocked) {
+      return UserStatus.BLOCKED;
+    }
 
-  //   const exportData = new ExportData();
-  //   exportData.user = loggedInUser;
-  //   exportData.dataFile = tempFile;
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    if (!lastLoggedIn || new Date(lastLoggedIn) < sixMonthsAgo) {
+      return UserStatus.INACTIVE;
+    }
 
-  //   await this.eventEmitter.emitAsync(
-  //     events.EXPORT_ALL_USERS_CSV,
-  //     new AllUsersExportEvent(exportData),
-  //   );
-
-  //   await fs.unlink(tempFile);
-  // }
-
-  // private getUserStatus(blocked: boolean, lastLoggedIn: Date): UserStatus {
-  //   if (blocked) {
-  //     return UserStatus.BLOCKED;
-  //   }
-
-  //   const sixMonthsAgo = new Date();
-  //   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  //   if (!lastLoggedIn || new Date(lastLoggedIn) < sixMonthsAgo) {
-  //     return UserStatus.INACTIVE;
-  //   }
-
-  //   return UserStatus.ACTIVE;
-  // }
+    return UserStatus.ACTIVE;
+  }
 
   private handleStatusFilter(
     queryBuilder: SelectQueryBuilder<User>,
