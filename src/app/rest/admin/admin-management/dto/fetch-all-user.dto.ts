@@ -1,6 +1,5 @@
 import { UserType } from '@app/rest/users/enums/user-type';
 import { Expose, Type } from 'class-transformer';
-import { UserStatus } from '../enums/user-status.enums';
 import { PublicProfileDto } from '@app/rest/users/dto/shared/public-profile.dto';
 
 export class AllUserDto {
@@ -18,6 +17,9 @@ export class AllUserDto {
 
   @Expose()
   userType: UserType;
+
+  @Expose()
+  createdAt: Date;
 
   @Expose()
   numOfEventsCreated: number;

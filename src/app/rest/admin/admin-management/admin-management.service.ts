@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { User } from '@app/rest/users/entities/user.entity';
 import { UsersService } from '@app/rest/users/users.service';
 import { join } from 'path';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { query } from 'express';
+import { UserStatus } from './enums/user-status.enums';
 
 @Injectable()
 export class AdminManagementService {
@@ -14,13 +16,74 @@ export class AdminManagementService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async getAllUsers() {
-    var queryBuilder = await this.entityManager
+  private searchableFields = [
+    'user.firstname',
+    'user.lastname',
+    'user.email',
+    'publicProfile.company_name',
+    'publicProfile.address',
+    'publicProfile.country',
+    'publicProfile.city',
+    'publicProfile.website',
+  ];
+  async getAllUsers({ ...query }) {
+    var queryBuilder = this.entityManager
       .createQueryBuilder(User, 'user')
-      .leftJoinAndSelect('user.publicProfile', 'publicProfile')
-      .orderBy('user.createdAt', 'DESC');
+      .leftJoinAndSelect('user.publicProfile', 'publicProfile');
 
+    const { search, dateRangeStart, dateRangeEnd, status } = query;
+
+    if (search) {
+      const searchConditions = this.searchableFields
+        .map((field) => `${field} ILIKE :search`)
+        .join(' OR ');
+
+      queryBuilder.andWhere(`(${searchConditions})`, {
+        search: `%${search}%`,
+      });
+    }
+
+    // Check if status is supplied
+    this.handleStatusFilter(queryBuilder, status);
+
+    // Check if date range is supplied
+
+    if (dateRangeStart && dateRangeEnd) {
+      const startOfDay = new Date(dateRangeStart);
+      startOfDay.setHours(1, 0, 0, 0);
+
+      const endOfDay = new Date(dateRangeEnd);
+      endOfDay.setHours(24, 59, 59, 999);
+
+      queryBuilder.andWhere('user.createdAt BETWEEN :start AND :end', {
+        start: startOfDay,
+        end: endOfDay,
+      });
+    } else if (dateRangeStart) {
+      const startOfDay = new Date(dateRangeStart);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      queryBuilder.andWhere('user.createdAt >= :start', {
+        start: startOfDay,
+      });
+    } else if (dateRangeEnd) {
+      const endOfDay = new Date(dateRangeEnd);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      queryBuilder.andWhere('user.createdAt <= :end', {
+        end: endOfDay,
+      });
+    }
+
+    queryBuilder.orderBy('user.createdAt', 'DESC');
     return queryBuilder;
+  }
+
+  async getSingleUser(userId: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) throw new BadRequestException('User does not exist');
+
+    return user;
   }
 
   async blockUser(userId: string) {
@@ -119,6 +182,41 @@ export class AdminManagementService {
 
   //   return UserStatus.ACTIVE;
   // }
+
+  private handleStatusFilter(
+    queryBuilder: SelectQueryBuilder<User>,
+    status?: string,
+  ) {
+    if (!status) return;
+
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    switch (status) {
+      case UserStatus.BLOCKED:
+        queryBuilder.andWhere('user.blocked = :blocked', { blocked: true });
+        break;
+
+      case UserStatus.ACTIVE:
+        queryBuilder
+          .andWhere('user.blocked = :blocked', { blocked: false })
+          .andWhere('user.lastLoggedIn >= :lastActive', {
+            lastActive: sixMonthsAgo,
+          });
+        break;
+
+      case UserStatus.INACTIVE:
+        queryBuilder
+          .andWhere('user.blocked = :blocked', { blocked: false })
+          .andWhere(
+            'user.lastLoggedIn IS NULL OR user.lastLoggedIn < :lastActive',
+            {
+              lastActive: sixMonthsAgo,
+            },
+          );
+        break;
+    }
+  }
 
   // private async ensureTempDirExists(): Promise<void> {
   //   try {
