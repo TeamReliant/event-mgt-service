@@ -253,8 +253,8 @@ export class AdminDashboardService {
       totalEventCreated: totalEvents,
       TotalTicketSold: ticketsSold,
       ScannedTicket: scannedTickets,
-      monthlyRevenue: bookingRevenue + subscriptionRevenue,
-      totalRevenue: totalRevenue,
+      monthlyRevenue: (bookingRevenue + subscriptionRevenue).toFixed(2),
+      totalRevenue: totalRevenue.toFixed(2),
 
       conversionRate: this._calculateRate(
         totalOrganizers,

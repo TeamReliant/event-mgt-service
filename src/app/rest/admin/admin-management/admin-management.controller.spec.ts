@@ -11,7 +11,9 @@ describe('AdminManagementController', () => {
       providers: [AdminManagementService],
     }).compile();
 
-    controller = module.get<AdminManagementController>(AdminManagementController);
+    controller = module.get<AdminManagementController>(
+      AdminManagementController,
+    );
   });
 
   it('should be defined', () => {
