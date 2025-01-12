@@ -12,6 +12,9 @@ import ResponseSerializer, {
   IResponseWithData,
 } from '@libs/helpers/ResponseSerializer';
 import { FetchActiveUsersAnalyticsQueryDto } from '@app/rest/admin/admin-dashboard/dto/fetch-active-users-analytics-query.dto';
+import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Controller('admin/dashboard')
 // @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
@@ -20,12 +23,11 @@ export class AdminDashboardController {
 
   @Get('active-users-chart')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   async activeUsersChart(
     @Query()
     { dateRangeStart, dateRangeEnd, range }: FetchActiveUsersAnalyticsQueryDto,
   ): Promise<IResponseWithData> {
-    // check if the user is permitted
-
     const data = await this._adminDashboardService.getActiveUsersChart(
       dateRangeStart,
       dateRangeEnd,
@@ -36,8 +38,8 @@ export class AdminDashboardController {
 
   @Get('analytics')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   async assign(): Promise<IResponseWithData> {
-    // check if the user is permitted
     const data = await this._adminDashboardService.getAnalytics();
     return ResponseSerializer.data(data);
   }
