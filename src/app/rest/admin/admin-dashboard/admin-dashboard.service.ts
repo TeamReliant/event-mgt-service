@@ -195,7 +195,7 @@ export class AdminDashboardService {
 
     const bookingRevenue = currentMonthBookingTransactions.reduce(
       (acc, transaction) => {
-        return acc + transaction.fee;
+        return acc + +transaction.fee;
       },
       0,
     );
@@ -215,7 +215,7 @@ export class AdminDashboardService {
 
     const subscriptionRevenue = currentMonthTransactions.reduce(
       (acc, transaction) => {
-        return acc + transaction.amount;
+        return acc + +transaction.amount;
       },
       0,
     );
@@ -253,7 +253,7 @@ export class AdminDashboardService {
       totalEventCreated: totalEvents,
       TotalTicketSold: ticketsSold,
       ScannedTicket: scannedTickets,
-      monthlyRevenue: (bookingRevenue + subscriptionRevenue).toFixed(2),
+      monthlyRevenue: Number(bookingRevenue + subscriptionRevenue).toFixed(2),
       totalRevenue: totalRevenue.toFixed(2),
 
       conversionRate: this._calculateRate(

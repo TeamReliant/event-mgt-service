@@ -33,7 +33,7 @@ export class AdminManagementService {
     'publicProfile.website',
   ];
   async getAllUsers(query?: GetAllUsersQueriesDto) {
-    var queryBuilder = this.entityManager
+    const queryBuilder = this.entityManager
       .createQueryBuilder(User, 'user')
       .leftJoinAndSelect('user.publicProfile', 'publicProfile');
 
@@ -95,7 +95,7 @@ export class AdminManagementService {
   }
 
   async blockUser(userId: string) {
-    var userExists = await this.usersService.findOne(userId);
+    const userExists = await this.usersService.findOne(userId);
     if (!userExists) throw new BadRequestException('User does not exist');
     if (userExists.blocked === true)
       throw new BadRequestException('User is already blocked');
@@ -105,7 +105,7 @@ export class AdminManagementService {
   }
 
   async unblockUser(userId: string) {
-    var userExists = await this.usersService.findOne(userId);
+    const userExists = await this.usersService.findOne(userId);
     if (!userExists) throw new BadRequestException('User does not exist');
     if (userExists.blocked === false)
       throw new BadRequestException('User is not blocked');
@@ -115,37 +115,37 @@ export class AdminManagementService {
   }
 
   async exportAllUsers(user: TJwtPayload) {
-    const users = await(await this.getAllUsers()).getMany();
+    const users = await (await this.getAllUsers()).getMany();
     const loggedInUser = await this.usersService.findOne(user.userId);
     if (!loggedInUser) throw new BadRequestException('User does not exist');
 
-   const mappedData = users.map((user) => {
-     const { publicProfile } = user;
-     return {
-       fullName: `${user.firstname || ''} ${user.lastname || ''}`.trim(),
-       email: user.email,
-       createdAt: user.createdAt,
-       userType: user.userType,
-       lastLoggedIn: user.lastLoggedIn,
-       status: this.getUserStatus(user.blocked, user.lastLoggedIn),
-       subscribedPlan: user.subscribedPlan ?? 'free',
-       phoneNumber: user.phoneNumber ?? '',
-       companyName: publicProfile?.companyName ?? '',
-       country: publicProfile?.country ?? '',
-       city: publicProfile?.city ?? '',
-       state: publicProfile?.state ?? '',
-       address: publicProfile?.address ?? '',
-       zip: publicProfile?.zip ?? '',
-       website: publicProfile?.website ?? '',
-     };
-   });
+    const mappedData = users.map((user) => {
+      const { publicProfile } = user;
+      return {
+        fullName: `${user.firstname || ''} ${user.lastname || ''}`.trim(),
+        email: user.email,
+        createdAt: user.createdAt,
+        userType: user.userType,
+        lastLoggedIn: user.lastLoggedIn,
+        status: this.getUserStatus(user.blocked, user.lastLoggedIn),
+        subscribedPlan: user.subscribedPlan ?? 'free',
+        phoneNumber: user.phoneNumber ?? '',
+        companyName: publicProfile?.companyName ?? '',
+        country: publicProfile?.country ?? '',
+        city: publicProfile?.city ?? '',
+        state: publicProfile?.state ?? '',
+        address: publicProfile?.address ?? '',
+        zip: publicProfile?.zip ?? '',
+        website: publicProfile?.website ?? '',
+      };
+    });
 
-   // Transform with options
-   const records = plainToInstance(UserExportDto, mappedData, {
-     excludeExtraneousValues: false,
-     enableImplicitConversion: true,
-     exposeDefaultValues: true,
-   });
+    // Transform with options
+    const records = plainToInstance(UserExportDto, mappedData, {
+      excludeExtraneousValues: false,
+      enableImplicitConversion: true,
+      exposeDefaultValues: true,
+    });
 
     const exportData = new ExportData();
     exportData.userEmail = loggedInUser.email;

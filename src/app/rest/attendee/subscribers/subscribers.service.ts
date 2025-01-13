@@ -4,12 +4,16 @@ import { UpdateSubscriberDto } from './dto/update-subscriber.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Subscriber } from '@app/rest/attendee/subscribers/entities/subscriber.entity';
+import { events } from '@config/app.config';
+import { AllUsersExportEvent } from '@app/rest/admin/admin-management/events/export-all-users.event';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class SubscribersService {
   constructor(
     @InjectRepository(Subscriber)
     private readonly _repo: Repository<Subscriber>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(body: CreateSubscriberDto): Promise<Subscriber> {
@@ -25,10 +29,6 @@ export class SubscribersService {
 
     const newSubscriber = this._repo.create(body);
     return this._repo.save(newSubscriber);
-  }
-
-  findAll() {
-    return this._repo.createQueryBuilder('subscribers');
   }
 
   async findOne(id: string, throwError: boolean = true): Promise<Subscriber> {
@@ -50,11 +50,5 @@ export class SubscribersService {
     // update the subscriber record
     if (subscribed) subscriber.subscribed = subscribed === 'true';
     return this._repo.save(subscriber);
-  }
-
-  async remove(id: string): Promise<boolean> {
-    const subscriber = await this.findOne(id);
-    await this._repo.remove(subscriber);
-    return true;
   }
 }
