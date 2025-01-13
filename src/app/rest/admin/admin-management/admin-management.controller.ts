@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AdminManagementService } from './admin-management.service';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { AllUserDto } from './dto/fetch-all-user.dto';
@@ -21,8 +29,8 @@ export class AdminManagementController {
     @Req() req: Request,
     @Query() query: GetAllUsersQueriesDto,
   ) {
-    var queryBuilder = await this.adminManagementService.getAllUsers(query);
-    var response = await ResponseSerializer.applyHTEAOSWithDtoFormatter(
+    const queryBuilder = await this.adminManagementService.getAllUsers(query);
+    const response = await ResponseSerializer.applyHTEAOSWithDtoFormatter(
       req,
       queryBuilder,
       AllUserDto,

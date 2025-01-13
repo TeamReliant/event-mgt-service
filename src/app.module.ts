@@ -32,6 +32,8 @@ import { GuestsModule } from '@app/rest/organizer/guest-resources/guests/guests.
 import { AdminDashboardModule } from '@app/rest/admin/admin-dashboard/admin-dashboard.module';
 import { SystemRegisterModule } from '@app/rest/admin/system-register/system-register.module';
 import { AdminManagementModule } from './app/rest/admin/admin-management/admin-management.module';
+import { EventManagementModule } from './app/rest/admin/event-management/event-management.module';
+import { SubscribersManagementModule } from './app/rest/admin/subscribers-management/subscribers-management.module';
 
 @Module({
   imports: [
@@ -85,6 +87,8 @@ import { AdminManagementModule } from './app/rest/admin/admin-management/admin-m
     AdminDashboardModule,
     SystemRegisterModule,
     AdminManagementModule,
+    EventManagementModule,
+    SubscribersManagementModule,
   ],
   providers: [JwtStrategy],
 })
