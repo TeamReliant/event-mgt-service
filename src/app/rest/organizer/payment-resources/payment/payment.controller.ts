@@ -20,10 +20,10 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { events } from '@config/app.config';
-import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
 import { UserType } from '@app/rest/users/enums/user-type';
 import { GetFeesDto } from '@app/rest/organizer/payment-resources/payment/dto/get-fees.dto';
+import { RefundBookingDto } from '@app/rest/organizer/payment-resources/payment/dto/refund-booking.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -135,5 +135,16 @@ export class PaymentController {
   async getSystemFees(@Body() { amount }: GetFeesDto) {
     const data = await this.paymentService.getFees(amount);
     return ResponseSerializer.data(data);
+  }
+
+  @Post('refund')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ORGANIZER]))
+  async refundPayment(
+    @Body() { bookingId }: RefundBookingDto,
+    @CurrentUser() user: TJwtPayload,
+  ) {
+    await this.paymentService.refundPayment(bookingId, user.userId);
+    return ResponseSerializer.message('Payment refunded successfully');
   }
 }

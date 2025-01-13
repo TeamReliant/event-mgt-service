@@ -18,6 +18,8 @@ import { DeleteSubscriberParamsDto } from '@app/rest/admin/subscribers-managemen
 import JwtAuthGuard from '@libs/Guards/jwt-auth/jwt-auth.guard';
 import { CurrentUser } from '@libs/decorators/current-user.decorator';
 import { TJwtPayload } from '@libs/types';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Controller('admin/subscribers')
 export class SubscribersManagementController {
@@ -28,6 +30,7 @@ export class SubscribersManagementController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   findAll(@Query() query: GetAllSubscribersQueryDto) {
     const response = this._subscribersManagementService.findAll(query);
     return this._paginationService.applyHTEAOS<Subscriber>(response);
@@ -35,7 +38,7 @@ export class SubscribersManagementController {
 
   @Post('export')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   async export(@CurrentUser() user: TJwtPayload) {
     await this._subscribersManagementService.export(user.userId);
     return ResponseSerializer.message('Subscribers exported successfully');
@@ -43,6 +46,7 @@ export class SubscribersManagementController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   async remove(@Param() { id }: DeleteSubscriberParamsDto) {
     await this._subscribersManagementService.remove(id);
     return ResponseSerializer.message('Subscriber removed successfully');
