@@ -26,7 +26,10 @@ import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/en
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
-import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import {
+  BookingStatus,
+  TicketTransferStatus,
+} from '@app/rest/attendee/bookings/enums/booking-status';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { Request } from 'express';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
@@ -877,5 +880,71 @@ export class PaymentService {
       stripeFee,
       total: percentageCutAmount + stripeFee + amount,
     };
+  }
+
+  async refundPayment(bookingId: string, userId: string) {
+    const user = await this.userService.findOne(userId);
+    if (!user.stripeConnectedAccountId)
+      throw new NotAcceptableException(
+        'Please complete your payout onboarding',
+      );
+
+    // find the booking with the bookingId
+    const booking = await this.entityManager
+      .createQueryBuilder(Booking, 'booking')
+      .leftJoinAndSelect('booking.transaction', 'transaction')
+      .where('booking.id = :bookingId', { bookingId })
+      .getOne();
+
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (!booking.processed || !booking.paid)
+      throw new NotAcceptableException('Booking is not paid for');
+    // check if the booking has been transferred out
+    if (
+      booking.transferStatus === TicketTransferStatus.TRANSFERRED ||
+      booking.transferStatus === TicketTransferStatus.RECEIVED
+    )
+      throw new NotAcceptableException(
+        'Transferred booking is not eligible for a refund',
+      );
+    if (booking.status === BookingStatus.USED)
+      throw new NotAcceptableException(
+        'Used booking is not eligible for a refund',
+      );
+
+    const session = await this.stripe.checkout.sessions.retrieve(
+      booking.transaction.stripeCheckoutId,
+    );
+
+    console.log(session);
+
+    if (!session) throw new NotFoundException('Transaction record not found');
+    if (!session.payment_intent) {
+      throw new NotAcceptableException('Payment Intent not found in session');
+    }
+
+    // get the booking refund data
+    const { platformFee, stripeFee, total } = await this.getFees(
+      booking.unitAmount,
+    );
+
+    const paymentIntentId = session.payment_intent as string;
+    // PART 1: Refund platform fee
+    await this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      amount: Math.round(platformFee * 100), // Convert to cents
+      refund_application_fee: true,
+      reverse_transfer: false, // Refund from the platform only
+    });
+
+    // PART 2: Refund organizer's share
+    await this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      amount: Math.round((total - platformFee - stripeFee) * 100), // Convert to cents
+      refund_application_fee: false, // Don't refund platform fee again
+      reverse_transfer: true, // Refund from the organizer
+    });
+
+    return true;
   }
 }
