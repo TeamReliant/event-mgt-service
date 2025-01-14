@@ -29,13 +29,6 @@ export class SubscribersController {
     return ResponseSerializer.data(response);
   }
 
-  @Get(':id')
-  @HttpCode(HttpStatus.OK)
-  async findOne(@Param() { id }: ShowSubscriberParamsDto) {
-    const response = await this._subscribersService.findOne(id);
-    return ResponseSerializer.data(response);
-  }
-
   @Patch()
   @HttpCode(HttpStatus.OK)
   async update(@Body() body: UpdateSubscriberDto) {
