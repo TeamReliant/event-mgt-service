@@ -893,10 +893,16 @@ export class PaymentService {
     const booking = await this.entityManager
       .createQueryBuilder(Booking, 'booking')
       .leftJoinAndSelect('booking.transaction', 'transaction')
+      .leftJoinAndSelect('booking.ticket', 'ticket')
+      .leftJoinAndSelect('booking.event', 'event')
+      .leftJoinAndSelect('event.user', 'user')
       .where('booking.id = :bookingId', { bookingId })
       .getOne();
 
     if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.category !== TicketCategory.PAID)
+      throw new NotAcceptableException('Booking is not paid for');
+
     if (!booking.processed || !booking.paid)
       throw new NotAcceptableException('Booking is not paid for');
     // check if the booking has been transferred out
@@ -915,8 +921,6 @@ export class PaymentService {
     const session = await this.stripe.checkout.sessions.retrieve(
       booking.transaction.stripeCheckoutId,
     );
-
-    console.log(session);
 
     if (!session) throw new NotFoundException('Transaction record not found');
     if (!session.payment_intent) {
@@ -943,6 +947,35 @@ export class PaymentService {
       amount: Math.round((total - platformFee - stripeFee) * 100), // Convert to cents
       refund_application_fee: false, // Don't refund platform fee again
       reverse_transfer: true, // Refund from the organizer
+    });
+
+    await this.entityManager.transaction(async (manager) => {
+      // Update booking
+      booking.refunded = true;
+      booking.status = BookingStatus.INVALID;
+
+      // update the ticket
+      booking.ticket.numberOfTicketsSold -= 1;
+
+      // update the event's revenue
+      booking.event.revenue -= booking.unitAmount;
+      booking.event.totalNumberOfTicketsSold -= 1;
+      booking.event.totalStripeFee -= stripeFee;
+      booking.event.totalPlatformFee -= platformFee;
+
+      // update the user's revenue and tickets sold
+      booking.event.user.totalRevenue -= booking.unitAmount;
+      booking.event.user.ticketsSold--;
+      booking.event.user.totalStripeFee -= stripeFee;
+      booking.event.user.totalPlatformFee -= platformFee;
+
+      // update the transaction record
+      booking.transaction.refundedAmount += booking.unitAmount;
+      booking.transaction.refundedFee += platformFee;
+
+      await manager.save(User, booking.event.user);
+      await manager.save(Event, booking.event);
+      await manager.save(Booking, booking);
     });
 
     return true;

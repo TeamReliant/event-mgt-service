@@ -20,6 +20,7 @@ import { CurrentUser } from '@libs/decorators/current-user.decorator';
 import { TJwtPayload } from '@libs/types';
 import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { ShowSubscriberParamsDto } from '@app/rest/attendee/subscribers/dto/show-subscriber-params.dto';
 
 @Controller('admin/subscribers')
 export class SubscribersManagementController {
@@ -30,10 +31,18 @@ export class SubscribersManagementController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
+  // @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   findAll(@Query() query: GetAllSubscribersQueryDto) {
     const response = this._subscribersManagementService.findAll(query);
     return this._paginationService.applyHTEAOS<Subscriber>(response);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
+  async findOne(@Param() { id }: ShowSubscriberParamsDto) {
+    const response = await this._subscribersManagementService.findOne(id);
+    return ResponseSerializer.data(response);
   }
 
   @Post('export')

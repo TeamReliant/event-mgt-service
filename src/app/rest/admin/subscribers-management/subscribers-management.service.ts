@@ -12,20 +12,25 @@ export class SubscribersManagementService {
   ) {}
 
   findAll({ ...query }) {
-    const { email, subscribed, dateRangeStart, dateRangeEnd } = query;
+    const { email, search, status, dateRangeStart, dateRangeEnd } = query;
 
     const queryBuilder = this._entityManager
       .createQueryBuilder(Subscriber, 'subscribers')
       .where('1=1');
 
-    if (email)
+    if (search)
       queryBuilder.andWhere('subscribers.email ILIKE :email', {
+        search: `%${search}%`,
+      });
+
+    if (email)
+      queryBuilder.andWhere('subscribers.email = :email', {
         email: `%${email}%`,
       });
 
-    if (subscribed)
+    if (status)
       queryBuilder.andWhere('subscribers.subscribed = :subscribed', {
-        subscribed,
+        subscribed: status === 'subscribed',
       });
 
     if (dateRangeStart && dateRangeEnd)
@@ -35,6 +40,17 @@ export class SubscribersManagementService {
       );
 
     return queryBuilder;
+  }
+
+  async findOne(id: string, throwError: boolean = true): Promise<Subscriber> {
+    const subscriber = await this._entityManager.findOne(Subscriber, {
+      where: { id },
+    });
+    if (!subscriber && throwError)
+      throw new NotFoundException(`Subscriber with id ${id} not found`);
+
+    // return the subscriber
+    return subscriber;
   }
 
   async export(userId: string): Promise<boolean> {

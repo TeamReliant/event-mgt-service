@@ -31,15 +31,6 @@ export class SubscribersService {
     return this._repo.save(newSubscriber);
   }
 
-  async findOne(id: string, throwError: boolean = true): Promise<Subscriber> {
-    const subscriber = await this._repo.findOne({ where: { id } });
-    if (!subscriber && throwError)
-      throw new NotFoundException(`Subscriber with id ${id} not found`);
-
-    // return the subscriber
-    return subscriber;
-  }
-
   async update(updateSubscriberDto: UpdateSubscriberDto): Promise<Subscriber> {
     const { email, subscribed } = updateSubscriberDto;
 

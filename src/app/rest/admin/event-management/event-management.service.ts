@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Request } from 'express';
+import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 
 @Injectable()
 export class EventManagementService {
@@ -18,6 +19,7 @@ export class EventManagementService {
       eventStartDateAndTime,
       dateRangeStart,
       dateRangeEnd,
+      search,
       pastPublishedEvents,
     } = query;
 
@@ -34,8 +36,12 @@ export class EventManagementService {
         'user.picture',
       ]);
 
-    if (name)
-      queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
+    if (search)
+      queryBuilder.andWhere('event.name ILIKE :search', {
+        search: `%${search}%`,
+      });
+
+    if (name) queryBuilder.andWhere('event.name = :name', { name });
 
     if (locationName)
       queryBuilder.andWhere('event.locationName ILIKE :locationName', {
@@ -78,7 +84,7 @@ export class EventManagementService {
       });
 
       queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
-        publishedStatus: 'published',
+        publishedStatus: EventStatus.PUBLISHED,
       });
     }
 

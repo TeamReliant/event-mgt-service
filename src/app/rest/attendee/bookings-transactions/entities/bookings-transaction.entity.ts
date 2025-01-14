@@ -39,6 +39,24 @@ export class BookingsTransaction extends AbstractEntity<BookingsTransaction> {
   })
   paid: boolean;
 
+  @Column({
+    name: 'refunded_amount',
+    default: 0.0,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  refundedAmount?: number;
+
+  @Column({
+    name: 'refunded_fee',
+    default: 0.0,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  refundedFee?: number;
+
   @ManyToOne(() => User, (user) => user.bookingsTransactions)
   user: User;
 

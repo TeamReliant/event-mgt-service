@@ -61,6 +61,14 @@ export class Booking extends AbstractEntity<Booking> {
   paid: boolean;
 
   @Column({
+    name: 'refunded',
+    nullable: false,
+    type: 'boolean',
+    default: false,
+  })
+  refunded: boolean;
+
+  @Column({
     name: 'status',
     type: 'enum',
     enum: BookingStatus,
