@@ -161,6 +161,9 @@ export class AdminManagementService {
     const totalUsers = await this.entityManager
       .createQueryBuilder(User, 'user')
       .getMany();
+    const totalAdmins = totalUsers.filter(
+      (user) => user.userType === 'admin',
+    ).length;
     const totalOrganizers = totalUsers.filter(
       (user) => user.userType === 'organizer',
     ).length;
@@ -183,6 +186,7 @@ export class AdminManagementService {
 
     return {
       totalUsers: totalUsers.length,
+      totalAdmins,
       totalOrganizers,
       totalAttendees,
       blockedUsers,
