@@ -157,6 +157,40 @@ export class AdminManagementService {
     );
   }
 
+  async getUsersStats() {
+    const totalUsers = await this.entityManager
+      .createQueryBuilder(User, 'user')
+      .getMany();
+    const totalOrganizers = totalUsers.filter(
+      (user) => user.userType === 'organizer',
+    ).length;
+    const totalAttendees = totalUsers.filter(
+      (user) => user.userType === 'attendee',
+    ).length;
+    const blockedUsers = totalUsers.filter(
+      (user) => user.blocked === true,
+    ).length;
+    const inactiveUsers = totalUsers.filter(
+      (user) =>
+        this.getUserStatus(user.blocked, user.lastLoggedIn) ===
+        UserStatus.INACTIVE,
+    ).length;
+    const activeUsers = totalUsers.filter(
+      (user) =>
+        this.getUserStatus(user.blocked, user.lastLoggedIn) ===
+        UserStatus.ACTIVE,
+    ).length;
+
+    return {
+      totalUsers: totalUsers.length,
+      totalOrganizers,
+      totalAttendees,
+      blockedUsers,
+      inactiveUsers,
+      activeUsers,
+    };
+  }
+
   private getUserStatus(blocked: boolean, lastLoggedIn: Date): UserStatus {
     if (blocked) {
       return UserStatus.BLOCKED;
@@ -205,12 +239,4 @@ export class AdminManagementService {
         break;
     }
   }
-
-  // private async ensureTempDirExists(): Promise<void> {
-  //   try {
-  //     await fs.access(this.tempDir);
-  //   } catch {
-  //     await fs.mkdir(this.tempDir, { recursive: true });
-  //   }
-  // }
 }

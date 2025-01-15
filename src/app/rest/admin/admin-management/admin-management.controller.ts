@@ -55,6 +55,13 @@ export class AdminManagementController {
     return response;
   }
 
+  @Get('user-stats')
+  async getUserStats() {
+    return ResponseSerializer.data(
+      await this.adminManagementService.getUsersStats(),
+    );
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   async getSingleUser(@Param('id') userId: string) {
