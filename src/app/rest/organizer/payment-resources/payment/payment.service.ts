@@ -917,6 +917,8 @@ export class PaymentService {
       throw new NotAcceptableException(
         'Used booking is not eligible for a refund',
       );
+    if (booking.refunded)
+      throw new NotAcceptableException('Booking has already been refunded');
 
     const session = await this.stripe.checkout.sessions.retrieve(
       booking.transaction.stripeCheckoutId,
@@ -933,21 +935,45 @@ export class PaymentService {
     );
 
     const paymentIntentId = session.payment_intent as string;
-    // PART 1: Refund platform fee
-    await this.stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      amount: Math.round(platformFee * 100), // Convert to cents
-      refund_application_fee: true,
-      reverse_transfer: false, // Refund from the platform only
+    // Step 1: Fetch the connected account balance
+    const balance = await this.stripe.balance.retrieve({
+      stripeAccount: user.stripeConnectedAccountId,
     });
 
+    // Step 2: Check the available balance
+    const availableBalance = balance.available.reduce(
+      (total, balanceItem) => total + balanceItem.amount,
+      0,
+    );
+
+    if (
+      availableBalance < Math.round((total - platformFee - stripeFee) * 100)
+    ) {
+      throw new NotAcceptableException(
+        'Insufficient balance in connected account for the refund',
+      );
+    }
+
+    // PART 1: Refund platform fee
+    await this.stripe.refunds.create(
+      {
+        payment_intent: paymentIntentId,
+        // amount: Math.round(+booking.unitAmount * 100), // Convert to cents
+        refund_application_fee: true,
+        reverse_transfer: true, // Refund from the platform only
+      },
+      {
+        stripeAccount: user.stripeConnectedAccountId,
+      },
+    );
+
     // PART 2: Refund organizer's share
-    await this.stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      amount: Math.round((total - platformFee - stripeFee) * 100), // Convert to cents
-      refund_application_fee: false, // Don't refund platform fee again
-      reverse_transfer: true, // Refund from the organizer
-    });
+    // await this.stripe.refunds.create({
+    //   payment_intent: paymentIntentId,
+    //   amount: Math.round((total - platformFee - stripeFee) * 100), // Convert to cents
+    //   refund_application_fee: false, // Don't refund platform fee again
+    //   reverse_transfer: true, // Refund from the organizer
+    // });
 
     await this.entityManager.transaction(async (manager) => {
       // Update booking

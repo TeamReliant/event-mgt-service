@@ -4,8 +4,6 @@ import { UpdateSubscriberDto } from './dto/update-subscriber.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Subscriber } from '@app/rest/attendee/subscribers/entities/subscriber.entity';
-import { events } from '@config/app.config';
-import { AllUsersExportEvent } from '@app/rest/admin/admin-management/events/export-all-users.event';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()

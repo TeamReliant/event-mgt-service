@@ -39,6 +39,7 @@ export class SubscribersManagementService {
         { dateRangeStart, dateRangeEnd },
       );
 
+    queryBuilder.orderBy('subscribers.createdAt', 'DESC');
     return queryBuilder;
   }
 
