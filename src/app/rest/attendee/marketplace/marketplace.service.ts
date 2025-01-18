@@ -132,7 +132,7 @@ export class MarketplaceService {
       }
 
       queryBuilder
-        .orderBy('COALESCE(event.totalNumberOfTicketsSold, 0)', 'DESC')
+        .orderBy('COALESCE("event"."totalNumberOfTicketsSold", 0)', 'DESC')
         .addOrderBy('event.eventStartDateAndTime', 'ASC')
         .take(LIMIT);
 
