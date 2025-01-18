@@ -131,10 +131,7 @@ export class MarketplaceService {
         );
       }
 
-      queryBuilder
-        .orderBy('COALESCE("event"."totalNumberOfTicketsSold", 0)', 'DESC')
-        .addOrderBy('event.eventStartDateAndTime', 'ASC')
-        .take(LIMIT);
+      queryBuilder.addOrderBy('event.eventStartDateAndTime', 'ASC').take(LIMIT);
 
       return await queryBuilder.getMany();
     } catch (error) {
