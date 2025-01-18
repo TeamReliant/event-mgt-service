@@ -133,6 +133,8 @@ export class MarketplaceService {
 
       queryBuilder.addOrderBy('event.eventStartDateAndTime', 'ASC').take(LIMIT);
 
+      console.log(queryBuilder.getSql());
+
       return await queryBuilder.getMany();
     } catch (error) {
       throw new Error(`Failed to fetch top events: ${error.message}`);
