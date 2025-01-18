@@ -32,6 +32,9 @@ RUN apt-get install -y \
     && apt-get clean
 
 # Install Chromium
+RUN apt-get install -y chromium
+
+# Install Chromium
 #RUN apt-get update && \
 #    apt-get install -y chromium-browser && \
 #    apt-get clean && \
