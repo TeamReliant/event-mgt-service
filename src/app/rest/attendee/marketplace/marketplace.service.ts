@@ -120,16 +120,20 @@ export class MarketplaceService {
         .andWhere('event.eventVisibility = :visibility', {
           visibility: 'public',
         })
-        .andWhere('event.eventStartDateAndTime >= CURRENT_TIMESTAMP');
+        .andWhere('DATE(event.eventStartDateAndTime) >= CURRENT_TIMESTAMP');
 
       if (typeof countryName === 'string') {
-        queryBuilder.andWhere('event.locationName ILIKE :countryName', {
-          countryName: `%${countryName}%`,
-        });
+        queryBuilder.andWhere(
+          'LOWER(event.locationName) LIKE LOWER(:countryName)',
+          {
+            countryName: `%${countryName}%`,
+          },
+        );
       }
 
       queryBuilder
-        .orderBy('event.totalNumberOfTicketsSold', 'DESC')
+        .orderBy('COALESCE(event.totalNumberOfTicketsSold, 0)', 'DESC')
+        .addOrderBy('event.eventStartDateAndTime', 'ASC')
         .take(LIMIT);
 
       return await queryBuilder.getMany();
