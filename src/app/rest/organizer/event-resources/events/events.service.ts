@@ -23,7 +23,6 @@ import { SystemRegister } from '@app/rest/admin/system-register/entities/system-
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 import { PaymentService } from '../../payment-resources/payment/payment.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { events } from '@config/app.config';
 import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
@@ -142,7 +141,7 @@ export class EventsService {
         ...rest
       } = createEventDto;
 
-      if (createEventDto.locationName == null && createEventDto.address == null)
+      if (createEventDto.locationName == null && createEventDto.address == null && createEventDto.googleMapUrl == null)
         throw new BadRequestException(
           'Please provide an address for your event',
         );

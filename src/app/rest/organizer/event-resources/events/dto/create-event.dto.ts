@@ -49,7 +49,7 @@ export class CreateEventDto {
   @IsString()
   address: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   googleMapUrl: string;
 
