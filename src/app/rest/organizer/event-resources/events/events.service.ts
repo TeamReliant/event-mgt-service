@@ -462,9 +462,6 @@ export class EventsService {
       const userAccount = await this.paymentService.getUserAccountDetails(
         user.stripeConnectedAccountId,
       );
-      console.log(
-        `$Charges Enabled: ${userAccount.charges_enabled}\n Payouts Enabled: ${userAccount.payouts_enabled}`,
-      );
       if (userAccount.charges_enabled && userAccount.payouts_enabled) {
         user.isOnboarded = true;
         user = await this.userService.findOneByIdAndUpdate(user.id, user);
