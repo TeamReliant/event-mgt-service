@@ -60,6 +60,9 @@ export class GetOneEventResponseDto {
   eventEndDateAndTime?: string;
 
   @Expose()
+  timeZone?: string;
+
+  @Expose()
   isAvailable: boolean;
 
   @Expose()
