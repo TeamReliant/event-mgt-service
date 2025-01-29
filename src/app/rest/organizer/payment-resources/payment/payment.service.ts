@@ -960,7 +960,7 @@ export class PaymentService {
     await this.stripe.refunds.create(
       {
         payment_intent: paymentIntentId,
-        // amount: Math.round(+booking.unitAmount * 100), // Convert to cents
+        amount: Math.round(+booking.unitAmount * 100), // Convert to cents
         // refund_application_fee: true,
         // reverse_transfer: true, // Refund from the platform only
       },
