@@ -2,6 +2,7 @@ extends ../baseEmail
 
 block content
   p #{(payload.user)? `Hello ${payload.user.lastname}  ${payload.user.lastname} `: 'Hello'},
+
   p You've been invited to join "#{payload.invitation.team.name}" team.
 
   p You'll collaborate with members to help manage events. Click the below link to send your reaction:
@@ -15,5 +16,8 @@ block content
 
   small Thank you!
   br
-  small
-    b - #{payload.appEmail}, #{payload.appName}
+  p
+   small
+     b - #{payload.appEmail},
+     br
+     b The #{payload.companyName} Team

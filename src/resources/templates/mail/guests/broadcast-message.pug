@@ -1,12 +1,14 @@
 extends ../baseEmail
 
 block content
-  h3 📢 #{payload.title}
+  h3 Hello #{payload.firstname},
 
-  p We have an update for you regarding the event "#{payload.event.name}":
+  p We have an exciting update for you regarding the event "#{payload.event.name}":
+
   blockquote
     p #{payload.message}
 
-  br
-  small
-    b - Signed, #{payload.companyName}
+  p
+    small Cheers,
+    br
+    small The #{payload.companyName} Team

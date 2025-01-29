@@ -638,6 +638,8 @@ export class PaymentService {
         `Organizer cannot accept ticket payment at the moment, try again after some time!`,
       );
 
+
+
     return await this.stripe.checkout.sessions.create({
       payment_method_types: [
         'card', // Credit/Debit cards
@@ -960,7 +962,7 @@ export class PaymentService {
         payment_intent: paymentIntentId,
         // amount: Math.round(+booking.unitAmount * 100), // Convert to cents
         refund_application_fee: true,
-        reverse_transfer: true, // Refund from the platform only
+        // reverse_transfer: true, // Refund from the platform only
       },
       {
         stripeAccount: user.stripeConnectedAccountId,
