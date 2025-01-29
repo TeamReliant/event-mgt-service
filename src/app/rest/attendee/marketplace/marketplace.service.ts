@@ -124,13 +124,9 @@ export class MarketplaceService {
             visibility: 'public',
           },
         )
-        .andWhere(
-          '(event.eventEndDateAndTime >= :now)',
-          { now: new Date() },
-        );
+        .andWhere('(event.eventEndDateAndTime >= :now)', { now: new Date() });
 
       if (typeof countryName === 'string' && countryName.trim()) {
-
         queryBuilder.andWhere(
           '(LOWER(event.locationName) LIKE LOWER(:countryName) OR LOWER(event.address) LIKE LOWER(:countryName))',
           {
@@ -138,7 +134,7 @@ export class MarketplaceService {
           },
         );
       }
-      
+
       queryBuilder.addOrderBy('event.eventStartDateAndTime', 'ASC').take(LIMIT);
 
       return await queryBuilder.getMany();
