@@ -961,12 +961,12 @@ export class PaymentService {
       {
         payment_intent: paymentIntentId,
         // amount: Math.round(+booking.unitAmount * 100), // Convert to cents
-        refund_application_fee: true,
+        // refund_application_fee: true,
         // reverse_transfer: true, // Refund from the platform only
       },
-      {
-        stripeAccount: user.stripeConnectedAccountId,
-      },
+      // {
+      //   stripeAccount: user.stripeConnectedAccountId,
+      // },
     );
 
     // PART 2: Refund organizer's share
