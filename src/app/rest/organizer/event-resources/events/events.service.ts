@@ -23,7 +23,6 @@ import { SystemRegister } from '@app/rest/admin/system-register/entities/system-
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 import { PaymentService } from '../../payment-resources/payment/payment.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { events } from '@config/app.config';
 import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
@@ -142,7 +141,11 @@ export class EventsService {
         ...rest
       } = createEventDto;
 
-      if (createEventDto.locationName == null && createEventDto.address == null)
+      if (
+        createEventDto.locationName == null &&
+        createEventDto.address == null &&
+        createEventDto.googleMapUrl == null
+      )
         throw new BadRequestException(
           'Please provide an address for your event',
         );
@@ -459,9 +462,6 @@ export class EventsService {
       const userAccount = await this.paymentService.getUserAccountDetails(
         user.stripeConnectedAccountId,
       );
-      console.log(
-        `$Charges Enabled: ${userAccount.charges_enabled}\n Payouts Enabled: ${userAccount.payouts_enabled}`,
-      );
       if (userAccount.charges_enabled && userAccount.payouts_enabled) {
         user.isOnboarded = true;
         user = await this.userService.findOneByIdAndUpdate(user.id, user);
@@ -553,8 +553,20 @@ export class EventsService {
    * @returns the list of events
    */
   async findAll(params?: { [key: string]: any }) {
+    let startDate: Date;
+    let endDate: Date;
+
+    if (params['eventStartDateAndTime']) {
+      startDate = new Date(params['eventStartDateAndTime']);
+      startDate.setUTCHours(0, 0, 0, 0);
+    }
+
+    if (params['eventEndDateAndTime']) {
+      endDate = new Date(params['eventEndDateAndTime']);
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
+
     const today = new Date();
-    const todayISO = today.toISOString();
     const queryBuilder = this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
@@ -572,23 +584,33 @@ export class EventsService {
       // Date range filters
       if (params['eventStartDateAndTime'] && params['eventEndDateAndTime']) {
         queryBuilder.andWhere(
-          'event.eventStartDateAndTime <= :end AND event.eventEndDateAndTime >= :start',
+          `(
+      event.eventStartDateAndTime <= :endDate AND 
+      event.eventEndDateAndTime >= :startDate AND
+      event.eventEndDateAndTime > :today
+    )`,
           {
-            start: params['eventStartDateAndTime'],
-            end: params['eventEndDateAndTime'],
+            startDate,
+            endDate,
+            today,
           },
         );
       } else if (params['eventStartDateAndTime']) {
         queryBuilder.andWhere(
-          'event.eventStartDateAndTime >= :eventStartDate',
+          'event.eventStartDateAndTime >= :startDate AND event.eventStartDateAndTime > :today',
           {
-            eventStartDate: params['eventStartDateAndTime'],
+            startDate,
+            today,
           },
         );
       } else if (params['eventEndDateAndTime']) {
-        queryBuilder.andWhere('event.eventEndDateAndTime <= :eventEndDate', {
-          eventEndDate: params['eventEndDateAndTime'],
-        });
+        queryBuilder.andWhere(
+          'event.eventEndDateAndTime <= :endDate AND event.eventStartDateAndTime > :today',
+          {
+            endDate,
+            today,
+          },
+        );
       }
 
       // Search conditions (tags, name, location)

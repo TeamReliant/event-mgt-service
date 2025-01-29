@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { EventStatus, EventVisibility } from '../enums';
 import { TicketDto } from '@app/rest/organizer/ticket-resources/tickets/dto/ticket.dto';
 import { UserDto } from '@app/rest/users/dto/shared/user.dto';
+import { IsOptional, IsString } from 'class-validator';
 
 export class EventResponseDto {
   @Expose()
