@@ -962,7 +962,7 @@ export class PaymentService {
         payment_intent: paymentIntentId,
         amount: Math.round(+booking.unitAmount * 100), // Convert to cents
         // refund_application_fee: true,
-        // reverse_transfer: true, // Refund from the platform only
+        reverse_transfer: true, // Refund from the platform only
       },
       // {
       //   stripeAccount: user.stripeConnectedAccountId,
