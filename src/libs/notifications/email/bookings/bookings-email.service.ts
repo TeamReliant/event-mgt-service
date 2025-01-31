@@ -231,4 +231,43 @@ export class BookingsEmailService {
       attachments,
     );
   }
+
+  async sendBookingRefundedMessage(booking: Booking) {
+    const { appName, appEmail, companyName } = appInfo;
+
+    const payload = {
+      customer: {
+        email: booking.email,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+      },
+      organizer: booking.event.user,
+      booking,
+      appName,
+      appEmail,
+      companyName,
+      subject: `TICKET REFUND INITIATED`,
+    };
+
+    await this.sendOrganizerRefundMessage(payload);
+    await this.sendGuestRefundMessage(payload);
+  }
+
+  async sendOrganizerRefundMessage(payload: any) {
+    await this.emailEngineService.sendHtmlEmail(
+      [payload.organizer.email],
+      payload.subject,
+      `bookings/organizer-booking-refunded`,
+      payload,
+    );
+  }
+
+  async sendGuestRefundMessage(payload: any) {
+    await this.emailEngineService.sendHtmlEmail(
+      [payload.booking.email],
+      payload.subject,
+      `bookings/guest-booking-refunded`,
+      payload,
+    );
+  }
 }

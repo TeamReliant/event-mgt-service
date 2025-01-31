@@ -1,7 +1,7 @@
 extends ../baseEmail
 
 block content
-  p #{(payload.user)? `Hello ${payload.user.lastname}  ${payload.user.lastname} `: 'Hello'},
+  p #{(payload.user)? `Hello ${payload.user.firstname}  ${payload.user.lastname} `: 'Hello'},
 
   p You've been invited to join "#{payload.invitation.team.name}" team.
 

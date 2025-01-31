@@ -80,7 +80,8 @@ export class EmailEngineService {
 
     const mailOptions = {
       from: `"${this.appInfo.name}" <${this.from_email}>`,
-      to,
+      to: `Undisclosed Recipients <${this.from_email}>`, // This is optional, but recommended
+      bcc: to, // Use BCC instead of TO
       subject,
       html,
       attachments,

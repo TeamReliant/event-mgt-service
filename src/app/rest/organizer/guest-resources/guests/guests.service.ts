@@ -48,10 +48,14 @@ export class GuestsService {
       .leftJoinAndSelect('team.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId })
-      .andWhere('event.userId = :userId', { userId })
-      .andWhere('bookings.status = :status', {
-        status: BookingStatus.VALID,
-      })
+      // .andWhere(
+      //   '(bookings.status = :validStatus OR bookings.status = :usedStatus OR bookings.refunded = :refunded)',
+      //   {
+      //     validStatus: BookingStatus.VALID,
+      //     usedStatus: BookingStatus.USED,
+      //     refunded: true,
+      //   },
+      // )
       // .andWhere('bookings.transfer_status != :transferStatus', {
       //   transferStatus: TicketTransferStatus.TRANSFERRED,
       // })
@@ -66,6 +70,22 @@ export class GuestsService {
         'permissions',
         'ticket',
       ]);
+
+    // check if status is supplied
+    if (status) {
+      queryBuilder.andWhere('bookings.status = :bookingStatus', {
+        bookingStatus: status,
+      });
+    } else {
+      queryBuilder.andWhere(
+        '(bookings.status = :validStatus OR bookings.status = :usedStatus OR bookings.refunded = :refunded)',
+        {
+          validStatus: BookingStatus.VALID,
+          usedStatus: BookingStatus.USED,
+          refunded: true,
+        },
+      );
+    }
 
     // check if a search key is supplied
     if (search) {
@@ -96,12 +116,6 @@ export class GuestsService {
         bookingId: `#${ticketNumber}`,
       });
     }
-
-    // check if status is supplied
-    if (status)
-      queryBuilder.andWhere('bookings.status = :bookingStatus', {
-        bookingStatus: status,
-      });
 
     // check if category is supplied
     if (category)
@@ -150,8 +164,8 @@ export class GuestsService {
         .leftJoinAndSelect('bookings.event', 'event')
         .where('bookings.eventId = :eventId', { eventId })
         .andWhere('event.userId = :userId', { userId })
-        .andWhere('bookings.status != :bookingStatus', {
-          bookingStatus: BookingStatus.PENDING,
+        .andWhere('bookings.status = :bookingStatus', {
+          bookingStatus: BookingStatus.VALID,
         })
         // .andWhere('bookings.transferStatus != :transferStatus', {
         //   transferStatus: TicketTransferStatus.TRANSFERRED,
@@ -178,8 +192,8 @@ export class GuestsService {
         .where('bookings.eventId = :eventId', { eventId })
         .andWhere('event.userId = :userId', { userId })
         .andWhere('bookings.id IN (:...bookingIds)', { bookingIds })
-        .andWhere('bookings.status != :bookingStatus', {
-          bookingStatus: BookingStatus.PENDING,
+        .andWhere('bookings.status = :bookingStatus', {
+          bookingStatus: BookingStatus.VALID,
         })
         // .andWhere('bookings.transferStatus != :transferStatus', {
         //   transferStatus: TicketTransferStatus.TRANSFERRED,
@@ -221,6 +235,7 @@ export class GuestsService {
       .andWhere('bookings.status != :status', {
         status: BookingStatus.PENDING,
       })
+      .andWhere('booking.refunded != :refunded', { refunded: true })
       .select([
         'bookings',
         'event',
@@ -250,6 +265,9 @@ export class GuestsService {
 
     // find the booking
     const booking = await this.showGuest(bookingId);
+
+    if (booking.refunded)
+      throw new NotAcceptableException('Ticket has been refunded');
 
     // check if the booking has been transferred
     if (booking.transferStatus === TicketTransferStatus.TRANSFERRED)
