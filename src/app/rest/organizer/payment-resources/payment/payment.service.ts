@@ -34,6 +34,7 @@ import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event
 import { Request } from 'express';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { BookingEvent } from '@app/rest/attendee/bookings/events/booking.event';
 
 @Injectable()
 export class PaymentService {
@@ -954,28 +955,22 @@ export class PaymentService {
       );
     }
 
-    // PART 1: Refund platform fee
-    await this.stripe.refunds.create(
-      {
-        payment_intent: paymentIntentId,
-        amount: Math.round(+booking.unitAmount * 100), // Convert to cents
-        // refund_application_fee: true,
-        reverse_transfer: true, // Reverse from the organizer
-      },
-      // {
-      //   stripeAccount: user.stripeConnectedAccountId,
-      // },
-    );
-
-    // PART 2: Refund organizer's share
-    // await this.stripe.refunds.create({
-    //   payment_intent: paymentIntentId,
-    //   amount: Math.round((total - platformFee - stripeFee) * 100), // Convert to cents
-    //   refund_application_fee: false, // Don't refund platform fee again
-    //   reverse_transfer: true, // Refund from the organizer
-    // });
+    await this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      amount: Math.round(+booking.unitAmount * 100),
+      // refund_application_fee: true,
+      reverse_transfer: true,
+    });
 
     await this.entityManager.transaction(async (manager) => {
+      // update system analytics
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      systemRegister.totalRevenue -= booking.unitAmount;
+      systemRegister.ticketsSold -= 1;
+
       // Update booking
       booking.refunded = true;
       booking.status = BookingStatus.INVALID;
@@ -999,10 +994,13 @@ export class PaymentService {
       booking.transaction.refundedAmount += booking.unitAmount;
       booking.transaction.refundedFee += platformFee;
 
-      await manager.save(User, booking.event.user);
-      await manager.save(Event, booking.event);
-      await manager.save(Booking, booking);
+      await manager.save<User>(booking.event.user);
+      await manager.save<Event>(booking.event);
+      await manager.save<Booking>(booking);
+      await manager.save<SystemRegister>(systemRegister);
     });
+
+    this.eventEmitter.emit(events.BOOKING_REFUNDED, new BookingEvent(booking));
 
     return true;
   }

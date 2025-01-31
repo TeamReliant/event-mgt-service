@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { BookingsEmailService } from '@libs/notifications/email/bookings/bookings-email.service';
+import { BookingEvent } from '@app/rest/attendee/bookings/events/booking.event';
 
 @Injectable()
 export class BookingsListener {
@@ -24,6 +25,19 @@ export class BookingsListener {
     );
   }
 
+  @OnEvent(events.BOOKING_REFUNDED)
+  async dispatchBookingRefundedNotification(payload: BookingEvent) {
+    const { booking } = payload;
+
+    await this._bookingsEmailService.sendBookingRefundedMessage(booking);
+
+    // Remove the event from the queue  when done
+    this._eventEmitter.removeListener(
+      events.BOOKING_REFUNDED,
+      this.dispatchBookingRefundedNotification,
+    );
+  }
+
   @OnEvent(events.BOOKING_REACTION_UPDATED)
   async dispatchBookingReactionUpdatedNotification(payload: BookingsEvent) {
     const { bookings } = payload;
@@ -39,18 +53,18 @@ export class BookingsListener {
     );
   }
 
-  @OnEvent(events.BOOKING_TRANSFERRED)
-  async dispatchBookingTransferredNotification(payload: BookingsEvent) {
-    const { bookings } = payload;
-
-    await this._bookingsEmailService.sendBookingTransferredMessage(bookings);
-
-    // Remove the event from the queue  when done
-    this._eventEmitter.removeListener(
-      events.BOOKING_TRANSFERRED,
-      this.dispatchBookingTransferredNotification,
-    );
-  }
+  // @OnEvent(events.BOOKING_TRANSFERRED)
+  // async dispatchBookingTransferredNotification(payload: BookingsEvent) {
+  //   const { bookings } = payload;
+  //
+  //   await this._bookingsEmailService.sendBookingTransferredMessage(bookings);
+  //
+  //   // Remove the event from the queue  when done
+  //   this._eventEmitter.removeListener(
+  //     events.BOOKING_TRANSFERRED,
+  //     this.dispatchBookingTransferredNotification,
+  //   );
+  // }
 
   @OnEvent(events.COMPLIMENTARY_BOOKING_SENT)
   async dispatchComplimentaryBookingSentNotification(payload: BookingsEvent) {
@@ -77,7 +91,7 @@ export class BookingsListener {
     // Remove the event from the queue  when done
     this._eventEmitter.removeListener(
       events.BOOKING_RECEIVED,
-      this.dispatchBookingTransferredNotification,
+      this.dispatchBookingReceivedNotification,
     );
   }
 }

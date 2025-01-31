@@ -1,0 +1,14 @@
+extends ../baseEmail
+
+block content
+  p #{(payload.customer)? `Hello ${payload.customer.firstName}`: 'Hello'},
+
+  p We're excited to confirm that your ticket refund for the event "#{payload.booking.event.name}" was initiated, the fund will get into your account within two business days!
+
+  p
+   b TICKET: #{payload.booking.name}
+
+  p
+    small Best Regards,
+    br
+    small The #{payload.companyName} Team
