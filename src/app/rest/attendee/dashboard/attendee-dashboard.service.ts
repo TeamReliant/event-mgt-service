@@ -57,11 +57,26 @@ export class AttendeeDashboardService {
       .getMany();
 
     let recommendedEvents: Event[];
-    if (latitude && longitude)
+    if (latitude && longitude) {
       recommendedEvents = await this.getLatLongRecommendedEvents({
         latitude,
         longitude,
       });
+    } else {
+      recommendedEvents = await this._entityManager
+        .createQueryBuilder(Event, 'events')
+        .innerJoinAndSelect('events.user', 'user')
+        .leftJoinAndSelect('events.tickets', 'tickets')
+        .where('events.eventVisibility = :eventVisibility', {
+          eventVisibility: EventVisibility.PUBLIC,
+        })
+        .andWhere('events.eventStatus = :eventStatus', {
+          eventStatus: EventStatus.PUBLISHED,
+        })
+        .orderBy('RANDOM()')
+        .limit(10)
+        .getMany();
+    }
 
     return {
       upcomingEvents: this.sortUpcomingEvents(upcomingEventBookings),
