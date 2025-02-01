@@ -107,13 +107,13 @@ export class AttendeeDashboardService {
     const lon = parseFloat(longitude);
 
     return await this._entityManager
-      .createQueryBuilder(Event, 'events')
-      .innerJoinAndSelect('events.user', 'user')
-      .leftJoinAndSelect('events.tickets', 'tickets')
-      .where('events.eventVisibility = :eventVisibility', {
+      .createQueryBuilder(Event, 'event')
+      .innerJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets')
+      .where('event.eventVisibility = :eventVisibility', {
         eventVisibility: EventVisibility.PUBLIC,
       })
-      .andWhere('events.eventStatus = :eventStatus', {
+      .andWhere('event.eventStatus = :eventStatus', {
         eventStatus: EventStatus.PUBLISHED,
       })
       .andWhere(
