@@ -483,6 +483,7 @@ export class EventsService {
       where: { id },
       relations: [
         'user',
+        'user.events',
         'tickets',
         'team',
         'team.members',
@@ -495,6 +496,16 @@ export class EventsService {
     if (!event) {
       throw new NotFoundException('Event not found');
     }
+    //VAlidate event updating before processing updates
+    this.validateEventCreation(
+      event.user,
+      updateEventDto.eventVisibility
+        ? updateEventDto.eventVisibility
+        : event.eventVisibility,
+      updateEventDto.eventStatus
+        ? updateEventDto.eventStatus
+        : event.eventStatus,
+    );
 
     // check if update has image.
     //upload image
@@ -527,16 +538,6 @@ export class EventsService {
           slug,
           eventImageURL,
         };
-
-        this.validateEventCreation(
-          event.user,
-          updatedFields.eventVisibility
-            ? updatedFields.eventVisibility
-            : event.eventVisibility,
-          updatedFields.eventStatus
-            ? updatedFields.eventStatus
-            : event.eventStatus,
-        );
 
         Object.assign(event, updatedFields);
 
