@@ -33,7 +33,7 @@ export class UserDto {
 
   @Expose()
   numOfPrivateEventsCreated: number;
-  
+
   @Expose()
   stripeConnectedAccountId?: string;
 
@@ -47,7 +47,19 @@ export class UserDto {
   visibility: boolean;
 
   @Expose()
-  subscriptionStatus?: 'incomplete' | 'incomplete_expired' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'paused' | null;
+  subscriptionStatus?:
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'trialing'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'unpaid'
+    | 'paused'
+    | null;
+
+  @Expose()
+  subscriptionEndDate?: string;
 
   @Expose()
   subscribedPlan?: string;

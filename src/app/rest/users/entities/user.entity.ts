@@ -1,9 +1,14 @@
-import { TeamInvitation } from '@app/rest/team-resources/team-invitations/entities/team-invitation.entity';
-import { Column, Entity, OneToMany } from 'typeorm';
-import { TeamMember } from '@app/rest/team-resources/team-members/entities/team-member.entity';
+import { TeamInvitation } from '@app/rest/organizer/team-resources/team-invitations/entities/team-invitation.entity';
+import { Column, Entity, JoinColumn, OneToMany, OneToOne } from 'typeorm';
+import { TeamMember } from '@app/rest/organizer/team-resources/team-members/entities/team-member.entity';
 import { AbstractEntity } from '@libs/database';
-import { Event } from '@app/rest/event-resources/events/entities/event.entity';
-import { Team } from '@app/rest/team-resources/teams/entities/team.entity';
+import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.entity';
+import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
+import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
+import { UserType } from '@app/rest/users/enums/user-type';
+import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
+import { UsersPublicProfile } from './users-public-profile.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -27,14 +32,23 @@ export class User extends AbstractEntity<User> {
   @Column({ name: 'picture', type: 'text', nullable: true })
   picture?: string;
 
+  @Column({ name: 'team_name', type: 'varchar', length: 255, nullable: true })
+  teamName?: string;
+
+  @Column({ name: 'website', type: 'varchar', length: 1000, nullable: true })
+  website?: string;
+
+  @Column({ name: 'bio', type: 'text', nullable: true })
+  bio?: string;
+
   @Column({
     name: 'user_type',
     type: 'varchar',
     length: 255,
     nullable: true,
-    default: 'attendee',
+    default: UserType.ATTENDEE,
   })
-  userType?: string; // could be an organizer, attendee, or admin
+  userType?: UserType; // could be an organizer, attendee, or admin
 
   @Column({
     name: 'visibility',
@@ -95,7 +109,6 @@ export class User extends AbstractEntity<User> {
   })
   customerId?: string;
 
-
   @Column({ default: false })
   isOnboarded: boolean;
 
@@ -123,14 +136,57 @@ export class User extends AbstractEntity<User> {
     | 'paused'
     | null;
 
-
-  @Column({ nullable: true, default: "free" })
+  @Column({ nullable: true, default: 'free' })
   subscribedPlan?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  subscriptionId?: string;
+
+  @Column({ nullable: true })
+  subscriptionEndDate?: string;
+
+  @Column({
+    name: 'total_revenue',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalRevenue: number;
+
+  @Column({
+    name: 'total_platform_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalPlatformFee: number;
+
+  @Column({
+    name: 'total_stripe_fee',
+    nullable: true,
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
+  totalStripeFee: number;
+
+  @Column({ name: 'tickets_sold', type: 'bigint', nullable: true })
+  ticketsSold: number;
+
+  @Column({ name: 'last_logged_in', type: 'timestamp', nullable: true })
+  lastLoggedIn?: Date;
+
+  @Column({ default: false })
+  blocked: boolean;
 
   @OneToMany(() => Event, (events) => events.user, { cascade: true })
   events?: Event[];
 
-  // teams where the user is an admin
   @OneToMany(() => TeamMember, (members) => members.user, { cascade: true })
   teamMembers?: TeamMember[];
 
@@ -141,4 +197,33 @@ export class User extends AbstractEntity<User> {
     cascade: true,
   })
   invitations?: TeamInvitation[];
+
+  @OneToMany(() => Booking, (booking) => booking.user, { cascade: true })
+  bookings?: Booking[];
+
+  @OneToMany(() => EventView, (view) => view.user, {
+    cascade: true,
+  })
+  eventViews?: EventView[];
+
+  // @OneToMany(() => Booking, (booking) => booking.transferredTo, {
+  //   cascade: true,
+  // })
+  // bookingsTransferredTo?: Booking[];
+  //
+  // @OneToMany(() => Booking, (booking) => booking.transferredFrom, {
+  //   cascade: true,
+  // })
+  // bookingsTransferredFrom?: Booking[];
+
+  @OneToMany(() => BookingsTransaction, (trans) => trans.user, {
+    cascade: true,
+  })
+  bookingsTransactions?: BookingsTransaction[];
+
+  @OneToOne(() => UsersPublicProfile, (publicProfile) => publicProfile.user, {
+    cascade: true,
+  })
+  @JoinColumn({ name: 'publicProfileId' })
+  publicProfile: UsersPublicProfile;
 }

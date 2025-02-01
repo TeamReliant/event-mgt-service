@@ -1,17 +1,23 @@
 extends ../baseEmail
 
 block content
-  p #{(payload.user)? `Hello ${payload.user.lastname}  ${payload.user.lastname} `: 'Hello'},
-  p You've been invited to join "#{payload.invitation.team.name}" team on #{payload.appInfo.appName}.
+  p #{(payload.user)? `Hello ${payload.user.firstname}  ${payload.user.lastname} `: 'Hello'},
 
-  p As part of this team, you'll collaborate with others to help manage and organize events. Please take a moment to respond to the invitation by clicking one of the options below:
+  p You've been invited to join "#{payload.invitation.team.name}" team.
+
+  p You'll collaborate with members to help manage events. Click the below link to send your reaction:
 
   p
     a(href=payload.reactionLink) React To Invitation
-  
-  p If you have any questions, feel free to reach out to our 24/7 contact centre immediately on #{payload.appInfo.companyPhone}. Alternatively, send an email to #{payload.appInfo.appEmail}.
+
+  p NOTE: Make sure you're logged in to PLAVENTI with this email in order to accept/decline the invitation
+  p
+   small If you have any questions, feel free to send an email to #{payload.appEmail}.
 
   small Thank you!
   br
-  small
-    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
+  p
+   small
+     b - #{payload.appEmail},
+     br
+     b The #{payload.companyName} Team

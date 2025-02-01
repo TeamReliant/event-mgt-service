@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/index';
 import { MulterModule } from '@nestjs/platform-express';
@@ -7,18 +7,33 @@ import { EventsListenerModule } from '@libs/listeners/events-listener/events-lis
 import { UsersModule } from '@app/rest/users/users.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TeamMembersModule } from '@app/rest/team-resources/team-members/team-members.module';
-import { TeamInvitationsModule } from '@app/rest/team-resources/team-invitations/team-invitations.module';
-import { TeamsModule } from '@app/rest/team-resources/teams/teams.module';
-import { PermissionsModule } from '@app/rest/team-resources/permissions/permissions.module';
+import { TeamMembersModule } from '@app/rest/organizer/team-resources/team-members/team-members.module';
+import { TeamInvitationsModule } from '@app/rest/organizer/team-resources/team-invitations/team-invitations.module';
+import { TeamsModule } from '@app/rest/organizer/team-resources/teams/teams.module';
+import { PermissionsModule } from '@app/rest/organizer/team-resources/permissions/permissions.module';
 import DatabaseConfig from '@libs/database/config/database.config';
-import { EventsModule } from '@app/rest/event-resources/events/events.module';
-import { TicketsModule } from '@app/rest/ticket-resources/tickets/tickets.module';
+import { EventsModule } from '@app/rest/organizer/event-resources/events/events.module';
+import { TicketsModule } from '@app/rest/organizer/ticket-resources/tickets/tickets.module';
 import { JwtStrategy } from '@libs/strategies/jwt.strategy';
-import { PaymentModule } from './app/rest/payment-resources/payment/payment.module';
-import { TransactionsModule } from './app/rest/transaction-resources/transactions/transactions.module';
-import { TasksModule } from '@app/rest/event-resources/tasks/tasks.module';
-import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items.module';
+import { PaymentModule } from '@app/rest/organizer/payment-resources/payment/payment.module';
+import { TransactionsModule } from '@app/rest/organizer/transaction-resources/transactions/transactions.module';
+import { TasksModule } from '@app/rest/organizer/event-resources/tasks/tasks.module';
+import { LineItemsModule } from '@app/rest/organizer/event-resources/line-items/line-items.module';
+import { OrganizerDashboardModule } from '@app/rest/organizer/analytics-resources/organizer-dashboard/organizer-dashboard.module';
+import { EventAnalyticsModule } from '@app/rest/organizer/analytics-resources/event-analytics/event-analytics.module';
+import { GeneralEventAnalyticsModule } from '@app/rest/organizer/analytics-resources/general-event-analytics/general-event-analytics.module';
+import { MarketplaceModule } from '@app/rest/attendee/marketplace/marketplace.module';
+import { NewsletterModule } from '@app/rest/attendee/newsletter/newsletter.module';
+import { SubscribersModule } from '@app/rest/attendee/subscribers/subscribers.module';
+import { BookingsModule } from '@app/rest/attendee/bookings/bookings.module';
+import { BookingsTransactionsModule } from '@app/rest/attendee/bookings-transactions/bookings-transactions.module';
+import { AttendeeDashboardModule } from '@app/rest/attendee/dashboard/attendee-dashboard.module';
+import { GuestsModule } from '@app/rest/organizer/guest-resources/guests/guests.module';
+import { AdminDashboardModule } from '@app/rest/admin/admin-dashboard/admin-dashboard.module';
+import { SystemRegisterModule } from '@app/rest/admin/system-register/system-register.module';
+import { AdminManagementModule } from './app/rest/admin/admin-management/admin-management.module';
+import { EventManagementModule } from './app/rest/admin/event-management/event-management.module';
+import { SubscribersManagementModule } from './app/rest/admin/subscribers-management/subscribers-management.module';
 
 @Module({
   imports: [
@@ -31,7 +46,6 @@ import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         ...configService.get('database'),
-        // entities: [Event, Ticket, User],
       }),
       inject: [ConfigService],
     }),
@@ -60,6 +74,21 @@ import { LineItemsModule } from '@app/rest/event-resources/line-items/line-items
     LineItemsModule,
     PaymentModule,
     TransactionsModule,
+    OrganizerDashboardModule,
+    EventAnalyticsModule,
+    GeneralEventAnalyticsModule,
+    MarketplaceModule,
+    NewsletterModule,
+    SubscribersModule,
+    BookingsModule,
+    BookingsTransactionsModule,
+    AttendeeDashboardModule,
+    GuestsModule,
+    AdminDashboardModule,
+    SystemRegisterModule,
+    AdminManagementModule,
+    EventManagementModule,
+    SubscribersManagementModule,
   ],
   providers: [JwtStrategy],
 })

@@ -68,6 +68,7 @@ export class EmailEngineService {
     subject: string,
     template: string,
     payload: any,
+    attachments: any[] = [],
   ) {
     const pugTemplatePath = `${this.templatePath()}/${template}.pug`;
     const newPayload = {
@@ -79,9 +80,11 @@ export class EmailEngineService {
 
     const mailOptions = {
       from: `"${this.appInfo.name}" <${this.from_email}>`,
-      to,
+      to: `Undisclosed Recipients <${this.from_email}>`, // This is optional, but recommended
+      bcc: to, // Use BCC instead of TO
       subject,
       html,
+      attachments,
     };
 
     this.transporter

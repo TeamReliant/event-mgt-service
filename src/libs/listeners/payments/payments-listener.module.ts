@@ -1,4 +1,4 @@
-import { PaymentEvent } from '@app/rest/payment-resources/payment/events/payment.event';
+import { PaymentEvent } from '@app/rest/organizer/payment-resources/payment/events/payment.event';
 import { events } from '@config/app.config';
 import { PaymentsEmailService } from '@libs/notifications/email/payments/payments-email.service';
 import { Injectable } from '@nestjs/common';
@@ -10,7 +10,6 @@ export class PaymentListener {
     private readonly paymentsEmailService: PaymentsEmailService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
-
 
   @OnEvent(events.CHARGES_ENABLED)
   async dispatchChargesEnabledNotification(payload: PaymentEvent) {
@@ -41,11 +40,8 @@ export class PaymentListener {
   }
 
   @OnEvent(events.STRIPE_PAYMENT_ONBOARDING_COMPLETED)
-  async dispatchStripeOnboardingCompletedNotification(payload: PaymentEvent) {
-    const { paymentNotification } = payload;
-    await this.paymentsEmailService.sendStripePaymentOnboardingCompletedMessage(
-      paymentNotification,
-    );
+  async dispatchStripeOnboardingCompletedNotification() {
+    await this.paymentsEmailService.sendStripePaymentOnboardingCompletedMessage();
 
     // Remove the event from the queue when done
     this.eventEmitter.removeListener(
@@ -55,86 +51,107 @@ export class PaymentListener {
   }
 
   @OnEvent(events.PAYOUT_SUCCESS)
-  async dispatchPayoutSuccessMessage(payload: PaymentEvent)
-  {
-    const {paymentNotification} = payload;
-    await this.paymentsEmailService.sendPayoutSuccessMessage(paymentNotification);
+  async dispatchPayoutSuccessMessage(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendPayoutSuccessMessage(
+      paymentNotification,
+    );
 
     this.eventEmitter.removeListener(
       events.PAYOUT_SUCCESS,
-      this.dispatchPayoutSuccessMessage
+      this.dispatchPayoutSuccessMessage,
     );
   }
 
   @OnEvent(events.PAYOUT_FAILED)
-  async dispatchPayoutFailedMessage(payload: PaymentEvent)
-  {
-    const {paymentNotification} = payload;
-    await this.paymentsEmailService.sendPayoutFailedMessage(paymentNotification);
+  async dispatchPayoutFailedMessage(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendPayoutFailedMessage(
+      paymentNotification,
+    );
 
     this.eventEmitter.removeListener(
       events.PAYOUT_SUCCESS,
-      this.dispatchPayoutFailedMessage
+      this.dispatchPayoutFailedMessage,
     );
   }
 
   @OnEvent(events.CUSTOMER_CREATED)
-  async dispatchCustomerCreatedMessage(payload: PaymentEvent)
-  {
-    const {paymentNotification} = payload;
-    await this.paymentsEmailService.sendCustomerCreatedMessage(paymentNotification);
+  async dispatchCustomerCreatedMessage(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendCustomerCreatedMessage(
+      paymentNotification,
+    );
 
     this.eventEmitter.removeListener(
       events.CUSTOMER_CREATED,
-      this.dispatchCustomerCreatedMessage
+      this.dispatchCustomerCreatedMessage,
     );
   }
 
   @OnEvent(events.PAYMENT_SUCCESS)
-  async dispatchInvoicePaymentSuccessMessage(payload: PaymentEvent)
-  {
-    const {paymentNotification} = payload;
-    await this.paymentsEmailService.sendPaymentSuccessMessage(paymentNotification);
+  async dispatchInvoicePaymentSuccessMessage(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendPaymentSuccessMessage(
+      paymentNotification,
+    );
 
     this.eventEmitter.removeListener(
       events.PAYMENT_SUCCESS,
-      this.dispatchInvoicePaymentSuccessMessage
+      this.dispatchInvoicePaymentSuccessMessage,
     );
   }
 
   @OnEvent(events.PAYMENT_FAILED)
-  async dispatchInvoicePaymentFailedMessage(payload: PaymentEvent)
-  {
-    const {paymentNotification} = payload;
-    await this.paymentsEmailService.sendPaymentFailedMessage(paymentNotification);
+  async dispatchInvoicePaymentFailedMessage(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendPaymentFailedMessage(
+      paymentNotification,
+    );
 
     this.eventEmitter.removeListener(
       events.PAYMENT_FAILED,
-      this.dispatchInvoicePaymentFailedMessage
+      this.dispatchInvoicePaymentFailedMessage,
     );
   }
 
   @OnEvent(events.SUBSCRIPTION_PAYMENT_SUCCESS)
-  async dispatchSubscriptionPaymentSuccessMessage(payload: PaymentEvent)
-  {
-    const {paymentNotification} = payload;
-    await this.paymentsEmailService.sendSubscriptionPaymentSuccessMessage(paymentNotification);
+  async dispatchSubscriptionPaymentSuccessMessage(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendSubscriptionPaymentSuccessMessage(
+      paymentNotification,
+    );
 
     this.eventEmitter.removeListener(
       events.SUBSCRIPTION_PAYMENT_SUCCESS,
-      this.dispatchSubscriptionPaymentSuccessMessage
+      this.dispatchSubscriptionPaymentSuccessMessage,
     );
   }
 
   @OnEvent(events.SUBSCRIPTION_PAYMENT_FAILED)
-  async dispatchSubscriptionPaymentFailedMessage(payload: PaymentEvent)
-  {
-    const {paymentNotification} = payload;
-    await this.paymentsEmailService.sendSubscriptionPaymentFailedMessage(paymentNotification);
+  async dispatchSubscriptionPaymentFailedMessage(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendSubscriptionPaymentFailedMessage(
+      paymentNotification,
+    );
 
     this.eventEmitter.removeListener(
       events.SUBSCRIPTION_PAYMENT_FAILED,
-      this.dispatchSubscriptionPaymentFailedMessage
+      this.dispatchSubscriptionPaymentFailedMessage,
+    );
+  }
+
+  @OnEvent(events.SUBSCRIPTION_CANCELED)
+  async dispatchSubscriptionCanceledNotification(payload: PaymentEvent) {
+    const { paymentNotification } = payload;
+    await this.paymentsEmailService.sendSubscriptionCanceledMessage(
+      paymentNotification,
+    );
+
+    // Remove the event from the queue  when done
+    this.eventEmitter.removeListener(
+      events.SUBSCRIPTION_CANCELED,
+      this.dispatchSubscriptionCanceledNotification,
     );
   }
 }

@@ -1,14 +1,14 @@
 import {
+  BadRequestException,
   Injectable,
-  NotAcceptableException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import axios from 'axios';
 
 @Injectable()
 export class UsersService {
@@ -49,9 +49,14 @@ export class UsersService {
     return this.repo.findOneBy({ email });
   }
 
-  async findOneByConnectedAccountId(connectedAccountId: string)
-  {
-    return this.repo.findOneBy({ stripeConnectedAccountId: connectedAccountId });
+  async findOneByConnectedAccountId(connectedAccountId: string) {
+    return this.repo.findOneBy({
+      stripeConnectedAccountId: connectedAccountId,
+    });
+  }
+
+  async findOneBySubscriptionId(subscriptionId: string) {
+    return this.repo.findOneBy({ subscriptionId: subscriptionId });
   }
 
   async findOneByEmailExceptCurrentUser(
@@ -103,6 +108,8 @@ export class UsersService {
   async findOne(id: string) {
     return await this.repo
       .createQueryBuilder('user')
+      .leftJoinAndSelect('user.publicProfile', 'publicProfile')
+      .leftJoinAndSelect('user.teams', 'teams')
       .where('user.id = :id', { id: id })
       .getOne();
   }
@@ -111,17 +118,62 @@ export class UsersService {
     id: string,
     userData: Partial<User>,
   ): Promise<User> {
-    // Step 1: Retrieve the entity
-    const entityToUpdate = await this.repo.findOneBy({ id });
+    const entityToUpdate = await this.repo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.publicProfile', 'publicProfile')
+      .leftJoinAndSelect('user.teams', 'teams')
+      .where('user.id = :id', { id })
+      .getOne();
 
-    // Check if the entity exists
-    if (!entityToUpdate)
+    if (!entityToUpdate) {
       throw new NotFoundException(`User with ID ${id} not found`);
+    }
 
-    // Step 2: Modify the entity with new data
     Object.assign(entityToUpdate, userData);
-
-    // Step 3: Save the updated entity
     return await this.repo.save(entityToUpdate);
+  }
+
+  async getUserPermissions(userId: string) {
+    const user = await this.repo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.teamMembers', 'teamMembers')
+      .leftJoinAndSelect('teamMembers.role', 'role')
+      .leftJoinAndSelect('role.permissions', 'permissions')
+      .where('user.id = :userId', { userId })
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    // const permissions = user.teamMembers.flatMap((teamMember) =>
+    //   teamMember.role.permissions.map((permission) => permission.name),
+    // );
+
+    // return [...new Set(permissions)];
+  }
+
+  async getUserLocation(ip: string) {
+    if (!ip) throw new BadRequestException('Invalid IP address');
+    const url = `http://ip-api.com/json/${ip}?fields=country,regionName,city,lat,lon,query&key=${process.env.IP_INFO_TOKEN}`;
+
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'axios/0.21.1',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        throw new BadRequestException(
+          `Request limit exceeded. Please try again later`,
+        );
+      }
+      throw new BadRequestException(
+        `Failed to get location data for IP: ${ip}`,
+      );
+    }
   }
 }

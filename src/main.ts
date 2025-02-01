@@ -2,16 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { CustomExceptionFilter } from '@libs/filters/custom-exception.filter';
-import { CustomValidationPipe } from '@libs/pipes/custom-validation.pipe';
-
-import * as bodyParser from 'body-parser';
+import { FormattedValidationPipe } from '@libs/pipes/formatted-validation-pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
   });
   const configService = app.get(ConfigService);
-  
+
   // Custom exceptions filter
   app.useGlobalFilters(new CustomExceptionFilter());
 
@@ -26,10 +24,10 @@ async function bootstrap() {
     //exclude some routes
   });
 
-  
-
   // Attaching the validation piper at the global level
-  app.useGlobalPipes(new CustomValidationPipe());
+  // app.useGlobalPipes(new CustomValidationPipe());
+
+  app.useGlobalPipes(new FormattedValidationPipe());
 
   const port = configService.get<number>('PORT');
 

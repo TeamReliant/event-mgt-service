@@ -1,4 +1,4 @@
-import { TeamInvitationsEvent } from '@app/rest/team-resources/team-invitations/events/team-invitations.event';
+import { TeamInvitationsEvent } from '@app/rest/organizer/team-resources/team-invitations/events/team-invitations.event';
 import { events } from '@config/app.config';
 import { TeamInvitationsEmailService } from '@libs/notifications/email/team-invitations/team-invitations-email.service';
 import { Injectable } from '@nestjs/common';
@@ -14,6 +14,8 @@ export class TeamInvitationsListener {
   @OnEvent(events.TEAM_MEMBER_INVITED)
   async dispatchInvitationNotification(payload: TeamInvitationsEvent) {
     const { invitation } = payload;
+    console.log(payload);
+
     await this._teamInvitationsEmailService.sendInvitationMessage(invitation);
 
     // Remove the event from the queue  when done
