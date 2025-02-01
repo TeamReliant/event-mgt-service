@@ -687,6 +687,7 @@ export class EventsService {
           .andWhere(
             'event.latitude IS NOT NULL AND event.longitude IS NOT NULL',
           )
+          .andWhere('event.eventStartDateAndTime > :today', { today })
           .orderBy('distance', 'ASC');
       }
     }
