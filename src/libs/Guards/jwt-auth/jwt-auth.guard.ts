@@ -37,6 +37,16 @@ export default class JwtAuthGuard extends AuthGuard('jwt') {
     const userExists = await this.usersService.findOneById(user.userId);
     if (!userExists) throw new UnauthorizedException('UnAuthorized Access');
 
+    if (user.blocked)
+      throw new UnauthorizedException(
+        'Your account has been blocked! Please contact the admin',
+      );
+
+    // update the last login date
+    await this.usersService.findOneByIdAndUpdate(user.userId, {
+      lastLoggedIn: new Date(),
+    });
+
     return true;
   }
 }

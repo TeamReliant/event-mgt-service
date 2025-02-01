@@ -4,12 +4,14 @@ import { UpdateSubscriberDto } from './dto/update-subscriber.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Subscriber } from '@app/rest/attendee/subscribers/entities/subscriber.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class SubscribersService {
   constructor(
     @InjectRepository(Subscriber)
     private readonly _repo: Repository<Subscriber>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(body: CreateSubscriberDto): Promise<Subscriber> {
@@ -27,19 +29,6 @@ export class SubscribersService {
     return this._repo.save(newSubscriber);
   }
 
-  findAll() {
-    return this._repo.createQueryBuilder('subscribers');
-  }
-
-  async findOne(id: string, throwError: boolean = true): Promise<Subscriber> {
-    const subscriber = await this._repo.findOne({ where: { id } });
-    if (!subscriber && throwError)
-      throw new NotFoundException(`Subscriber with id ${id} not found`);
-
-    // return the subscriber
-    return subscriber;
-  }
-
   async update(updateSubscriberDto: UpdateSubscriberDto): Promise<Subscriber> {
     const { email, subscribed } = updateSubscriberDto;
 
@@ -50,11 +39,5 @@ export class SubscribersService {
     // update the subscriber record
     if (subscribed) subscriber.subscribed = subscribed === 'true';
     return this._repo.save(subscriber);
-  }
-
-  async remove(id: string): Promise<boolean> {
-    const subscriber = await this.findOne(id);
-    await this._repo.remove(subscriber);
-    return true;
   }
 }

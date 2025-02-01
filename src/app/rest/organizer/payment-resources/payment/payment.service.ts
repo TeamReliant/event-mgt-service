@@ -26,10 +26,15 @@ import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/en
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
-import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
+import {
+  BookingStatus,
+  TicketTransferStatus,
+} from '@app/rest/attendee/bookings/enums/booking-status';
 import { BookingsEvent } from '@app/rest/attendee/bookings/events/bookings.event';
 import { Request } from 'express';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { BookingEvent } from '@app/rest/attendee/bookings/events/booking.event';
 
 @Injectable()
 export class PaymentService {
@@ -82,7 +87,7 @@ export class PaymentService {
     return { invoice, user };
   }
 
-  private async createStripeConnectedAccountId(user: User) {
+  public async createStripeConnectedAccountId(user: User) {
     const account = await this.stripe.accounts.create({
       type: 'express',
       email: user.email,
@@ -169,22 +174,16 @@ export class PaymentService {
     }
   }
 
-  async cancelSubscription(
-    user: TJwtPayload,
-    cancelSubDto: CancelSubscriptionDto,
-    paymentMethod: string,
-  ) {
+  async cancelSubscription(user: TJwtPayload, paymentMethod: string) {
     const paymentStrategy =
       this.paymentStrategyResolver.getStrategy(paymentMethod);
     const currUser = await this.validateUserType(user, 'organizer');
 
-    if (currUser.subscriptionId !== cancelSubDto.subscriptionId) {
-      throw new BadRequestException(
-        'Subscription ID does not belong to currently logged in user',
-      );
+    if (!currUser.subscriptionId) {
+      throw new BadRequestException('No active subscription found');
     }
 
-    await this.stripe.subscriptions.update(cancelSubDto.subscriptionId, {
+    await this.stripe.subscriptions.update(currUser.subscriptionId, {
       cancel_at_period_end: true,
     });
 
@@ -415,6 +414,9 @@ export class PaymentService {
     }
   }
 
+  async getUserAccountDetails(acccountId: string) {
+    return await this.stripe.accounts.retrieve(acccountId);
+  }
   async handleSubscriptionDeleted(event: Stripe.Event) {
     const subscription = event.data.object as Stripe.Subscription;
     const user = await this.userService.findOneBySubscriptionId(
@@ -437,42 +439,109 @@ export class PaymentService {
     //TODO notify user of subscription cancellation
   }
 
-  async handleAccountUpdated(event: Stripe.Event) {
-    const account = event.data.object as Stripe.Account;
-    const user = await this.checkUserExists(account.email);
+  /**
+   * Calculates total revenue from subscription
+   * @returns total revenue from subscription
+   */
+  public async getSubscriptionRevenue() {
+    let totalRevenue = 0;
+    let hasMore = true;
+    let startingAfter: string | undefined = undefined;
 
-    if (!user.stripeConnectedAccountId)
-      user.stripeConnectedAccountId = account.id;
+    while (hasMore) {
+      const paginationParams = startingAfter
+        ? { starting_after: startingAfter }
+        : {};
+      const balanceTransactions = await this.stripe.balanceTransactions.list({
+        limit: 100,
+        type: 'charge',
+        expand: ['data.source'],
+        ...paginationParams,
+      });
 
-    await this.userService.findOneByIdAndUpdate(user.id, user);
+      for (const transaction of balanceTransactions.data) {
+        const source = transaction.source as Stripe.Charge;
+        if (
+          transaction.status === 'available' &&
+          source &&
+          source.invoice &&
+          !source.transfer &&
+          transaction.reporting_category === 'charge'
+        ) {
+          totalRevenue += transaction.net;
+        }
+      }
 
-    const paymentNotification: Payment = {
-      user,
-    };
-    if (account.charges_enabled) {
-      //TODO notify user of charges enabled and encourage them to enable payouts
-      this.eventEmitter.emit(
-        events.CHARGES_ENABLED,
-        new PaymentEvent(paymentNotification),
-      );
+      hasMore = balanceTransactions.has_more;
+      if (hasMore && balanceTransactions.data.length > 0) {
+        startingAfter =
+          balanceTransactions.data[balanceTransactions.data.length - 1].id;
+      }
     }
-    if (account.payouts_enabled) {
-      //TODO notify user of payouts enabled
-      this.eventEmitter.emit(
-        events.PAYOUT_ENABLED,
-        new PaymentEvent(paymentNotification),
-      );
-    }
-
-    if (account.charges_enabled && account.payouts_enabled) {
-      user.isOnboarded = true;
-      this.eventEmitter.emit(
-        events.STRIPE_PAYMENT_ONBOARDING_COMPLETED,
-        new PaymentEvent(paymentNotification),
-      );
-    }
-    await this.userService.findOneByIdAndUpdate(user.id, user);
+    return totalRevenue / 100;
   }
+  // async handleAccountUpdated(event: Stripe.Event) {
+  //   //logs for debug purposes
+  //   console.log('Stripe Event:', {
+  //     id: event.id,
+  //     type: event.type,
+  //     created: new Date(event.created * 1000).toISOString(),
+  //     data: JSON.stringify(event.data.object, null, 2),
+  //   });
+
+  //   const account = event.data.object as Stripe.Account;
+
+  //   console.log('Account Status:', {
+  //     id: account.id,
+  //     email: account.email,
+  //     charges_enabled: account.charges_enabled,
+  //     payouts_enabled: account.payouts_enabled,
+  //     details_submitted: account.details_submitted,
+  //   });
+
+  //   const user = await this.checkUserExists(account.email);
+
+  //   if (!user.stripeConnectedAccountId)
+  //     user.stripeConnectedAccountId = account.id;
+
+  //   // Check onboarding status
+  //   const wasOnboarded = user.isOnboarded;
+  //   if (account.charges_enabled && account.payouts_enabled)
+  //     user.isOnboarded = true;
+
+  //   await this.userService.findOneByIdAndUpdate(user.id, user);
+
+  //   const paymentNotification: Payment = {
+  //     user,
+  //   };
+
+  //   if (account.charges_enabled && account.payouts_enabled) {
+  //     user.isOnboarded = true;
+  //   }
+  //   await this.userService.findOneByIdAndUpdate(user.id, user);
+
+  //   if (account.charges_enabled) {
+  //     this.eventEmitter.emit(
+  //       events.CHARGES_ENABLED,
+  //       new PaymentEvent(paymentNotification),
+  //     );
+  //   }
+  //   if (account.payouts_enabled) {
+  //     //TODO notify user of payouts enabled
+  //     this.eventEmitter.emit(
+  //       events.PAYOUT_ENABLED,
+  //       new PaymentEvent(paymentNotification),
+  //     );
+  //   }
+
+  //   // Only emit onboarding completed if it wasn't previously onboarded
+  //   if (user.isOnboarded && !wasOnboarded) {
+  //     this.eventEmitter.emit(
+  //       events.STRIPE_PAYMENT_ONBOARDING_COMPLETED,
+  //       new PaymentEvent(paymentNotification),
+  //     );
+  //   }
+  // }
 
   async handleCustomerCreated(event: Stripe.Event) {
     const customer = event.data.object as Stripe.Customer;
@@ -544,11 +613,31 @@ export class PaymentService {
     bookings: Booking[],
     cancelUrl: string = null,
   ): Promise<any> {
+    const stripeFee = +this.configService.get<number>('STRIPE_FEE');
+    const percentageCut = +this.configService.get<number>(
+      'TICKET_PERCENTAGE_CUT',
+    );
+
     const totalAmount = bookings.reduce((currentAmount, booking) => {
       return currentAmount + booking.ticket.price * booking.quantity;
     }, 0);
 
+    // calculate the percentage cut of the totalAmount
+    const percentageCutAmount = (totalAmount * percentageCut) / 100;
+
     const booking = bookings.find((booking) => booking);
+
+    // find the organizer that owns the event
+    const event = await this.entityManager
+      .createQueryBuilder(Event, 'event')
+      .leftJoinAndSelect('event.user', 'user')
+      .where('event.id = :eventId', { eventId: booking.event.id })
+      .getOne();
+
+    if (!event.user?.stripeConnectedAccountId)
+      throw new BadRequestException(
+        `Organizer cannot accept ticket payment at the moment, try again after some time!`,
+      );
 
     return await this.stripe.checkout.sessions.create({
       payment_method_types: [
@@ -565,13 +654,23 @@ export class PaymentService {
               name: `EVENT BOOKING - ${booking.event.name.toUpperCase()}`,
               description: `By ${booking.firstName} ${booking.lastName}, Email: ${booking.email}`,
             },
-            unit_amount: totalAmount * 100, // Amount in cents, adjust based on ticket price
+            unit_amount: Math.round(
+              (totalAmount + percentageCutAmount + stripeFee) * 100,
+            ), // Amount in cents, adjust based on ticket price
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
       customer_email: booking.email,
+      payment_intent_data: {
+        application_fee_amount: Math.round(
+          (percentageCutAmount + stripeFee) * 100,
+        ), // Fee to our platform
+        transfer_data: {
+          destination: event.user.stripeConnectedAccountId, // Organizer's connected account
+        },
+      },
       currency: this.configService.get<string>(
         'STRIPE_CHECKOUT_SESSION_CURRENCY',
       ),
@@ -614,10 +713,7 @@ export class PaymentService {
 
     // Create database transaction for the database changes
     await this.entityManager.transaction(async (manager) => {
-      if (
-        session.payment_status === 'paid' &&
-        transaction.totalAmount === session.amount_total / 100
-      ) {
+      if (session.payment_status === 'paid') {
         transaction.processed = true;
         transaction.paid = true;
         transaction.currency = session.currency;
@@ -625,6 +721,7 @@ export class PaymentService {
         // Keep track of total revenue and event
         let totalRevenue: number = 0.0;
         let totalTicketsSold: number = 0;
+        let totalTicketsProcessed: number = 0;
         const bookings: Booking[] = [];
         let event: Event = undefined;
 
@@ -678,18 +775,15 @@ export class PaymentService {
 
           if (booking.category === TicketCategory.PAID) {
             // update the event's revenue
-            const percentage = +this.configService.get<number>(
-              'TICKET_PERCENTAGE_CUT',
-            );
-
             const price = +booking.unitAmount * booking.quantity;
-            const percentageCut = (price * percentage) / 100;
-            const revenue = price - percentageCut;
 
             if (!event) event = booking.event;
-            totalRevenue += revenue;
+            totalRevenue += price;
             totalTicketsSold = totalTicketsSold + booking.quantity;
           }
+
+          // update the total tickets processed variable
+          totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
 
           // save the newly generated bookings
           newBookings = await manager.save(Booking, bookings);
@@ -703,15 +797,32 @@ export class PaymentService {
           event.revenue = +event.revenue + totalRevenue;
           event.totalNumberOfTicketsSold =
             +event.totalNumberOfTicketsSold + totalTicketsSold;
+          event.totalStripeFee = +event.totalStripeFee + transaction.stripeFee;
+          event.totalPlatformFee = +event.totalPlatformFee + transaction.fee;
 
           // update the user's revenue and tickets sold
           event.user.totalRevenue = +event.user.totalRevenue + totalRevenue;
           event.user.ticketsSold = +event.user.ticketsSold + totalTicketsSold;
+          event.user.totalStripeFee =
+            +event.user.totalStripeFee + transaction.stripeFee;
+          event.user.totalPlatformFee =
+            +event.user.totalPlatformFee + transaction.fee;
 
           await manager.save(User, event.user);
           // update the event
           await manager.save(Event, event);
         }
+
+        // fetch the system register
+        const systemRegister = await manager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
+
+        // update the system register
+        systemRegister.totalRevenue += transaction.fee;
+        systemRegister.ticketsSold += totalTicketsSold;
+        systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+        await manager.save<SystemRegister>(systemRegister);
 
         // delete old transactions from memory
         delete transaction.bookings;
@@ -728,6 +839,20 @@ export class PaymentService {
       );
   }
 
+  async getExpressDashboard(userId: string) {
+    // find the user with the userId
+    const user = await this.userService.findOne(userId);
+    if (!user.stripeConnectedAccountId)
+      throw new NotAcceptableException(
+        'Please complete your payout onboarding',
+      );
+
+    const expressUrl = await this.stripe.accounts.createLoginLink(
+      user.stripeConnectedAccountId,
+    );
+    return expressUrl.url;
+  }
+
   async generateBookingId(): Promise<string> {
     const randNum = Math.floor(10000 + Math.random() * 90000);
     const bookingId = `#${randNum}`;
@@ -740,5 +865,143 @@ export class PaymentService {
 
   async retrieveCheckoutSession(sessionId: string): Promise<any> {
     return await this.stripe.checkout.sessions.retrieve(sessionId);
+  }
+
+  async getFees(amount: number) {
+    const stripeFee = +this.configService.get<number>('STRIPE_FEE');
+    const percentageCut = +this.configService.get<number>(
+      'TICKET_PERCENTAGE_CUT',
+    );
+
+    // calculate the percentage cut of the totalAmount
+    const percentageCutAmount = (amount * percentageCut) / 100;
+
+    return {
+      platformFee: percentageCutAmount,
+      stripeFee,
+      total: percentageCutAmount + stripeFee + amount,
+    };
+  }
+
+  async refundPayment(bookingId: string, userId: string) {
+    const user = await this.userService.findOne(userId);
+    if (!user.stripeConnectedAccountId)
+      throw new NotAcceptableException(
+        'Please complete your payout onboarding',
+      );
+
+    // find the booking with the bookingId
+    const booking = await this.entityManager
+      .createQueryBuilder(Booking, 'booking')
+      .leftJoinAndSelect('booking.transaction', 'transaction')
+      .leftJoinAndSelect('booking.ticket', 'ticket')
+      .leftJoinAndSelect('booking.event', 'event')
+      .leftJoinAndSelect('event.user', 'user')
+      .where('booking.id = :bookingId', { bookingId })
+      .getOne();
+
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.category !== TicketCategory.PAID)
+      throw new NotAcceptableException('Booking is not paid for');
+
+    if (!booking.processed || !booking.paid)
+      throw new NotAcceptableException('Booking is not paid for');
+    // check if the booking has been transferred out
+    if (
+      booking.transferStatus === TicketTransferStatus.TRANSFERRED ||
+      booking.transferStatus === TicketTransferStatus.RECEIVED
+    )
+      throw new NotAcceptableException(
+        'Transferred booking is not eligible for a refund',
+      );
+    if (booking.status === BookingStatus.USED)
+      throw new NotAcceptableException(
+        'Used booking is not eligible for a refund',
+      );
+    if (booking.refunded)
+      throw new NotAcceptableException('Booking has already been refunded');
+
+    const session = await this.stripe.checkout.sessions.retrieve(
+      booking.transaction.stripeCheckoutId,
+    );
+
+    if (!session) throw new NotFoundException('Transaction record not found');
+    if (!session.payment_intent) {
+      throw new NotAcceptableException('Payment Intent not found in session');
+    }
+
+    // get the booking refund data
+    const { platformFee, stripeFee, total } = await this.getFees(
+      booking.unitAmount,
+    );
+
+    const paymentIntentId = session.payment_intent as string;
+    // Step 1: Fetch the connected account balance
+    const balance = await this.stripe.balance.retrieve({
+      stripeAccount: user.stripeConnectedAccountId,
+    });
+
+    // Step 2: Check the available balance
+    const availableBalance = balance.available.reduce(
+      (total, balanceItem) => total + balanceItem.amount,
+      0,
+    );
+
+    if (
+      availableBalance < Math.round((total - platformFee - stripeFee) * 100)
+    ) {
+      throw new NotAcceptableException(
+        'Insufficient balance in connected account for the refund',
+      );
+    }
+
+    await this.stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      amount: Math.round(+booking.unitAmount * 100),
+      // refund_application_fee: true,
+      reverse_transfer: true,
+    });
+
+    await this.entityManager.transaction(async (manager) => {
+      // update system analytics
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      systemRegister.totalRevenue -= booking.unitAmount;
+      systemRegister.ticketsSold -= 1;
+
+      // Update booking
+      booking.refunded = true;
+      booking.status = BookingStatus.INVALID;
+
+      // update the ticket
+      booking.ticket.numberOfTicketsSold -= 1;
+
+      // update the event's revenue
+      booking.event.revenue -= booking.unitAmount;
+      booking.event.totalNumberOfTicketsSold -= 1;
+      booking.event.totalStripeFee -= stripeFee;
+      booking.event.totalPlatformFee -= platformFee;
+
+      // update the user's revenue and tickets sold
+      booking.event.user.totalRevenue -= booking.unitAmount;
+      booking.event.user.ticketsSold--;
+      booking.event.user.totalStripeFee -= stripeFee;
+      booking.event.user.totalPlatformFee -= platformFee;
+
+      // update the transaction record
+      booking.transaction.refundedAmount += booking.unitAmount;
+      booking.transaction.refundedFee += platformFee;
+
+      await manager.save<User>(booking.event.user);
+      await manager.save<Event>(booking.event);
+      await manager.save<Booking>(booking);
+      await manager.save<SystemRegister>(systemRegister);
+    });
+
+    this.eventEmitter.emit(events.BOOKING_REFUNDED, new BookingEvent(booking));
+
+    return true;
   }
 }

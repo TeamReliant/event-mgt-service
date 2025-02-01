@@ -16,202 +16,8 @@ export class LineItemsService {
     @InjectRepository(LineItem)
     private readonly _repo: Repository<LineItem>,
     private readonly _entityManager: EntityManager,
-    private readonly _configService: ConfigService,
   ) {}
 
-  async getAnalytics(eventId: string) {
-    // const today = new Date();
-    // const sevenDaysAgo = subDays(today, 7);
-    // const fourteenDaysAgo = subDays(today, 14);
-    //
-    // // Fetch total budget, total expenses, available budget for the last 7 days
-    // const currentPeriod = await this._repo
-    //   .createQueryBuilder('line_item')
-    //   .select('SUM(line_item.intendedBudget)', 'totalBudget')
-    //   .addSelect('SUM(line_item.amountSpent)', 'totalExpenses')
-    //   .addSelect(
-    //     'SUM(line_item.intendedBudget) - SUM(line_item.amountSpent)',
-    //     'availableBudget',
-    //   )
-    //   .where('line_item.eventId = :eventId', { eventId })
-    //   .andWhere('line_item.createdAt BETWEEN :sevenDaysAgo AND :today', {
-    //     sevenDaysAgo,
-    //     today,
-    //   })
-    //   .getRawOne();
-    //
-    // // Fetch total budget, total expenses, available budget for the previous 7 days
-    // const previousPeriod = await this._repo
-    //   .createQueryBuilder('line_item')
-    //   .select('SUM(line_item.intendedBudget)', 'totalBudget')
-    //   .addSelect('SUM(line_item.amountSpent)', 'totalExpenses')
-    //   .addSelect(
-    //     'SUM(line_item.intendedBudget) - SUM(line_item.amountSpent)',
-    //     'availableBudget',
-    //   )
-    //   .where('line_item.eventId = :eventId', { eventId })
-    //   .andWhere(
-    //     'line_item.createdAt BETWEEN :fourteenDaysAgo AND :sevenDaysAgo',
-    //     {
-    //       fourteenDaysAgo,
-    //       sevenDaysAgo,
-    //     },
-    //   )
-    //   .getRawOne();
-    //
-    // // Convert current and previous values to numbers
-    // const currentBudget = parseFloat(currentPeriod.totalBudget || 0);
-    // const currentExpenses = parseFloat(currentPeriod.totalExpenses || 0);
-    // const currentAvailableBudget = parseFloat(
-    //   currentPeriod.availableBudget || 0,
-    // );
-    //
-    // const previousBudget = parseFloat(previousPeriod.totalBudget || 0);
-    // const previousExpenses = parseFloat(previousPeriod.totalExpenses || 0);
-    // const previousAvailableBudget = parseFloat(
-    //   previousPeriod.availableBudget || 0,
-    // );
-    //
-    // // Calculate percentage changes
-    // const budgetChange =
-    //   previousBudget > 0
-    //     ? ((currentBudget - previousBudget) / previousBudget) * 100
-    //     : 0;
-    //
-    // const expensesChange =
-    //   previousExpenses > 0
-    //     ? ((currentExpenses - previousExpenses) / previousExpenses) * 100
-    //     : 0;
-    //
-    // const availableBudgetChange =
-    //   previousAvailableBudget > 0
-    //     ? ((currentAvailableBudget - previousAvailableBudget) /
-    //         previousAvailableBudget) *
-    //       100
-    //     : 0;
-    //
-    // return {
-    //   current: {
-    //     totalBudget: currentBudget,
-    //     totalExpenses: currentExpenses,
-    //     availableBudget: currentAvailableBudget,
-    //     grossIncome: 0,
-    //     netIncome: 0,
-    //   },
-    //   previous: {
-    //     totalBudget: previousBudget,
-    //     totalExpenses: previousExpenses,
-    //     availableBudget: previousAvailableBudget,
-    //     grossIncome: 0,
-    //     netIncome: 0,
-    //   },
-    //   percentageChange: {
-    //     budgetChange,
-    //     expensesChange,
-    //     availableBudgetChange,
-    //     grossIncome: 0,
-    //     netIncome: 0,
-    //   },
-    // };
-
-    // get the date of 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(1, 0, 0, 0);
-
-    // get the current date
-    const today = new Date();
-    today.setHours(24, 59, 59, 999);
-
-    // find the event with the id
-    const event = await this._entityManager
-      .createQueryBuilder(Event, 'event')
-      .leftJoinAndSelect('event.lineItems', 'lineItems')
-      .where('event.id = :eventId', { eventId })
-      .getOne();
-
-    // calculate total sum of intendedBudget
-    const totalBudget = event.lineItems.reduce(
-      (acc, lineItem) => acc + +lineItem.intendedBudget,
-      0,
-    );
-    // calculate the total sum of amountSpent
-    const totalAmountSpent = event.lineItems.reduce(
-      (acc, lineItem) => acc + +lineItem.amountSpent,
-      0,
-    );
-
-    // calculate the budget percentage difference
-    const totalBudgetPercentageDiff = (totalAmountSpent / totalBudget) * 100;
-    const totalExpensePercentageDiff = (totalBudget / totalAmountSpent) * 100;
-
-    // calculate the available budget
-    const availableBudget = +totalBudget - totalAmountSpent;
-    // calculate percentage diff of available budget
-    const availableBudgetPercentageDiff = (availableBudget / totalBudget) * 100;
-
-    // calculate the percentage left
-    const organizerPercentage =
-      (100 - +this._configService.get<number>('TICKET_PERCENTAGE_CUT')) / 100;
-    // calculate the gross revenue
-    const grossRevenue = +event.revenue / organizerPercentage;
-
-    // fetch successful bookings within the last 7 days
-    const successfulBookingsWithin7Days = await this._entityManager
-      .createQueryBuilder(Booking, 'bookings')
-      .where('bookings.eventId = :eventId', { eventId })
-      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
-      .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
-      .andWhere('bookings.createdAt <= :today', { today })
-      .select(['bookings.id', 'bookings.unitAmount'])
-      .getMany();
-
-    // sum the unitAmount of the booking
-    const totalNetRevenueWithin7Days = successfulBookingsWithin7Days.reduce(
-      (acc, booking) => acc + +booking.unitAmount,
-      0,
-    );
-
-    const totalGrossRevenueWithin7Days =
-      +totalNetRevenueWithin7Days / organizerPercentage;
-
-    // calculate the net revenue percentage change
-    const percentageNetRevenueChangeWithin7Days =
-      (totalNetRevenueWithin7Days / event.revenue) * 100;
-
-    // calculate the gross revenue percentage change
-    const percentageGrossRevenueChangeWithin7Days =
-      (totalGrossRevenueWithin7Days / event.revenue) * 100;
-
-    return {
-      totalBudget: {
-        value: totalBudget,
-        percentageDiff: this.roundToTwo(totalBudgetPercentageDiff),
-      },
-      totalExpense: {
-        value: totalAmountSpent,
-        percentageDiff: this.roundToTwo(totalExpensePercentageDiff),
-      },
-      availableBudget: {
-        value: availableBudget,
-        percentageDiff: this.roundToTwo(availableBudgetPercentageDiff),
-      },
-      grossIncome: {
-        value: grossRevenue,
-        percentageDiff: this.roundToTwo(
-          percentageGrossRevenueChangeWithin7Days,
-        ),
-      },
-      netIncome: {
-        value: event.revenue,
-        percentageDiff: this.roundToTwo(percentageNetRevenueChangeWithin7Days),
-      },
-    };
-  }
-
-  roundToTwo(digits: number) {
-    return Math.ceil(digits * 100) / 100;
-  }
   async create(body: CreateLineItemDto, eventId: string): Promise<LineItem> {
     // destructuring the body
     const { name } = body;
@@ -380,5 +186,264 @@ export class LineItemsService {
 
     // remove the line item
     return this._repo.remove(lineItem);
+  }
+
+  async getAnalytics(eventId: string) {
+    // get the date of 7 days ago
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(1, 0, 0, 0);
+
+    // get the current date
+    const today = new Date();
+    today.setHours(24, 59, 59, 999);
+
+    // find the event with the id
+    const event = await this._entityManager
+      .createQueryBuilder(Event, 'event')
+      .leftJoinAndSelect('event.lineItems', 'lineItems')
+      .where('event.id = :eventId', { eventId })
+      .getOne();
+
+    return {
+      totalBudget: await this._getTotalBudgetAnalytics(event),
+      totalExpense: await this._getTotalExpenseAnalytics(event),
+      availableBudget: await this._getAvailableBudgetAnalytics(event),
+      grossIncome: await this._getGrossRevenueAnalytics(event),
+      netIncome: await this._getNetRevenueAnalytics(event),
+    };
+  }
+
+  private async _getNetRevenueAnalytics(event: Event) {
+    // get the date of yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    // get the current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // fetch all event line items
+    const eventLineItems = await this._entityManager
+      .createQueryBuilder(LineItem, 'lineItems')
+      .where('lineItems.eventId = :eventId', { eventId: event.id })
+      .getMany();
+
+    // fetch successful bookings within the last 7 days
+    const successfulBookingsTillYesterday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.id = :eventId', { eventId: event.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :yesterday', { yesterday })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
+    const successfulBookingsTillToday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.id = :eventId', { eventId: event.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
+    // sum the unitAmount of the booking
+    const netRevenueTillYesterday = successfulBookingsTillYesterday.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
+
+    const netRevenueTillToday = successfulBookingsTillToday.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
+
+    const totalExpenses = eventLineItems.reduce(
+      (acc, lineItem) => acc + +lineItem.amountSpent,
+      0,
+    );
+
+    return {
+      value: +event.revenue - totalExpenses,
+      percentageDiff: this._percentageChange(
+        netRevenueTillToday - totalExpenses,
+        netRevenueTillYesterday - totalExpenses,
+      ),
+    };
+  }
+
+  private async _getGrossRevenueAnalytics(event: Event) {
+    // get the date of yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    // get the current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // fetch successful bookings within the last 7 days
+    const successfulBookingsYesterday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.id = :eventId', { eventId: event.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :yesterday', { yesterday })
+      .andWhere('bookings.createdAt < :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
+    const successfulBookingsToday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.id = :eventId', { eventId: event.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
+    // sum the unitAmount of the booking
+    const grossRevenueYesterday = successfulBookingsYesterday.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
+
+    const grossRevenueToday = successfulBookingsToday.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
+
+    return {
+      value: +event.revenue,
+      percentageDiff: this._percentageChange(
+        grossRevenueToday,
+        grossRevenueYesterday,
+      ),
+    };
+  }
+
+  _roundToTwo(digits: number) {
+    return Math.ceil(digits * 100) / 100;
+  }
+
+  private async _getAvailableBudgetAnalytics(event: Event) {
+    const totalExpenses = await this._getTotalExpenseAnalytics(event);
+    const totalBudget = await this._getTotalBudgetAnalytics(event);
+
+    const availableBudget = totalBudget.value - totalExpenses.value;
+    const percentageDiff =
+      totalBudget.percentageDiff - totalExpenses.percentageDiff;
+
+    return {
+      value: this._roundToTwo(availableBudget),
+      percentageDiff,
+    };
+  }
+
+  private async _getTotalExpenseAnalytics(event: Event) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = subDays(today, 1);
+
+    // calculate total sum of intendedBudget
+    const totalBudget = event.lineItems.reduce(
+      (acc, lineItem) => acc + +lineItem.amountSpent,
+      0,
+    );
+
+    const totalAmountSpentToday = await this._repo
+      .createQueryBuilder('lineItems')
+      .where('lineItems.eventId = :eventId', { eventId: event.id })
+      .andWhere('lineItems.createdAt >= :today', { today })
+      .getMany();
+
+    const totalAmountSpentYesterday = await this._repo
+      .createQueryBuilder('lineItems')
+      .where('lineItems.eventId = :eventId', { eventId: event.id })
+      .andWhere('lineItems.createdAt >= :yesterday', { yesterday })
+      .andWhere('lineItems.createdAt < :today', { today })
+      .getMany();
+
+    // calculate totalAmountSpentToday
+    const totalAmountSpentAmountToday = totalAmountSpentToday.reduce(
+      (acc, lineItem) => acc + +lineItem.amountSpent,
+      0,
+    );
+    const totalAmountSpentAmountYesterday = totalAmountSpentYesterday.reduce(
+      (acc, lineItem) => acc + +lineItem.amountSpent,
+      0,
+    );
+
+    return {
+      value: +totalBudget,
+      percentageDiff: this._percentageChange(
+        +totalAmountSpentAmountToday,
+        +totalAmountSpentAmountYesterday,
+      ),
+    };
+  }
+
+  private async _getTotalBudgetAnalytics(event: Event) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = subDays(today, 1);
+
+    // calculate total sum of intendedBudget
+    const totalBudget = event.lineItems.reduce(
+      (acc, lineItem) => acc + +lineItem.intendedBudget,
+      0,
+    );
+
+    const totalBudgetToday = await this._repo
+      .createQueryBuilder('lineItems')
+      .where('lineItems.eventId = :eventId', { eventId: event.id })
+      .andWhere('lineItems.createdAt >= :today', { today })
+      .getMany();
+
+    const totalBudgetYesterday = await this._repo
+      .createQueryBuilder('lineItems')
+      .where('lineItems.eventId = :eventId', { eventId: event.id })
+      .andWhere('lineItems.createdAt >= :yesterday', { yesterday })
+      .andWhere('lineItems.createdAt < :today', { today })
+      .getMany();
+
+    // calculate totalBudgetToday
+    const totalBudgetAmountToday = totalBudgetToday.reduce(
+      (acc, lineItem) => acc + +lineItem.intendedBudget,
+      0,
+    );
+    const totalBudgetAmountYesterday = totalBudgetYesterday.reduce(
+      (acc, lineItem) => acc + +lineItem.intendedBudget,
+      0,
+    );
+
+    return {
+      value: +totalBudget,
+      percentageDiff: this._percentageChange(
+        +totalBudgetAmountToday,
+        +totalBudgetAmountYesterday,
+      ),
+    };
+  }
+
+  _percentageChange(today: number, yesterday: number) {
+    if (yesterday === 0 || today === 0) return 0;
+
+    if (yesterday === 0) {
+      if (today === 0) {
+        // No change if both are zero
+        return 0;
+      }
+
+      // value * 100 if yesterday is 0 and today is greater than 0
+      return 0; // today * 100;
+    }
+
+    // Standard percentage change calculation if yesterday is non-zero
+    return this._roundToTwo(((today - yesterday) / yesterday) * 100);
   }
 }

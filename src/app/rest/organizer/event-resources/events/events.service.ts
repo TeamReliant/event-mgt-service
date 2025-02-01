@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
 import slugify from 'slugify';
@@ -9,7 +8,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Event } from './entities/event.entity';
-import { Brackets, EntityManager, Repository } from 'typeorm';
+import { Brackets, EntityManager, IsNull, Not, Repository } from 'typeorm';
 import { AzureBlobFileSystemService } from '@libs/services/file-system/implementations/azure/azure-blob-file-system.service';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
 import { TJwtPayload } from '@libs/types';
@@ -20,6 +19,11 @@ import { Team } from '@app/rest/organizer/team-resources/teams/entities/team.ent
 import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
+import { PaymentService } from '../../payment-resources/payment/payment.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
 export class EventsService {
@@ -28,6 +32,8 @@ export class EventsService {
     private readonly entityManager: EntityManager,
     private readonly userService: UsersService,
     private readonly azureBlobService: AzureBlobFileSystemService,
+    private readonly paymentService: PaymentService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private async uploadImage(file: Express.Multer.File): Promise<string> {
@@ -135,7 +141,11 @@ export class EventsService {
         ...rest
       } = createEventDto;
 
-      if (createEventDto.locationName == null && createEventDto.address == null)
+      if (
+        createEventDto.locationName == null &&
+        createEventDto.address == null &&
+        createEventDto.googleMapUrl == null
+      )
         throw new BadRequestException(
           'Please provide an address for your event',
         );
@@ -154,7 +164,7 @@ export class EventsService {
         throw new NotFoundException('User not found');
       }
 
-      // this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
+      this.validateEventCreation(eventCreator, eventVisibility, eventStatus);
       this.updateUserEventCounts(eventCreator, eventVisibility);
 
       const createdEvent = await this.entityManager.transaction(
@@ -174,6 +184,21 @@ export class EventsService {
           }
 
           await manager.save<User>(eventCreator);
+
+          // fetch the system register
+          const systemRegister = await manager
+            .createQueryBuilder(SystemRegister, 'system')
+            .getOne();
+
+          // update the register
+          systemRegister.totalEvents += 1;
+          if (eventStatus === EventStatus.PUBLISHED)
+            systemRegister.publishedEvents += 1;
+
+          // save the register changes
+          await manager.save<SystemRegister>(systemRegister);
+
+          // save and return the event
           return await manager.save<Event>(eventInstance);
         },
       );
@@ -266,18 +291,27 @@ export class EventsService {
       .leftJoinAndSelect('event.team', 'team')
       .leftJoinAndSelect('team.members', 'teamMembers')
       .leftJoinAndSelect('teamMembers.user', 'teamMember')
+      .leftJoinAndSelect('teamMembers.invitation', 'invitation')
       .leftJoinAndSelect('teamMembers.permissions', 'permissions')
-      .leftJoinAndSelect('permissions.team', 'permissionTeam');
+      .leftJoinAndSelect('permissions.team', 'permissionTeam')
+      .where('event.user = :userId')
+      .orWhere(
+        '(teamMember.id = :userId  AND invitation.status = :invitationStatus)',
+        {
+          userId,
+          invitationStatus: 'accepted',
+        },
+      );
 
     //select event where user is the owner or a team member
-    queryBuilder.andWhere(
-      new Brackets((qb) => {
-        qb.where('event.user = :userId', { userId }).orWhere(
-          'teamMember.id = :userId',
-          { userId },
-        );
-      }),
-    );
+    // queryBuilder.andWhere(
+    //   new Brackets((qb) => {
+    //     qb.where('event.user = :userId', { userId }).orWhere(
+    //       'teamMember.id = :userId',
+    //       { userId },
+    //     );
+    //   }),
+    // );
 
     if (name)
       queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
@@ -337,6 +371,7 @@ export class EventsService {
       relations: [
         'user',
         'tickets',
+        'eventViews',
         'team',
         'team.members',
         'team.members.user',
@@ -349,13 +384,13 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
 
-    const isOwner = event.user.id === user.userId;
+    const isOwner = event.user?.id === user?.userId;
     const isTeamMember = event.team?.members?.some(
-      (member) => member.user.id === user.userId,
+      (member) => member?.user?.id === user?.userId,
     );
 
     //check if event belongs to existing user
-    if (!isOwner && !isTeamMember) {
+    if (!isOwner && !isTeamMember && user.userType != UserType.ADMIN) {
       throw new BadRequestException(
         'User is neither the event owner nor a team member',
       );
@@ -364,7 +399,7 @@ export class EventsService {
     return event;
   }
 
-  async findOneForAttendee(slug: string) {
+  async findOneForAttendee(slug: string, userId?: string) {
     const event = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
@@ -383,28 +418,60 @@ export class EventsService {
     if (!event) throw new NotFoundException('Event not found');
 
     // update the views
-    await this.updateView(event);
+    await this.updateView(event, userId);
     // return the found event
     return event;
   }
 
-  async updateView(event: Event) {
-    // const user = await this.userService.findOne(userId);
-    // if (!user) throw new NotFoundException('User not found');
+  async updateView(event: Event, userId?: string) {
+    let user: User;
+    if (userId) {
+      user = await this.userService.findOne(userId);
+      if (!user) throw new NotFoundException('User not found');
+    }
 
-    // // check if the view already exist
-    // const existingView = await this.entityManager.findOne(EventView, {
-    //   where: { event: { id: event.id }, user: { id: user.id } },
-    // });
-    // if (existingView) {
-    //   existingView.updatedAt = new Date();
-    //   await this.entityManager.save(EventView, existingView);
-    //   return;
-    // }
+    let existingView: EventView;
 
-    const view = this.entityManager.create(EventView, { event });
+    if (user) {
+      // check if the view already exist
+      existingView = await this.entityManager.findOne(EventView, {
+        where: { event: { id: event.id }, user: { id: user.id } },
+      });
+    }
+
+    if (existingView) {
+      existingView.updatedAt = new Date();
+      await this.entityManager.save(EventView, existingView);
+      return;
+    }
+
+    const view = this.entityManager.create(EventView, { event, user });
     await this.entityManager.save(EventView, view);
     return;
+  }
+
+  async getUserOnboardedStatus(userId: string) {
+    let user = await this.userService.findOne(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const wasOnboarded = user.isOnboarded;
+
+    if (!user.stripeConnectedAccountId)
+      await this.paymentService.createStripeConnectedAccountId(user);
+
+    if (!wasOnboarded) {
+      const userAccount = await this.paymentService.getUserAccountDetails(
+        user.stripeConnectedAccountId,
+      );
+      if (userAccount.charges_enabled && userAccount.payouts_enabled) {
+        user.isOnboarded = true;
+        user = await this.userService.findOneByIdAndUpdate(user.id, user);
+        if (!user.stripeConnectedAccountId)
+          await this.paymentService.createStripeConnectedAccountId(user);
+        //TODO EMIT STRIPE ONBOARDING EVENT
+      }
+    }
+
+    return user;
   }
 
   async update(id: string, updateEventDto: UpdateEventDto) {
@@ -486,8 +553,20 @@ export class EventsService {
    * @returns the list of events
    */
   async findAll(params?: { [key: string]: any }) {
+    let startDate: Date;
+    let endDate: Date;
+
+    if (params['eventStartDateAndTime']) {
+      startDate = new Date(params['eventStartDateAndTime']);
+      startDate.setUTCHours(0, 0, 0, 0);
+    }
+
+    if (params['eventEndDateAndTime']) {
+      endDate = new Date(params['eventEndDateAndTime']);
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
+
     const today = new Date();
-    const todayISO = today.toISOString();
     const queryBuilder = this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
@@ -505,23 +584,33 @@ export class EventsService {
       // Date range filters
       if (params['eventStartDateAndTime'] && params['eventEndDateAndTime']) {
         queryBuilder.andWhere(
-          'event.eventStartDateAndTime <= :end AND event.eventEndDateAndTime >= :start',
+          `(
+      event.eventStartDateAndTime <= :endDate AND 
+      event.eventEndDateAndTime >= :startDate AND
+      event.eventEndDateAndTime > :today
+    )`,
           {
-            start: params['eventStartDateAndTime'],
-            end: params['eventEndDateAndTime'],
+            startDate,
+            endDate,
+            today,
           },
         );
       } else if (params['eventStartDateAndTime']) {
         queryBuilder.andWhere(
-          'event.eventStartDateAndTime >= :eventStartDate',
+          'event.eventStartDateAndTime >= :startDate AND event.eventStartDateAndTime > :today',
           {
-            eventStartDate: params['eventStartDateAndTime'],
+            startDate,
+            today,
           },
         );
       } else if (params['eventEndDateAndTime']) {
-        queryBuilder.andWhere('event.eventEndDateAndTime <= :eventEndDate', {
-          eventEndDate: params['eventEndDateAndTime'],
-        });
+        queryBuilder.andWhere(
+          'event.eventEndDateAndTime <= :endDate AND event.eventStartDateAndTime > :today',
+          {
+            endDate,
+            today,
+          },
+        );
       }
 
       // Search conditions (tags, name, location)
@@ -560,6 +649,9 @@ export class EventsService {
         const lon = parseFloat(params['longitude']);
 
         queryBuilder
+          .andWhere(
+            '(CAST(event.latitude AS float) != 0 OR CAST(event.longitude AS float) != 0)',
+          )
           .addSelect(
             `(
             6371 * acos(
@@ -600,6 +692,12 @@ export class EventsService {
     return queryBuilder;
   }
 
+  /**
+   * This method is used to SOFT delete an event from the database
+   * @param id ID of the event to be deleted
+   * @param user Creator of the event
+   * @returns nothing
+   */
   async remove(id: string, user: TJwtPayload) {
     //check if event exists and belongs to authenticated user
     const event = await this.findOne(id, user);
@@ -607,13 +705,99 @@ export class EventsService {
 
     //delete event and it's related tickets
     await this.entityManager.transaction(async (manager) => {
-      await manager.delete(Ticket, { event: { id: event.id } });
-      await manager.delete(Event, id);
+      await manager.softDelete(EventView, { event: { id: event.id } });
+      await manager.softDelete(Ticket, { event: { id: event.id } });
+      await manager.softDelete(Event, id);
       userEntity.numOfEventsCreated--;
       await manager.save(User, userEntity);
-      await this.deleteImage(event.eventImageURL);
+      //await this.deleteImage(event.eventImageURL);
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // update the register
+      systemRegister.totalEvents -= 1;
+      if (
+        event.eventStatus === EventStatus.PUBLISHED &&
+        systemRegister.publishedEvents > 0
+      )
+        systemRegister.publishedEvents -= 1;
+
+      await manager.save<SystemRegister>(systemRegister);
     });
     return;
+  }
+
+  async restore(id: string, user: TJwtPayload) {
+    const event = await this.eventRepo.findOne({
+      where: { id, user: { id: user.userId }, deletedAt: Not(IsNull()) },
+      withDeleted: true,
+      relations: ['user', 'tickets', 'eventViews'],
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+
+    await this.entityManager.transaction(async (manager) => {
+      await manager.restore(EventView, { event: { id: event.id } });
+      await manager.restore(Ticket, { event: { id: event.id } });
+      await manager.restore(Event, id);
+
+      const userEntity = await this.userService.findOne(user.userId);
+      userEntity.numOfEventsCreated++;
+      await manager.save(User, userEntity);
+
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      systemRegister.totalEvents += 1;
+      if (event.eventStatus === EventStatus.PUBLISHED) {
+        systemRegister.publishedEvents += 1;
+      }
+
+      await manager.save<SystemRegister>(systemRegister);
+    });
+  }
+
+  /**
+   * ADMIN METHOD
+   * find all soft deleted events for a particular user
+   * @param user
+   * @returns returns the list of soft deleted events
+   */
+  async findSoftDeletedEvents(userId: string): Promise<Event[]> {
+    return await this.eventRepo.find({
+      where: {
+        user: { id: userId },
+        deletedAt: Not(IsNull()),
+      },
+      withDeleted: true,
+      relations: ['user', 'tickets', 'eventViews'],
+      order: {
+        deletedAt: 'DESC',
+      },
+    });
+  }
+
+  /**
+   * Finds the list of soft deleted events in the database
+   * @returns returns the list of soft deleted events
+   */
+  async findAllSoftDeletedEvents() {
+    const queryBuilder = this.eventRepo
+      .createQueryBuilder('event')
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets')
+      .leftJoinAndSelect('event.eventViews', 'eventViews')
+      .where('event.deletedAt IS NOT NULL')
+      .withDeleted()
+      .orderBy('event.deletedAt', 'DESC');
+
+    return queryBuilder;
   }
 
   async assignTeam(body: AssignTeamDto, eventId: string, userId: string) {

@@ -11,14 +11,14 @@ export class OrganizerDashboardService {
   constructor(private readonly _entityManager: EntityManager) {}
 
   public async getAnalytics(userId: string) {
-    // get the date of 7 days ago
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    sevenDaysAgo.setHours(1, 0, 0, 0);
+    // get the date of yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
 
     // get the current date
     const today = new Date();
-    today.setHours(24, 59, 59, 999);
+    today.setHours(0, 0, 0, 0);
 
     // find the user with the userId
     const user = await this._entityManager.findOneBy(User, { id: userId });
@@ -30,100 +30,14 @@ export class OrganizerDashboardService {
       .where('events.eventStatus = :status', { status: 'published' })
       .andWhere('events.userId = :userId', { userId });
 
-    // Fetch current published events and total count
-    const totalEvents = await queryBuilder.getCount();
-
     // Fetch the 5 most recent events
     const recentEvents = await this.getRecentEvents(queryBuilder);
 
-    // count used tickets
-    const usedBookingsCount = await this._entityManager
-      .createQueryBuilder(Booking, 'bookings')
-      .leftJoinAndSelect('bookings.event', 'event')
-      .where('event.userId = :userId', { userId })
-      .andWhere('bookings.status = :bookingStatus', {
-        bookingStatus: BookingStatus.USED,
-      })
-      .getCount();
-
-    // fetch successful bookings within the last 7 days
-    const successfulBookingsWithin7Days = await this._entityManager
-      .createQueryBuilder(Booking, 'bookings')
-      .leftJoinAndSelect('bookings.event', 'event')
-      .where('event.userId = :userId', { userId })
-      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
-      .andWhere('bookings.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
-      .andWhere('bookings.createdAt <= :today', { today })
-      .select(['bookings.id', 'bookings.unitAmount'])
-      .getMany();
-
-    // fetch event published within the last 7 days
-    const eventsPublishedWithin7Days = await this._entityManager
-      .createQueryBuilder(Event, 'events')
-      .leftJoinAndSelect('events.user', 'user')
-      .where('user.id = :userId', { userId })
-      .andWhere('events.eventStatus = :status', {
-        status: EventStatus.PUBLISHED,
-      })
-      .andWhere('events.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
-      .andWhere('events.createdAt <= :today', { today })
-      .getCount();
-
-    // fetch all events ever published by the user
-    const totalEventsPublished = await this._entityManager
-      .createQueryBuilder(Event, 'events')
-      .leftJoinAndSelect('events.user', 'user')
-      .where('user.id = :userId', { userId })
-      .andWhere('events.eventStatus = :status', {
-        status: EventStatus.PUBLISHED,
-      })
-      .getCount();
-
-    const allBookingCount = await this._entityManager
-      .createQueryBuilder(Booking, 'bookings')
-      .leftJoinAndSelect('bookings.event', 'event')
-      .where('event.userId = :userId', { userId })
-      .andWhere('bookings.processed = :status', { status: true })
-      .getCount();
-
-    const attendancePercentageChange =
-      (usedBookingsCount / allBookingCount) * 100;
-
-    // sum the unitAmount of the booking
-    const totalRevenueWithin7Days = successfulBookingsWithin7Days.reduce(
-      (acc, booking) => acc + +booking.unitAmount,
-      0,
-    );
-
-    // calculate the revenue percentage change
-    const percentageRevenueChangeWithin7Days =
-      (totalRevenueWithin7Days / user.totalRevenue) * 100;
-
-    // calculate the ticketsSold percentage change
-    const percentageChangeTicketsSoldWithin7Days =
-      (successfulBookingsWithin7Days.length / user.ticketsSold) * 100;
-
-    // calculate the events percentage change
-    const percentageChangeEventsWithin7Days =
-      (eventsPublishedWithin7Days / totalEventsPublished) * 100;
-
     return {
-      totalRevenue: {
-        value: user.totalRevenue,
-        change: this._roundToTwo(percentageRevenueChangeWithin7Days), // Placeholder for future calculation
-      },
-      ticketsSold: {
-        value: user.ticketsSold,
-        change: this._roundToTwo(percentageChangeTicketsSoldWithin7Days), // Placeholder for future calculation
-      },
-      publishedEvents: {
-        value: totalEvents,
-        change: this._roundToTwo(percentageChangeEventsWithin7Days), // Placeholder for future calculation
-      },
-      attendanceRate: {
-        value: usedBookingsCount,
-        change: this._roundToTwo(attendancePercentageChange), // Placeholder for future calculation
-      },
+      totalRevenue: await this._getTotalRevenueAnalytics(user),
+      ticketsSold: await this._getTicketsSoldAnalytics(user),
+      publishedEvents: await this._getPublishedEventsAnalytics(user),
+      attendanceRate: await this._getAttendanceRateAnalytics(user),
       recentEvents,
       usefulResources: [
         {
@@ -140,105 +54,181 @@ export class OrganizerDashboardService {
     };
   }
 
+  private async _getAttendanceRateAnalytics(user: User) {
+    const usedBookingsCount = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.USED })
+      .getCount();
+
+    const allBookingCount = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.processed = :status', { status: true })
+      .getCount();
+
+    const percentageChange = (usedBookingsCount / allBookingCount) * 100;
+
+    return {
+      value: usedBookingsCount,
+      change: Math.ceil(percentageChange * 100) / 100,
+    };
+  }
+  private async _getPublishedEventsAnalytics(user: User) {
+    // get the date of yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    // get the current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const totalEvents = await this._entityManager
+      .createQueryBuilder(Event, 'events')
+      .leftJoinAndSelect('events.tickets', 'tickets')
+      .where('events.eventStatus = :status', { status: 'published' })
+      .andWhere('events.userId = :userId', { userId: user.id })
+      .getCount();
+
+    // fetch event published within the last 7 days
+    const eventsPublishedYesterday = await this._entityManager
+      .createQueryBuilder(Event, 'events')
+      .leftJoinAndSelect('events.user', 'user')
+      .where('user.id = :userId', { userId: user.id })
+      .andWhere('events.eventStatus = :status', {
+        status: EventStatus.PUBLISHED,
+      })
+      .andWhere('events.createdAt >= :yesterday', { yesterday })
+      .andWhere('events.createdAt < :today', { today })
+      .getCount();
+
+    const eventsPublishedToday = await this._entityManager
+      .createQueryBuilder(Event, 'events')
+      .leftJoinAndSelect('events.user', 'user')
+      .where('user.id = :userId', { userId: user.id })
+      .andWhere('events.eventStatus = :status', {
+        status: EventStatus.PUBLISHED,
+      })
+      .andWhere('events.createdAt >= :today', { today })
+      .getCount();
+
+    return {
+      value: +totalEvents,
+      change: this._percentageChange(
+        eventsPublishedToday,
+        eventsPublishedYesterday,
+      ),
+    };
+  }
+  private async _getTicketsSoldAnalytics(user: User) {
+    // get the date of yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    // get the current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // fetch successful bookings within the last 7 days
+    const successfulBookingsYesterday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :yesterday', { yesterday })
+      .andWhere('bookings.createdAt < :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getCount();
+
+    const successfulBookingsToday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getCount();
+
+    return {
+      value: +user.ticketsSold,
+      change: this._percentageChange(
+        successfulBookingsToday,
+        successfulBookingsYesterday,
+      ),
+    };
+  }
+
+  private async _getTotalRevenueAnalytics(user: User) {
+    // get the date of yesterday
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    // get the current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // fetch successful bookings within the last 7 days
+    const successfulBookingsYesterday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :yesterday', { yesterday })
+      .andWhere('bookings.createdAt < :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
+    const successfulBookingsToday = await this._entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .leftJoinAndSelect('bookings.event', 'event')
+      .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+      .andWhere('bookings.createdAt >= :today', { today })
+      .select(['bookings.id', 'bookings.unitAmount'])
+      .getMany();
+
+    // sum the unitAmount of the booking
+    const grossRevenueYesterday = successfulBookingsYesterday.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
+
+    const grossRevenueToday = successfulBookingsToday.reduce(
+      (acc, booking) => acc + +booking.unitAmount,
+      0,
+    );
+
+    return {
+      value: +user.totalRevenue,
+      change: this._percentageChange(grossRevenueToday, grossRevenueYesterday),
+    };
+  }
+
+  _percentageChange(today: number, yesterday: number) {
+    if (yesterday === 0 || today === 0) return 0;
+
+    if (yesterday === 0) {
+      if (today === 0) {
+        // No change if both are zero
+        return 0;
+      }
+
+      // value * 100 if yesterday is 0 and today is greater than 0
+      return today * 100;
+    }
+
+    // Standard percentage change calculation if yesterday is non-zero
+    return this._roundToTwo(((today - yesterday) / yesterday) * 100);
+  }
+
   private _roundToTwo(digits: number) {
     return Math.ceil(digits * 100) / 100;
   }
-
-  // Helper to fetch past analytics (e.g., for the last month)
-  // private async getPastAnalytics(userId: string) {
-  //   const pastQueryBuilder = this.entityManager
-  //     .createQueryBuilder(Event, 'events')
-  //     .leftJoinAndSelect('events.tickets', 'tickets')
-  //     .where('events.eventStatus = :status', { status: 'published' })
-  //     .andWhere('events.userId = :userId', { userId });
-  //
-  //   // Get yesterday's date
-  //   const yesterday = new Date();
-  //   yesterday.setDate(yesterday.getDate() - 1);
-  //
-  //   // Get two days ago
-  //   const twoDaysAgo = new Date();
-  //   twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  //
-  //   const formattedYesterday = yesterday.toISOString().split('T')[0];
-  //   const formattedTwoDaysAgo = twoDaysAgo.toISOString().split('T')[0];
-  //
-  //   const start = new Date(formattedTwoDaysAgo);
-  //   start.setHours(1, 0, 0, 0);
-  //
-  //   const end = new Date(formattedYesterday);
-  //   end.setHours(24, 59, 59, 999);
-  //
-  //   pastQueryBuilder.andWhere('events.createdAt BETWEEN :start AND :end', {
-  //     start,
-  //     end,
-  //   });
-  //
-  //   const pastEvents = await pastQueryBuilder.getMany();
-  //
-  //   const { totalTicketSold, totalRevenue } =
-  //     this.calculateEventMetrics(pastEvents);
-  //
-  //   return {
-  //     totalTicketSold,
-  //     totalRevenue,
-  //     totalEvents: pastEvents.length,
-  //   };
-  // }
-  //
-  // // Helper to calculate percentage increase/decrease
-  // private calculatePercentageChange(
-  //   currentMetrics: {
-  //     totalTicketSold: number;
-  //     totalRevenue: number;
-  //     totalEvents: number;
-  //   },
-  //   pastMetrics: {
-  //     totalTicketSold: number;
-  //     totalRevenue: number;
-  //     totalEvents: number;
-  //   },
-  // ) {
-  //   return {
-  //     totalTicketSoldChange: this.getPercentageChange(
-  //       currentMetrics.totalTicketSold,
-  //       pastMetrics.totalTicketSold,
-  //     ),
-  //     totalRevenueChange: this.getPercentageChange(
-  //       currentMetrics.totalRevenue,
-  //       pastMetrics.totalRevenue,
-  //     ),
-  //     totalEventsChange: this.getPercentageChange(
-  //       currentMetrics.totalEvents,
-  //       pastMetrics.totalEvents,
-  //     ),
-  //   };
-  // }
-  //
-  // // Helper to calculate percentage change between two numbers
-  // private getPercentageChange(current: number, past: number): number {
-  //   if (past === 0) {
-  //     return current === 0 ? 0 : 100; // If there's no past data, return 100% if there's current data
-  //   }
-  //   return ((current - past) / past) * 100;
-  // }
-  //
-  // // Helper to calculate metrics such as total tickets sold and revenue
-  // private calculateEventMetrics(events: Event[]): {
-  //   totalTicketSold: number;
-  //   totalRevenue: number;
-  // } {
-  //   return events.reduce(
-  //     (acc, event) => {
-  //       event.tickets?.forEach((ticket) => {
-  //         acc.totalTicketSold += ticket.numberOfTicketsSold;
-  //         acc.totalRevenue += ticket.price * ticket.numberOfTicketsSold;
-  //       });
-  //       return acc;
-  //     },
-  //     { totalTicketSold: 0, totalRevenue: 0 },
-  //   );
-  // }
 
   // Helper to fetch the most recent 5 events
   private async getRecentEvents(

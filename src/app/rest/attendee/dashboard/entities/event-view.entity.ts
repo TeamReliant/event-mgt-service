@@ -1,10 +1,13 @@
 import { AbstractEntity } from '@libs/database';
-import { Entity, ManyToOne } from 'typeorm';
+import { DeleteDateColumn, Entity, ManyToOne } from 'typeorm';
 import { User } from '@app/rest/users/entities/user.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 
 @Entity({ name: 'event_views' })
 export class EventView extends AbstractEntity<EventView> {
+  @DeleteDateColumn()
+  deletedAt: Date;
+
   @ManyToOne(() => User, (user) => user.eventViews)
   user: User;
 

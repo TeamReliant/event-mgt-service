@@ -11,6 +11,8 @@ import { TeamMember } from '@app/rest/organizer/team-resources/team-members/enti
 import { DetachPermissionDto } from '@app/rest/organizer/team-resources/permissions/dto/detach-permission.dto';
 import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/enums/team-permissions';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
+import { User } from '@app/rest/users/entities/user.entity';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
 export class PermissionsService {
@@ -144,6 +146,12 @@ export class PermissionsService {
     eventId: string,
     permission: TeamPermissions,
   ) {
+    // fetch the current user
+    const user = await this._entityManager
+      .createQueryBuilder(User, 'user')
+      .where('user.id = :userId', { userId })
+      .getOne();
+
     // fetch the event from the database
     const event = await this._entityManager
       .createQueryBuilder(Event, 'event')
@@ -151,10 +159,11 @@ export class PermissionsService {
       .where('event.id = :eventId', { eventId })
       .getOne();
 
-    if(!event) throw new NotFoundException('Event not found');
+    if (!event) throw new NotFoundException('Event not found');
 
     // check if the user is the owner of the event
     if (event.user.id === userId) return true;
+    if (user.userType === UserType.ADMIN) return true;
 
     // check from the team members
     const teamMember = await this._entityManager

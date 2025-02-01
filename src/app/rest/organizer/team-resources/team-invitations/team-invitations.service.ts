@@ -3,7 +3,6 @@ import {
   NotAcceptableException,
   NotFoundException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { CreateTeamInvitationDto } from './dto/create-team-invitation.dto';
 import { UpdateTeamInvitationDto } from './dto/update-team-invitation.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,6 +17,7 @@ import { events } from '@config/app.config';
 import { TeamInvitationsEvent } from './events/team-invitations.event';
 import { ResendTeamInvitationDto } from '@app/rest/organizer/team-resources/team-invitations/dto/resend-team-invitation.dto';
 import { Permission } from '@app/rest/organizer/team-resources/permissions/entities/permission.entity';
+import { UserType } from '@app/rest/users/enums/user-type';
 
 @Injectable()
 export class TeamInvitationsService {
@@ -183,6 +183,11 @@ export class TeamInvitationsService {
         const invitedUser = await this._entityManager.findOneBy<User>(User, {
           email,
         });
+
+        if (invitedUser && invitedUser.userType !== UserType.ORGANIZER)
+          throw new NotAcceptableException(
+            'Only organizers can be invited to a team',
+          );
 
         //generate invitation token
         const token = await this.generateTeamInvitationToken();
@@ -432,32 +437,6 @@ export class TeamInvitationsService {
       invitation.status = status;
       invitation.token = null;
       await manager.save<TeamInvitation>(invitation);
-
-      // let user: User;
-      // // check if the invited user exists or registered
-      // if (!invitation.user) {
-      //   user = await manager.findOneBy<User>(User, {
-      //     email: invitation.email,
-      //   });
-      //
-      //   create the user if the user does not exist
-      //   if (!user) {
-      //     const salt = await bcrypt.genSalt();
-      //     // Generating the hashed version of the password
-      //     const hashedPassword = await bcrypt.hash(password, salt);
-      //
-      //     const userEntity = manager.create(User, {
-      //       lastname,
-      //       firstname,
-      //       userType,
-      //       password: hashedPassword,
-      //       email: invitation.email,
-      //       emailVerifiedAt: new Date(),
-      //     }) as User;
-      //     // save the user
-      //     user = await manager.save<User>(userEntity);
-      //   }
-      // }
 
       // if the invitation was accepted, add the user to the team
       if (status === 'accepted') {

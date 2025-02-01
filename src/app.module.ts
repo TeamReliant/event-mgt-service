@@ -28,7 +28,12 @@ import { SubscribersModule } from '@app/rest/attendee/subscribers/subscribers.mo
 import { BookingsModule } from '@app/rest/attendee/bookings/bookings.module';
 import { BookingsTransactionsModule } from '@app/rest/attendee/bookings-transactions/bookings-transactions.module';
 import { AttendeeDashboardModule } from '@app/rest/attendee/dashboard/attendee-dashboard.module';
-import { GuestsModule } from './app/rest/organizer/guest-resources/guests/guests.module';
+import { GuestsModule } from '@app/rest/organizer/guest-resources/guests/guests.module';
+import { AdminDashboardModule } from '@app/rest/admin/admin-dashboard/admin-dashboard.module';
+import { SystemRegisterModule } from '@app/rest/admin/system-register/system-register.module';
+import { AdminManagementModule } from './app/rest/admin/admin-management/admin-management.module';
+import { EventManagementModule } from './app/rest/admin/event-management/event-management.module';
+import { SubscribersManagementModule } from './app/rest/admin/subscribers-management/subscribers-management.module';
 
 @Module({
   imports: [
@@ -41,7 +46,6 @@ import { GuestsModule } from './app/rest/organizer/guest-resources/guests/guests
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         ...configService.get('database'),
-        // entities: [Event, Ticket, User],
       }),
       inject: [ConfigService],
     }),
@@ -80,6 +84,11 @@ import { GuestsModule } from './app/rest/organizer/guest-resources/guests/guests
     BookingsTransactionsModule,
     AttendeeDashboardModule,
     GuestsModule,
+    AdminDashboardModule,
+    SystemRegisterModule,
+    AdminManagementModule,
+    EventManagementModule,
+    SubscribersManagementModule,
   ],
   providers: [JwtStrategy],
 })

@@ -15,26 +15,29 @@ export class BroadcastMessageEmailService {
     const { appName, appEmail, companyName } = appInfo;
     // spread the bookings emails into an array without repeats
     const emails: string[] = [];
-    bookings.filter((booking) => {
-      if (!emails.includes(booking.email)) emails.push(booking.email);
-      return true;
-    });
+    // TODO: Refactor and remove the loop later, bad implementation, did this because firstname is required
+    for (const booking of bookings) {
+      if (emails.includes(booking.email)) continue;
 
-    const payload = {
-      appName,
-      appEmail,
-      companyName,
-      title,
-      message,
-      event: bookings[0].event,
-    };
+      const payload = {
+        appName,
+        appEmail,
+        companyName,
+        title,
+        message,
+        event: booking.event,
+        firstname: booking.firstName,
+      };
 
-    const subject: string = `MESSAGE RECEIVED - ${appName}`;
-    await this.emailEngineService.sendHtmlEmail(
-      emails,
-      subject,
-      `guests/broadcast-message`,
-      payload,
-    );
+      const subject: string = `MESSAGE RECEIVED - ${appName}`;
+      await this.emailEngineService.sendHtmlEmail(
+        [booking.email],
+        subject,
+        `guests/broadcast-message`,
+        payload,
+      );
+
+      emails.push(booking.email);
+    }
   }
 }

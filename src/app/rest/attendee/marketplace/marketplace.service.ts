@@ -116,23 +116,26 @@ export class MarketplaceService {
         .createQueryBuilder(Event, 'event')
         .leftJoinAndSelect('event.user', 'user')
         .leftJoinAndSelect('event.tickets', 'tickets')
-        .where('event.eventStatus = :status', { status: 'published' })
-        .andWhere('event.eventVisibility = :visibility', {
-          visibility: 'public',
-        })
-        .andWhere('event.eventStartDateAndTime > :currentDate', {
-          currentDate: new Date(),
-        });
+        .where('event.deletedAt IS NULL')
+        .andWhere(
+          '(event.eventStatus = :status AND event.eventVisibility = :visibility)',
+          {
+            status: 'published',
+            visibility: 'public',
+          },
+        )
+        .andWhere('(event.eventEndDateAndTime >= :now)', { now: new Date() });
 
-      if (typeof countryName === 'string') {
-        queryBuilder.andWhere('event.locationName ILIKE :countryName', {
-          countryName: `%${countryName}%`,
-        });
+      if (typeof countryName === 'string' && countryName.trim()) {
+        queryBuilder.andWhere(
+          '(LOWER(event.locationName) LIKE LOWER(:countryName) OR LOWER(event.address) LIKE LOWER(:countryName))',
+          {
+            countryName: `%${countryName.trim()}%`,
+          },
+        );
       }
 
-      queryBuilder
-        .orderBy('event.totalNumberOfTicketsSold', 'DESC')
-        .take(LIMIT);
+      queryBuilder.addOrderBy('event.eventStartDateAndTime', 'ASC').take(LIMIT);
 
       return await queryBuilder.getMany();
     } catch (error) {

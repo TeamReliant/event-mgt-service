@@ -61,6 +61,14 @@ export class Booking extends AbstractEntity<Booking> {
   paid: boolean;
 
   @Column({
+    name: 'refunded',
+    nullable: false,
+    type: 'boolean',
+    default: false,
+  })
+  refunded: boolean;
+
+  @Column({
     name: 'status',
     type: 'enum',
     enum: BookingStatus,
@@ -93,7 +101,7 @@ export class Booking extends AbstractEntity<Booking> {
   @OneToOne(() => Booking, (booking) => booking.transferredTo)
   transferredFrom: Booking;
 
-  @ManyToOne(() => Ticket, (ticket) => ticket.bookings)
+  @ManyToOne(() => Ticket, (ticket) => ticket.bookings, { onDelete: 'CASCADE' })
   ticket: Ticket;
 
   @ManyToOne(() => Event, (event) => event.bookings)

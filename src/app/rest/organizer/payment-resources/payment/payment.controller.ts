@@ -9,6 +9,7 @@ import {
   Req,
   Res,
   RawBodyRequest,
+  Get,
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CurrentUser } from '@libs/decorators/current-user.decorator';
@@ -19,7 +20,10 @@ import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
 import { events } from '@config/app.config';
-import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
+import { RolesGuard } from '@libs/Guards/rbac/roles.guard';
+import { UserType } from '@app/rest/users/enums/user-type';
+import { GetFeesDto } from '@app/rest/organizer/payment-resources/payment/dto/get-fees.dto';
+import { RefundBookingDto } from '@app/rest/organizer/payment-resources/payment/dto/refund-booking.dto';
 
 @Controller('payment')
 export class PaymentController {
@@ -64,15 +68,10 @@ export class PaymentController {
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
   async cancelSubscription(
-    @Body() cancelSubDto: CancelSubscriptionDto,
     @CurrentUser() user: TJwtPayload,
     @Query('paymentMethod') paymentMethod: string,
   ) {
-    await this.paymentService.cancelSubscription(
-      user,
-      cancelSubDto,
-      paymentMethod,
-    );
+    await this.paymentService.cancelSubscription(user, paymentMethod);
     return ResponseSerializer.message('Subscription cancelled successfully');
   }
 
@@ -100,9 +99,9 @@ export class PaymentController {
       case 'invoice.payment_failed':
         await this.paymentService.handlePayment(event);
         break;
-      case 'account.updated':
-        await this.paymentService.handleAccountUpdated(event);
-        break;
+      // case 'account.updated':
+      //   await this.paymentService.handleAccountUpdated(event);
+      //   break;
       case 'payout.paid':
       case 'payout.failed':
         await this.paymentService.handlePayout(event, events.PAYOUT_FAILED);
@@ -121,5 +120,31 @@ export class PaymentController {
     }
 
     res.status(HttpStatus.OK).send();
+  }
+
+  @Get('express-dashboard')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ORGANIZER]))
+  async getExpressDashboard(@CurrentUser() user: TJwtPayload) {
+    const url = await this.paymentService.getExpressDashboard(user.userId);
+    return ResponseSerializer.data(url);
+  }
+
+  @Post('fees')
+  @HttpCode(HttpStatus.OK)
+  async getSystemFees(@Body() { amount }: GetFeesDto) {
+    const data = await this.paymentService.getFees(amount);
+    return ResponseSerializer.data(data);
+  }
+
+  @Post('refund')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ORGANIZER]))
+  async refundPayment(
+    @Body() { bookingId }: RefundBookingDto,
+    @CurrentUser() user: TJwtPayload,
+  ) {
+    await this.paymentService.refundPayment(bookingId, user.userId);
+    return ResponseSerializer.message('Payment refunded successfully');
   }
 }

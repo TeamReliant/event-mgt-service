@@ -29,6 +29,7 @@ import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/sen
 import { UserType } from '@app/rest/users/enums/user-type';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 import { UpdateFreeBookingDto } from '@app/rest/attendee/bookings/dto/update-free-booking.dto';
+import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 
 @Injectable()
 export class BookingsService {
@@ -63,6 +64,12 @@ export class BookingsService {
 
     if (!event)
       throw new NotFoundException(`Event not found with the id: ${eventId}`);
+
+    // check if the end date of the event is passed already
+    if (event.eventEndDateAndTime < new Date())
+      throw new NotAcceptableException(
+        `The event ${event.name} has already ended`,
+      );
 
     const bookingsToToBeSaved: Booking[] = [];
     const invalidTickets: string[] = [];
@@ -115,7 +122,7 @@ export class BookingsService {
         .andWhere('bookings.email = :email', { email })
         .andWhere('ticket.id = :ticketId', { ticketId })
         .getMany();
-      
+
       // const existingBooking = await this._repo.findOneBy({
       //   status: BookingStatus.PENDING,
       //   processed: false,
@@ -123,8 +130,7 @@ export class BookingsService {
       //   ticket: { id: ticketId },
       // });
 
-      if (existingBookings)
-        await this._repo.remove(existingBookings);
+      if (existingBookings) await this._repo.remove(existingBookings);
 
       // find existing processed tickets
       const existingProcessedBooking = await this._repo
@@ -134,7 +140,7 @@ export class BookingsService {
         .andWhere('bookings.email = :email', { email })
         .andWhere('ticket.id = :ticketId', { ticketId })
         .getCount();
-      
+
       // const existingProcessedBooking = await this._repo.findOneBy({
       //   processed: true,
       //   email,
@@ -145,8 +151,7 @@ export class BookingsService {
       if (
         ticket.maxNumberOfTicketsOrderable &&
         quantity > ticket.maxNumberOfTicketsOrderable &&
-        existingProcessedBooking + quantity >
-          ticket.maxNumberOfTicketsOrderable
+        existingProcessedBooking + quantity > ticket.maxNumberOfTicketsOrderable
       )
         throw new NotAcceptableException(
           `Maximum number of tickets for ${ticket.name.toUpperCase()} is ${ticket.maxNumberOfTicketsOrderable}, Please check previous processed bookings`,
@@ -199,14 +204,14 @@ export class BookingsService {
   }
 
   findAll(userId: string, { ...query }) {
-    let queryBuilder = this._repo
+    const queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('bookings.userId = :userId', { userId })
-      .andWhere('bookings.transferStatus != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      });
+      .where('bookings.userId = :userId', { userId });
+    // .andWhere('bookings.transferStatus != :transferStatus', {
+    //   transferStatus: TicketTransferStatus.TRANSFERRED,
+    // });
 
     const { search, dateRangeStart, dateRangeEnd, status, transferStatus } =
       query;
@@ -233,6 +238,12 @@ export class BookingsService {
         bookingStatus: status,
       });
     }
+
+    // if (!status) {
+    //   queryBuilder.andWhere('bookings.status = :bookingStatus', {
+    //     bookingStatus: BookingStatus.VALID,
+    //   });
+    // }
 
     if (transferStatus) {
       queryBuilder.andWhere('bookings.transfer_status = :transferStatus', {
@@ -318,6 +329,18 @@ export class BookingsService {
     const invalidBookings: string[] = [];
     const validBookings: Booking[] = [];
 
+    const oneOfBookings = await this._repo
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.event', 'event')
+      .andWhere('booking.id = :id', { id: bookings[0] })
+      .getOne();
+
+    // check if the end date of the event is passed already
+    if (oneOfBookings.event.eventEndDateAndTime < new Date())
+      throw new NotAcceptableException(
+        `The event ${oneOfBookings.event.name} has already ended`,
+      );
+
     let foundPaid: boolean = false;
     for (const id of bookings) {
       const booking = await this._repo
@@ -391,11 +414,25 @@ export class BookingsService {
       // Check if the checkout session creation failed
       if (!response?.url) throw new NotAcceptableException(response?.message);
 
+      // calculate the total amount
+      const totalAmount = bookings.reduce((currentAmount, booking) => {
+        return currentAmount + booking.ticket.price * booking.quantity;
+      }, 0);
+
+      const stripeFee = +this._configService.get<number>('STRIPE_FEE');
+      const percentageCut = +this._configService.get<number>(
+        'TICKET_PERCENTAGE_CUT',
+      );
+      // calculate the percentage cut of the totalAmount
+      const percentageCutAmount = (totalAmount * percentageCut) / 100;
+
       // Save the transaction details
       const transaction = manager.create(BookingsTransaction, {
         stripeCheckoutId: response?.id,
         stripeCheckoutUrl: response?.url,
-        totalAmount: response?.amount_total / 100,
+        totalAmount,
+        stripeFee,
+        fee: percentageCutAmount,
         currency: response?.currency,
         user,
         bookings,
@@ -409,7 +446,11 @@ export class BookingsService {
 
   private async processFreeBookings(bookings: Booking[]): Promise<any> {
     const newBookings: Booking[] = [];
+    let ticket: Ticket;
+
     await this._entityManager.transaction(async (manager) => {
+      let totalTicketsProcessed: number = 0;
+
       for (const booking of bookings) {
         // spread the booking based on the quantity
         for (let i = 1; i <= booking.quantity; i++) {
@@ -440,18 +481,32 @@ export class BookingsService {
             booking.ticket.isAvailable = false;
           }
 
+          if (!ticket) ticket = booking.ticket;
           // increase the number of tickets sold for the ticket
-          booking.ticket.numberOfTicketsSold += 1;
-          await manager.save(Ticket, booking.ticket);
+          ticket.numberOfTicketsSold = +ticket.numberOfTicketsSold + 1;
           // push the new booking to the list to be saved
           newBookings.push(newBooking);
         }
 
+        // update the total tickets processed variable
+        totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
+
         // remove the initial booking
         await manager.remove(Booking, booking);
       }
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // update the system register
+      systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+      await manager.save<SystemRegister>(systemRegister);
+
       // save the newly generated bookings
       await manager.save(Booking, newBookings);
+      await manager.save(Ticket, ticket);
     });
 
     this._eventEmitter.emit(
@@ -689,6 +744,17 @@ export class BookingsService {
       booking.transferStatus = TicketTransferStatus.TRANSFERRED;
       booking.transferredTo = savedBooking;
       await manager.save(Booking, booking);
+
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
+
+      // increase the number of tickets transferred
+      systemRegister.ticketsTransferred =
+        +systemRegister.ticketsTransferred + 1;
+      await manager.save(SystemRegister, systemRegister);
+
       return booking;
     });
 
