@@ -88,6 +88,9 @@ export class Event extends AbstractEntity<Event> {
   @Column({ nullable: true, default: 0 })
   totalNumberOfTicketsSold?: number;
 
+  @Column({name: 'broadcastMessages', default: 0})
+  numberOfBroadcastMessageSent: number;
+
   @Column({
     name: 'revenue',
     nullable: true,
