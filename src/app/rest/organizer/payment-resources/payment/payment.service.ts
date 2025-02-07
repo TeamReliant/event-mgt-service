@@ -63,7 +63,7 @@ export class PaymentService {
   }
 
   private async checkUserExists(email: string) {
-    const user = await this.userService.findOneByEmail(email);
+    const user = await this.userService.findByEmailWithFullData(email);
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -334,6 +334,13 @@ export class PaymentService {
     const transaction = plainToInstance(CreateTransactionDto, transactionObj);
 
     await this.entityManager.transaction(async (manager) => {
+      //reset the broadcastMessage field to 0 the current billing cycle for all events created be the user
+      await manager
+        .createQueryBuilder()
+        .update(Event)
+        .set({ broadcastMessages: 0 })
+        .where('userId = :userId', { userId: user.id })
+        .execute();
       await manager.update(User, user.id, user);
       await manager.save(Transaction, transaction);
     });
