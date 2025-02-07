@@ -56,6 +56,7 @@ export class AdminManagementController {
   }
 
   @Get('user-stats')
+  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   async getUserStats() {
     return ResponseSerializer.data(
       await this.adminManagementService.getUsersStats(),
@@ -105,7 +106,6 @@ export class AdminManagementController {
     return ResponseSerializer.message('User unblocked successfully');
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   private getUserStatus(blocked: boolean, lastLoggedIn: Date): UserStatus {
     if (blocked) {
       return UserStatus.BLOCKED;
