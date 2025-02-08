@@ -80,6 +80,42 @@ export class EmailEngineService {
 
     const mailOptions = {
       from: `"${this.appInfo.name}" <${this.from_email}>`,
+      to,
+      subject,
+      html,
+      attachments,
+    };
+
+    this.transporter
+      .sendMail(mailOptions)
+      .then((res) => {
+        // Do something in the future
+      })
+      .catch((err) => {
+        // Log the error
+        console.log(err);
+      });
+
+    return true;
+  }
+
+  async sendHtmlEmailUndisclosed(
+    to: string[],
+    subject: string,
+    template: string,
+    payload: any,
+    attachments: any[] = [],
+  ) {
+    const pugTemplatePath = `${this.templatePath()}/${template}.pug`;
+    const newPayload = {
+      payload: payload,
+    };
+
+    newPayload.payload.appInfo = this.appInfo;
+    const html = pug.renderFile(pugTemplatePath, newPayload);
+
+    const mailOptions = {
+      from: `"${this.appInfo.name}" <${this.from_email}>`,
       to: `Undisclosed Recipients <${this.from_email}>`, // This is optional, but recommended
       bcc: to, // Use BCC instead of TO
       subject,
