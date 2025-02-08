@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import { UsersService } from '@app/rest/users/users.service';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
@@ -9,18 +8,12 @@ import {
   EventVisibility,
 } from '@app/rest/organizer/event-resources/events/enums';
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
-import { User } from '@app/rest/users/entities/user.entity';
 
 @Injectable()
 export class AttendeeDashboardService {
-  constructor(
-    private readonly _entityManager: EntityManager,
-    private readonly _usersService: UsersService,
-  ) {}
+  constructor(private readonly _entityManager: EntityManager) {}
 
   async getDashboardData({ userId, latitude, longitude }) {
-    const user = await this._usersService.findOneById(userId);
-
     const subQuery = this._entityManager
       .createQueryBuilder(Booking, 'booking')
       .select('booking.event') // Select the event ID
@@ -50,7 +43,6 @@ export class AttendeeDashboardService {
       .createQueryBuilder(EventView, 'view')
       .leftJoinAndSelect('view.event', 'event')
       .innerJoinAndSelect('event.user', 'user')
-      // .leftJoinAndSelect('event.tickets', 'tickets')
       .where('view.userId = :userId', { userId })
       .orderBy('view.updatedAt', 'DESC')
       .limit(10)
@@ -84,22 +76,6 @@ export class AttendeeDashboardService {
       recommendedEvents,
     };
   }
-
-  // async getCountryRecommendedEvents(user: User) {
-  //   return await this._entityManager
-  //     .createQueryBuilder(Event, 'events')
-  //     .innerJoinAndSelect('events.user', 'user')
-  //     .leftJoinAndSelect('events.tickets', 'tickets')
-  //     .where('events.eventVisibility = :eventVisibility', {
-  //       eventVisibility: EventVisibility.PUBLIC,
-  //     })
-  //     .andWhere('events.eventStatus = :eventStatus', {
-  //       eventStatus: EventStatus.PUBLISHED,
-  //     })
-  //     .orderBy('events.createdAt', 'DESC')
-  //     .limit(10)
-  //     .getMany();
-  // }
 
   async getLatLongRecommendedEvents({ latitude, longitude }) {
     const radius = 5000;
