@@ -338,7 +338,7 @@ export class PaymentService {
       await manager
         .createQueryBuilder()
         .update(Event)
-        .set({ broadcastMessages: 0 })
+        .set({ numberOfBroadcastMessageSent: 0 })
         .where('userId = :userId', { userId: user.id })
         .execute();
       await manager.update(User, user.id, user);
