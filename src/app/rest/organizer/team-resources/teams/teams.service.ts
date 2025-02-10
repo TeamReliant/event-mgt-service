@@ -138,10 +138,9 @@ export class TeamsService {
     // check for search query and apply it to the query builder
     if (query.search) {
       const search = query.search as string;
-      queryBuilder.andWhere(
-        `teams.name LIKE :search OR teams.bio LIKE :search`,
-        { search: `%${search}%` },
-      );
+      queryBuilder.andWhere(`teams.name ILIKE :search`, {
+        search: `%${search}%`,
+      });
     }
 
     queryBuilder.orderBy('teams.id', 'DESC');

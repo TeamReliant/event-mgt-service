@@ -400,6 +400,7 @@ export class TeamInvitationsService {
     const invitation = await this._repo
       .createQueryBuilder('teamInvitations')
       .leftJoinAndSelect('teamInvitations.team', 'team')
+      .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('teamInvitations.user', 'user')
       .where('teamInvitations.token = :token', { token })
       .andWhere('teamInvitations.email = :email', { email: loggedInUser.email })
@@ -409,6 +410,11 @@ export class TeamInvitationsService {
         'teamInvitations.status',
         'teamInvitations.createdAt',
         'teamInvitations.updatedAt',
+        'admin.id',
+        'admin.email',
+        'admin.firstname',
+        'admin.lastname',
+        'admin.picture',
         'team',
         'user.id',
         'user.email',
