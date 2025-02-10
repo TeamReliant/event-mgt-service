@@ -270,7 +270,6 @@ export class EventsService {
   // }
 
   findMyEvents(req: Request, user: TJwtPayload) {
-    const { query } = req;
     const {
       name,
       locationName,
@@ -281,87 +280,105 @@ export class EventsService {
       dateRangeStart,
       dateRangeEnd,
       pastPublishedEvents,
-    } = query;
+      search,
+    } = req.query;
 
     const userId = user.userId;
     const queryBuilder = this.eventRepo.createQueryBuilder('event');
-    queryBuilder
-      .leftJoinAndSelect('event.user', 'user')
-      .leftJoinAndSelect('event.tickets', 'tickets')
-      .leftJoinAndSelect('event.team', 'team')
-      .leftJoinAndSelect('team.members', 'teamMembers')
-      .leftJoinAndSelect('teamMembers.user', 'teamMember')
-      .leftJoinAndSelect('teamMembers.invitation', 'invitation')
-      .leftJoinAndSelect('teamMembers.permissions', 'permissions')
-      .leftJoinAndSelect('permissions.team', 'permissionTeam')
-      .where('event.user = :userId')
-      .orWhere(
-        '(teamMember.id = :userId  AND invitation.status = :invitationStatus)',
-        {
-          userId,
-          invitationStatus: 'accepted',
-        },
+
+    // Base query with joins
+     queryBuilder
+       .leftJoinAndSelect('event.user', 'user')
+       .leftJoinAndSelect('event.tickets', 'tickets')
+       .leftJoinAndSelect('event.team', 'team')
+       .leftJoinAndSelect('team.members', 'members') // Changed from teamMembers
+       .leftJoinAndSelect('members.user', 'memberUser') // Changed from teamMember
+       .leftJoinAndSelect('members.invitation', 'invitation')
+       .leftJoinAndSelect('members.permissions', 'permissions')
+       .leftJoinAndSelect('permissions.team', 'permissionTeam');
+
+     // Access control with correct aliases
+     queryBuilder.where(
+       new Brackets((qb) => {
+         qb.where('user.id = :userId', { userId }).orWhere(
+           'memberUser.id = :userId AND invitation.status = :invitationStatus',
+           { userId, invitationStatus: 'accepted' },
+         );
+       }),
+     );
+
+    // Search functionality
+    if (search || name || locationName || address) {
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          if (search) {
+            qb.where('event.name ILIKE :search', { search: `%${search}%` })
+              .orWhere('event.locationName ILIKE :search', {
+                search: `%${search}%`,
+              })
+              .orWhere('event.address ILIKE :search', {
+                search: `%${search}%`,
+              });
+          }
+          if (name) {
+            qb.orWhere('event.name ILIKE :name', { name: `%${name}%` });
+          }
+          if (locationName) {
+            qb.orWhere('event.locationName ILIKE :locationName', {
+              locationName: `%${locationName}%`,
+            });
+          }
+          if (address) {
+            qb.orWhere('event.address ILIKE :address', {
+              address: `%${address}%`,
+            });
+          }
+        }),
       );
+    }
 
-    //select event where user is the owner or a team member
-    // queryBuilder.andWhere(
-    //   new Brackets((qb) => {
-    //     qb.where('event.user = :userId', { userId }).orWhere(
-    //       'teamMember.id = :userId',
-    //       { userId },
-    //     );
-    //   }),
-    // );
-
-    if (name)
-      queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
-
-    if (locationName)
-      queryBuilder.andWhere('event.locationName ILIKE :locationName', {
-        locationName: `%${locationName}%`,
-      });
-
-    if (address)
-      queryBuilder.andWhere('event.address ILIKE :address', {
-        address: `%${address}%`,
-      });
-
-    if (eventVisibility)
+    // Rest of the filters remain the same
+    if (eventVisibility) {
       queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
         eventVisibility,
       });
+    }
 
-    if (eventStatus)
+    if (eventStatus) {
       queryBuilder.andWhere('event.eventStatus = :eventStatus', {
         eventStatus,
       });
+    }
 
-    if (eventStartDateAndTime)
+    if (eventStartDateAndTime) {
       queryBuilder.andWhere(
         'event.eventStartDateAndTime >= :eventStartDateAndTime',
-        {
-          eventStartDateAndTime,
-        },
+        { eventStartDateAndTime },
       );
+    }
 
-    if (dateRangeStart && dateRangeEnd)
+    if (dateRangeStart && dateRangeEnd) {
       queryBuilder.andWhere(
         'event.createdAt BETWEEN :dateRangeStart AND :dateRangeEnd',
         { dateRangeStart, dateRangeEnd },
       );
+    }
 
     if (pastPublishedEvents) {
       const currentDate = new Date();
-      queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
-        currentDate,
-      });
-
-      queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
-        publishedStatus: 'published',
-      });
+      queryBuilder
+        .andWhere('event.eventEndDateAndTime < :currentDate', { currentDate })
+        .andWhere('event.eventStatus = :publishedStatus', {
+          publishedStatus: 'published',
+        });
     }
 
     queryBuilder.orderBy('event.createdAt', 'DESC');
+
+    // For debugging
+    console.log('Generated SQL:', queryBuilder.getSql());
+    console.log('Parameters:', queryBuilder.getParameters());
+
     return queryBuilder;
   }
 
