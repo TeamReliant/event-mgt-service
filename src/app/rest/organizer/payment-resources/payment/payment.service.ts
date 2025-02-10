@@ -63,7 +63,7 @@ export class PaymentService {
   }
 
   private async checkUserExists(email: string) {
-    const user = await this.userService.findByEmailWithFullData(email);
+    const user = await this.userService.findOneByEmail(email);
     if (!user) {
       throw new NotFoundException('User not found');
     }
