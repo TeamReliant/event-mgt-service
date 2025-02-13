@@ -287,25 +287,25 @@ export class EventsService {
     const queryBuilder = this.eventRepo.createQueryBuilder('event');
 
     // Base query with joins
-     queryBuilder
-       .leftJoinAndSelect('event.user', 'user')
-       .leftJoinAndSelect('event.tickets', 'tickets')
-       .leftJoinAndSelect('event.team', 'team')
-       .leftJoinAndSelect('team.members', 'members') // Changed from teamMembers
-       .leftJoinAndSelect('members.user', 'memberUser') // Changed from teamMember
-       .leftJoinAndSelect('members.invitation', 'invitation')
-       .leftJoinAndSelect('members.permissions', 'permissions')
-       .leftJoinAndSelect('permissions.team', 'permissionTeam');
+    queryBuilder
+      .leftJoinAndSelect('event.user', 'user')
+      .leftJoinAndSelect('event.tickets', 'tickets')
+      .leftJoinAndSelect('event.team', 'team')
+      .leftJoinAndSelect('team.members', 'members') // Changed from teamMembers
+      .leftJoinAndSelect('members.user', 'memberUser') // Changed from teamMember
+      .leftJoinAndSelect('members.invitation', 'invitation')
+      .leftJoinAndSelect('members.permissions', 'permissions')
+      .leftJoinAndSelect('permissions.team', 'permissionTeam');
 
-     // Access control with correct aliases
-     queryBuilder.where(
-       new Brackets((qb) => {
-         qb.where('user.id = :userId', { userId }).orWhere(
-           'memberUser.id = :userId AND invitation.status = :invitationStatus',
-           { userId, invitationStatus: 'accepted' },
-         );
-       }),
-     );
+    // Access control with correct aliases
+    queryBuilder.where(
+      new Brackets((qb) => {
+        qb.where('user.id = :userId', { userId }).orWhere(
+          'memberUser.id = :userId AND invitation.status = :invitationStatus',
+          { userId, invitationStatus: 'accepted' },
+        );
+      }),
+    );
 
     // Search functionality
     if (search || name || locationName || address) {
@@ -394,6 +394,7 @@ export class EventsService {
         'team.members.user',
         'team.members.permissions',
         'team.members.permissions.team',
+        'bookings',
       ],
     });
 
@@ -507,12 +508,20 @@ export class EventsService {
         'team.members.user',
         'team.members.permissions',
         'team.members.permissions.team',
+        'bookings',
       ],
     });
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
+
+    if (event.bookings.length > 0) {
+      throw new BadRequestException(
+        'Event has bookings and name cannot be updated',
+      );
+    }
+
     //VAlidate event updating before processing updates
     this.validateEventCreation(
       event.user,
@@ -720,6 +729,10 @@ export class EventsService {
   async remove(id: string, user: TJwtPayload) {
     //check if event exists and belongs to authenticated user
     const event = await this.findOne(id, user);
+
+    if (event.bookings.length > 0) {
+      throw new BadRequestException('Event has bookings and cannot be deleted');
+    }
     const userEntity = await this.userService.findOne(user.userId);
 
     //delete event and it's related tickets
