@@ -63,7 +63,7 @@ export class PaymentService {
   }
 
   private async checkUserExists(email: string) {
-    const user = await this.userService.findByEmailWithFullData(email);
+    const user = await this.userService.findOneByEmail(email);
     if (!user) {
       throw new NotFoundException('User not found');
     }
@@ -338,7 +338,7 @@ export class PaymentService {
       await manager
         .createQueryBuilder()
         .update(Event)
-        .set({ broadcastMessages: 0 })
+        .set({ numberOfBroadcastMessageSent: 0 })
         .where('userId = :userId', { userId: user.id })
         .execute();
       await manager.update(User, user.id, user);

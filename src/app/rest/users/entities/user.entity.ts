@@ -206,16 +206,6 @@ export class User extends AbstractEntity<User> {
   })
   eventViews?: EventView[];
 
-  // @OneToMany(() => Booking, (booking) => booking.transferredTo, {
-  //   cascade: true,
-  // })
-  // bookingsTransferredTo?: Booking[];
-  //
-  // @OneToMany(() => Booking, (booking) => booking.transferredFrom, {
-  //   cascade: true,
-  // })
-  // bookingsTransferredFrom?: Booking[];
-
   @OneToMany(() => BookingsTransaction, (trans) => trans.user, {
     cascade: true,
   })
