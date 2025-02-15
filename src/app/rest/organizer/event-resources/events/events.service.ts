@@ -671,7 +671,7 @@ export class EventsService {
 
       // Geolocation search
       if (params['latitude'] && params['longitude']) {
-        const radius = 3000;
+        const radius = 5000;
         const lat = parseFloat(params['latitude']);
         const lon = parseFloat(params['longitude']);
 
