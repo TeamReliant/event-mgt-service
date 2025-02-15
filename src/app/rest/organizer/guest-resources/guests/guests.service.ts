@@ -55,12 +55,11 @@ export class GuestsService {
         {
           validStatus: BookingStatus.VALID,
           usedStatus: BookingStatus.USED,
-          refunded: true,
         },
       )
-      .andWhere('bookings.transfer_status != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      })
+      // .andWhere('bookings.transfer_status != :transferStatus', {
+      //   transferStatus: TicketTransferStatus.TRANSFERRED,
+      // })
       .select([
         'bookings',
         'event',
