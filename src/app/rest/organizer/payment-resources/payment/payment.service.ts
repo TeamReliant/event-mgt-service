@@ -334,6 +334,13 @@ export class PaymentService {
     const transaction = plainToInstance(CreateTransactionDto, transactionObj);
 
     await this.entityManager.transaction(async (manager) => {
+      //reset the broadcastMessage field to 0 the current billing cycle for all events created be the user
+      await manager
+        .createQueryBuilder()
+        .update(Event)
+        .set({ numberOfBroadcastMessageSent: 0 })
+        .where('userId = :userId', { userId: user.id })
+        .execute();
       await manager.update(User, user.id, user);
       await manager.save(Transaction, transaction);
     });

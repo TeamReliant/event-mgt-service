@@ -37,6 +37,7 @@ export class UsersService {
   async findByEmailWithFullData(email: string): Promise<User> {
     return this.repo
       .createQueryBuilder('user')
+      .leftJoinAndSelect('user.events', 'events')
       .leftJoinAndSelect('user.teamMembers', 'teamMembers')
       .leftJoinAndSelect('teamMembers.team', 'team')
       .leftJoinAndSelect('teamMembers.role', 'role')

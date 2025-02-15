@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotAcceptableException,
   NotFoundException,
@@ -15,6 +16,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BroadcastMessageEvent } from '@app/rest/organizer/guest-resources/guests/events/BroadcastMessage.event';
 import { CheckGuestDto } from '@app/rest/organizer/guest-resources/guests/dto/check-guest.dto';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { Event } from '../../event-resources/events/entities/event.entity';
+import { User } from '@app/rest/users/entities/user.entity';
 
 @Injectable()
 export class GuestsService {
@@ -147,6 +150,31 @@ export class GuestsService {
     return queryBuilder;
   }
 
+  private async validateBroadcastMessageSending(event: Event, userId: string) {
+    // get user to get subscribedPlan
+    const user = await this._entityManager
+      .getRepository(User)
+      .findOneBy({ id: userId });
+
+    if (!user)
+      throw new NotFoundException(
+        `SendBroadcastMessage: User with Id: ${userId} not found`,
+      );
+
+    const planRestrictions = {
+      free: 1,
+      pro: 5,
+      premium: 10,
+    };
+
+    const limit = planRestrictions[user.subscribedPlan];
+
+    if (event.numberOfBroadcastMessageSent >= limit) {
+      throw new NotAcceptableException(
+        `Broadcast limit of (${limit}) reached for ${user.subscribedPlan} plan`,
+      );
+    }
+  }
   async sendBroadcastMessage(
     eventId: string,
     userId: string,
@@ -154,6 +182,19 @@ export class GuestsService {
   ) {
     const { bookingIds, title, message, all } = body;
     let bookings: Booking[];
+
+    let event = await this._entityManager
+      .getRepository(Event)
+      .findOneBy({ id: eventId });
+
+    if (!event) {
+      throw new NotFoundException(
+        `SendBroadcastMessage: Event with Id - ${eventId} not found`,
+      );
+    }
+
+    //Validate before sending
+    await this.validateBroadcastMessageSending(event, userId);
 
     // check if all is true
     if (all && all === 'true') {
@@ -201,13 +242,19 @@ export class GuestsService {
         .getMany();
     }
 
-    console.log(bookings);
-
     // check if the bookings are found
     if (!bookings.length)
       throw new NotAcceptableException(
         'No bookings found for the given bookingIds',
       );
+
+    //Update broadcast count
+    await this._entityManager.getRepository(Event).update(
+      { id: eventId },
+      {
+        numberOfBroadcastMessageSent: event.numberOfBroadcastMessageSent + 1,
+      },
+    );
 
     // dispatch the broadcast message event
     this._eventEmitter.emit(

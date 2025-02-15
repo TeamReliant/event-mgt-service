@@ -21,6 +21,13 @@ export class TicketsService {
     private readonly eventService: EventsService,
     private readonly entityManager: EntityManager,
   ) {}
+
+  private async getTicketWithBookings(ticketId: string) {
+    return await this.ticketRepository.findOne({
+      where: { id: ticketId },
+      relations: ['bookings'],
+    });
+  }
   async create(
     createTicketDto: CreateTicketDto,
     eventId: string,
@@ -132,6 +139,14 @@ export class TicketsService {
       } = updateTicketDto;
       const ticket = await this.findOne(ticketId, user);
 
+      if (ticket.name) {
+        const ticketObj = await this.getTicketWithBookings(ticketId);
+
+        if (ticketObj.bookings.length > 0) {
+          throw new BadRequestException('Ticket has already been booked');
+        }
+      }
+
       Object.assign(ticket, {
         name,
         price,
@@ -156,6 +171,12 @@ export class TicketsService {
 
   async remove(ticketId: string, user: TJwtPayload) {
     const ticket = await this.findOne(ticketId, user);
+
+    const ticketObj = await this.getTicketWithBookings(ticketId);
+
+    if (ticketObj.bookings.length > 0) {
+      throw new BadRequestException('Ticket has already been booked');
+    }
 
     await this.entityManager.transaction(async (manager) => {
       const deletedResult = await manager.remove(ticket);
