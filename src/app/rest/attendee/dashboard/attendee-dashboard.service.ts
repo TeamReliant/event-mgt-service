@@ -65,6 +65,9 @@ export class AttendeeDashboardService {
         .andWhere('events.eventStatus = :eventStatus', {
           eventStatus: EventStatus.PUBLISHED,
         })
+        .andWhere('events.eventEndDateAndTime > :currentDate', {
+          currentDate: new Date(),
+        })
         .orderBy('RANDOM()')
         .limit(10)
         .getMany();
