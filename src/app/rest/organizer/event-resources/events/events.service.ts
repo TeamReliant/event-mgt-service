@@ -671,7 +671,7 @@ export class EventsService {
 
       // Geolocation search
       if (params['latitude'] && params['longitude']) {
-        const radius = 5000;
+        const radius = 3000;
         const lat = parseFloat(params['latitude']);
         const lon = parseFloat(params['longitude']);
 
@@ -713,7 +713,10 @@ export class EventsService {
           .andWhere(
             'event.latitude IS NOT NULL AND event.longitude IS NOT NULL',
           )
-          .andWhere('event.eventStartDateAndTime > :today', { today })
+          .andWhere(
+            'event.eventStartDateAndTime > :today AND event.eventEndDateAndTime >= :today',
+            { today },
+          )
           .orderBy('distance', 'ASC');
       }
     }
