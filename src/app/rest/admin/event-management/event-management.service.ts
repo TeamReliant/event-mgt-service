@@ -3,10 +3,15 @@ import { EntityManager, SelectQueryBuilder } from 'typeorm';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Request } from 'express';
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
+import { events } from '@config/app.config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class EventManagementService {
-  constructor(private readonly _entityManager: EntityManager) {}
+  constructor(
+    private readonly _entityManager: EntityManager,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   getAllEvents(req: Request): SelectQueryBuilder<Event> {
     const { query } = req;
@@ -90,5 +95,10 @@ export class EventManagementService {
 
     queryBuilder.orderBy('event.createdAt', 'DESC');
     return queryBuilder;
+  }
+
+  async export(userId: string): Promise<boolean> {
+    await this.eventEmitter.emitAsync(events.EXPORT_ALL_EVENTS_CSV, userId);
+    return true;
   }
 }

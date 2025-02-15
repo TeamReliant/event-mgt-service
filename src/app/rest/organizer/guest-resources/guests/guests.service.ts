@@ -26,10 +26,7 @@ export class GuestsService {
     private readonly _eventEmitter: EventEmitter2,
   ) {}
 
-  findAllGuests(
-    eventId: string,
-    { ...query },
-  ): SelectQueryBuilder<Booking> {
+  findAllGuests(eventId: string, { ...query }): SelectQueryBuilder<Booking> {
     const {
       sort,
       sortDir,
