@@ -24,6 +24,7 @@ import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 import { PaymentService } from '../../payment-resources/payment/payment.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { isEqual } from 'date-fns';
 
 @Injectable()
 export class EventsService {
@@ -484,7 +485,7 @@ export class EventsService {
     //Required by FE to allow event update where the date was not changed
     if (
       eventStartDate &&
-      eventStartDate !== event.eventStartDateAndTime &&
+      !isEqual(eventStartDate, event.eventStartDateAndTime) &&
       eventStartDate < new Date()
     )
       throw new BadRequestException('Event start date must be in the future');
