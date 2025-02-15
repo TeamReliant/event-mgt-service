@@ -65,7 +65,7 @@ export class AttendeeDashboardService {
         .andWhere('events.eventStatus = :eventStatus', {
           eventStatus: EventStatus.PUBLISHED,
         })
-        .andWhere('events.eventEndDateAndTime > :currentDate', {
+        .andWhere('events.eventEndDateAndTime >= :currentDate', {
           currentDate: new Date(),
         })
         .orderBy('RANDOM()')
@@ -130,6 +130,9 @@ export class AttendeeDashboardService {
         { lat, lon, radius },
       )
       .andWhere('event.latitude IS NOT NULL AND event.longitude IS NOT NULL')
+      .andWhere('event.eventEndDateAndTime >= :currentDate', {
+        currentDate: new Date(),
+      })
       .orderBy('distance', 'ASC')
       .limit(10)
       .getMany();
