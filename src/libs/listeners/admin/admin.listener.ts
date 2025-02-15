@@ -36,4 +36,17 @@ export class AdminEmailListener {
       this.sendEmailWithExportedSubscribersCSV,
     );
   }
+
+  @OnEvent(events.EXPORT_ALL_EVENTS_CSV)
+  async sendEmailWithExportedEventsCSV(userId: string) {
+    console.log('Sending exported events data email...');
+
+    await this.adminEmailService.exportEventsCSV(userId);
+
+    // Remove the event from the queue  when done
+    this._eventEmitter.removeListener(
+      events.EXPORT_ALL_SUBSCRIBERS_CSV,
+      this.sendEmailWithExportedEventsCSV,
+    );
+  }
 }
