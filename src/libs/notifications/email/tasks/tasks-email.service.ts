@@ -25,4 +25,23 @@ export class TasksEmailService {
       payload,
     );
   }
+
+  async sendTaskReminderMessage(task: Task) {
+    const { email } = task.assignee.user;
+    const { appName } = appInfo;
+
+    const payload = {
+      task: task,
+      assignee: task.assignee.user,
+      appInfo,
+    };
+
+    const subject: string = `TASK REMINDER - ${appName}`;
+    await this.emailEngineService.sendHtmlEmail(
+      [email],
+      subject,
+      `tasks/task-reminder`,
+      payload,
+    );
+  }
 }

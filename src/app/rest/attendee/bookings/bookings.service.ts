@@ -502,7 +502,11 @@ export class BookingsService {
 
       // update the system register
       systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+      systemRegister.ticketsRsvp += totalTicketsProcessed;
+      bookings[0].event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
+
       await manager.save<SystemRegister>(systemRegister);
+      await manager.save<Event>(bookings[0].event);
 
       // save the newly generated bookings
       await manager.save(Booking, newBookings);

@@ -5,6 +5,7 @@ import { User } from '@app/rest/users/entities/user.entity';
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
+import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 
 @Injectable()
 export class OrganizerDashboardService {
@@ -31,11 +32,12 @@ export class OrganizerDashboardService {
       .andWhere('events.userId = :userId', { userId });
 
     // Fetch the 5 most recent events
-    const recentEvents = await this.getRecentEvents(queryBuilder);
+    const recentEvents = await this._getRecentEvents(queryBuilder);
 
     return {
       totalRevenue: await this._getTotalRevenueAnalytics(user),
-      ticketsSold: await this._getTicketsSoldAnalytics(user),
+      ticketsSold: await this._getTicketsAnalytics(user, TicketCategory.PAID),
+      ticketsRsvp: await this._getTicketsAnalytics(user, TicketCategory.FREE),
       publishedEvents: await this._getPublishedEventsAnalytics(user),
       attendanceRate: await this._getAttendanceRateAnalytics(user),
       recentEvents,
@@ -123,7 +125,7 @@ export class OrganizerDashboardService {
       ),
     };
   }
-  private async _getTicketsSoldAnalytics(user: User) {
+  private async _getTicketsAnalytics(user: User, category: TicketCategory) {
     // get the date of yesterday
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -141,6 +143,7 @@ export class OrganizerDashboardService {
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :yesterday', { yesterday })
       .andWhere('bookings.createdAt < :today', { today })
+      .andWhere('bookings.category = :category', { category })
       .select(['bookings.id', 'bookings.unitAmount'])
       .getCount();
 
@@ -150,11 +153,15 @@ export class OrganizerDashboardService {
       .where('event.userId = :userId', { userId: user.id })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :today', { today })
+      .andWhere('bookings.category = :category', { category })
       .select(['bookings.id', 'bookings.unitAmount'])
       .getCount();
 
     return {
-      value: +user.ticketsSold,
+      value:
+        category === TicketCategory.PAID
+          ? +user.ticketsSold
+          : +user.ticketsRsvp,
       change: this._percentageChange(
         successfulBookingsToday,
         successfulBookingsYesterday,
@@ -209,7 +216,7 @@ export class OrganizerDashboardService {
     };
   }
 
-  _percentageChange(today: number, yesterday: number) {
+  private _percentageChange(today: number, yesterday: number) {
     if (yesterday === 0 || today === 0) return 0;
 
     if (yesterday === 0) {
@@ -231,7 +238,7 @@ export class OrganizerDashboardService {
   }
 
   // Helper to fetch the most recent 5 events
-  private async getRecentEvents(
+  private async _getRecentEvents(
     queryBuilder: SelectQueryBuilder<Event>,
   ): Promise<Event[]> {
     const recentEvents = await queryBuilder
