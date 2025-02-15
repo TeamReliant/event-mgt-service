@@ -28,7 +28,6 @@ export class GuestsService {
 
   findAllGuests(
     eventId: string,
-    userId: string,
     { ...query },
   ): SelectQueryBuilder<Booking> {
     const {
@@ -51,14 +50,13 @@ export class GuestsService {
       .leftJoinAndSelect('team.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId })
-      // .andWhere(
-      //   '(bookings.status = :validStatus OR bookings.status = :usedStatus OR bookings.refunded = :refunded)',
-      //   {
-      //     validStatus: BookingStatus.VALID,
-      //     usedStatus: BookingStatus.USED,
-      //     refunded: true,
-      //   },
-      // )
+      .andWhere(
+        '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
+        {
+          validStatus: BookingStatus.VALID,
+          usedStatus: BookingStatus.USED,
+        },
+      )
       // .andWhere('bookings.transfer_status != :transferStatus', {
       //   transferStatus: TicketTransferStatus.TRANSFERRED,
       // })
@@ -282,7 +280,7 @@ export class GuestsService {
       .andWhere('bookings.status != :status', {
         status: BookingStatus.PENDING,
       })
-      .andWhere('booking.refunded != :refunded', { refunded: true })
+      .andWhere('bookings.refunded != :refunded', { refunded: true })
       .select([
         'bookings',
         'event',
