@@ -427,7 +427,7 @@ export class EventsService {
       .andWhere(
         new Brackets((qb) => {
           qb.where('event.eventStatus = :publishedStatus', {
-            publishedStatus: 'published',
+            publishedStatus: EventStatus.PUBLISHED,
           });
         }),
       )
