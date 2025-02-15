@@ -219,56 +219,6 @@ export class EventsService {
     }
   }
 
-  // //NEEDED BY ADMIN
-  // findAll(req: Request) {
-  //   const { query } = req;
-  //   const {
-  //     name,
-  //     location,
-  //     address,
-  //     eventVisibility,
-  //     eventStatus,
-  //     eventStartDateAndTime,
-  //   } = query;
-
-  //   const queryBuilder = this.eventRepo.createQueryBuilder('event');
-  //   if (name) {
-  //     queryBuilder.andWhere('event.name LIKE :name', { name: `%${name}%` });
-  //   }
-
-  //   if (location) {
-  //     queryBuilder.andWhere('event.location LIKE :location', {
-  //       location: `%${location}%`,
-  //     });
-  //   }
-
-  //   if (address) {
-  //     queryBuilder.andWhere('event.address LIKE :address', {
-  //       address: `%${address}%`,
-  //     });
-  //   }
-
-  //   if (eventVisibility) {
-  //     queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
-  //       eventVisibility,
-  //     });
-  //   }
-
-  //   if (eventStatus) {
-  //     queryBuilder.andWhere('event.eventStatus = :eventStatus', {
-  //       eventStatus,
-  //     });
-  //   }
-
-  //   if (eventStartDateAndTime) {
-  //     queryBuilder.andWhere('event.eventDate >= :eventStartDateAndTime', {
-  //       eventStartDateAndTime,
-  //     });
-  //   }
-
-  //   return queryBuilder;
-  // }
-
   findMyEvents(req: Request, user: TJwtPayload) {
     const {
       name,
@@ -515,11 +465,13 @@ export class EventsService {
     if (!event) {
       throw new NotFoundException('Event not found');
     }
-
-    if (event.bookings.length > 0) {
-      throw new BadRequestException(
-        'Event has bookings and name cannot be updated',
-      );
+    // if name is to be updated
+    if (name.toLowerCase() !== event.name.toLowerCase()) {
+      if (event.bookings.length > 0) {
+        throw new BadRequestException(
+          'Event has bookings and name cannot be updated',
+        );
+      }
     }
 
     //VAlidate event updating before processing updates
@@ -658,7 +610,8 @@ export class EventsService {
 
       if (params['locationName']) {
         searchConditions.push('event.locationName ILIKE :searchLocation');
-        searchParams.searchLocation = `%${params['locationName']}%`;
+        const locationParts = params['locationName'].split(',');
+        searchParams.searchLocation = `%${locationParts[0].trim()}%`;
       }
 
       // Combine search conditions with OR
@@ -677,49 +630,43 @@ export class EventsService {
 
         queryBuilder
           .andWhere(
-            '(CAST(event.latitude AS float) != 0 OR CAST(event.longitude AS float) != 0)',
+            '(event.latitude IS NOT NULL AND event.longitude IS NOT NULL AND CAST(event.latitude AS float) != 0 AND CAST(event.longitude AS float) != 0)',
           )
           .addSelect(
             `(
-            6371 * acos(
-              least(1::float, 
-                cos(radians(:lat::float)) * 
-                cos(radians(CAST(event.latitude AS float))) * 
-                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
-                sin(radians(:lat::float)) * 
-                sin(radians(CAST(event.latitude AS float)))
-              )
-            )
-          )`,
+        6371 * acos(
+          least(1::float,
+            cos(radians(:lat::float)) *
+            cos(radians(CAST(event.latitude AS float))) *
+            cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) +
+            sin(radians(:lat::float)) *
+            sin(radians(CAST(event.latitude AS float)))
+          )
+        )
+      )`,
             'distance',
           )
           .addSelect('event.latitude', 'event_latitude')
           .addSelect('event.longitude', 'event_longitude')
           .andWhere(
             `(
-            6371 * acos(
-              least(1::float, 
-                cos(radians(:lat::float)) * 
-                cos(radians(CAST(event.latitude AS float))) * 
-                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
-                sin(radians(:lat::float)) * 
-                sin(radians(CAST(event.latitude AS float)))
-              )
-            ) <= :radius
-            OR (CAST(event.latitude AS float) = :lat AND CAST(event.longitude AS float) = :lon)
-          )`,
+        6371 * acos(
+          least(1::float,
+            cos(radians(:lat::float)) *
+            cos(radians(CAST(event.latitude AS float))) *
+            cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) +
+            sin(radians(:lat::float)) *
+            sin(radians(CAST(event.latitude AS float)))
+          )
+        ) <= :radius
+      )`,
             { lat, lon, radius },
           )
-          .andWhere(
-            'event.latitude IS NOT NULL AND event.longitude IS NOT NULL',
-          )
-          .andWhere(
-            'event.eventStartDateAndTime > :today AND event.eventEndDateAndTime >= :today',
-            { today },
-          )
+          .andWhere('event.eventEndDateAndTime >= :today', { today })
           .orderBy('distance', 'ASC');
       }
     }
+
     return queryBuilder;
   }
 
