@@ -13,8 +13,8 @@ export class TasksSchedulersService {
     private readonly tasksEmailService: TasksEmailService,
   ) {}
 
-  // @Cron('0 0 * * *') // Runs daily at midnight
-  @Cron('*/1 * * * *') // Runs every minute
+  @Cron('0 0 * * *') // Runs daily at midnight
+  // @Cron('*/1 * * * *') // Runs every minute
   async sendReminderEmails(): Promise<void> {
     this.logger.log('Running scheduled tasks reminder email job...');
 
