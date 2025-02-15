@@ -7,6 +7,7 @@ import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status'
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { Request } from 'express';
 import ResponseSerializer from '@libs/helpers/ResponseSerializer';
+import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 
 @Injectable()
 export class GeneralEventAnalyticsService {
@@ -30,7 +31,8 @@ export class GeneralEventAnalyticsService {
 
     return {
       totalRevenue: await this._getTotalRevenueAnalytics(user),
-      ticketsSold: await this._getTicketsSoldAnalytics(user),
+      ticketsSold: await this._getTicketsAnalytics(user, TicketCategory.PAID),
+      ticketsRsvp: await this._getTicketsAnalytics(user, TicketCategory.FREE),
       publishedEvents: await this._getPublishedEventsAnalytics(user),
       attendanceRate: await this._getAttendanceRateAnalytics(user),
       events: await this.getEvents(userId, req),
@@ -108,7 +110,7 @@ export class GeneralEventAnalyticsService {
     };
   }
 
-  private async _getTicketsSoldAnalytics(user: User) {
+  private async _getTicketsAnalytics(user: User, category: TicketCategory) {
     // get the date of yesterday
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -123,6 +125,7 @@ export class GeneralEventAnalyticsService {
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.category = :category', { category })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :yesterday', { yesterday })
       .andWhere('bookings.createdAt < :today', { today })
@@ -133,6 +136,7 @@ export class GeneralEventAnalyticsService {
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.userId = :userId', { userId: user.id })
+      .andWhere('bookings.category = :category', { category })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :today', { today })
       .select(['bookings.id', 'bookings.unitAmount'])
