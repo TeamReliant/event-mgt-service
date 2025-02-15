@@ -126,6 +126,9 @@ export class EventsService {
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
     const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
+    const today = new Date();
+    if (createEventDto.eventStartDateAndTime < today)
+      throw new BadRequestException('Event start date must be a future date');
 
     // check if the event name already exists
     const slugExists = await this.eventRepo.findOneBy({
@@ -445,6 +448,10 @@ export class EventsService {
   async update(id: string, updateEventDto: UpdateEventDto) {
     const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
     const { name } = updateEventDto;
+    let eventStartDate: Date;
+    if (updateEventDto.eventStartDateAndTime) {
+      eventStartDate = updateEventDto.eventStartDateAndTime;
+    }
 
     // check if event exists and belongs to authenticated user
     const event = await this.entityManager.findOne(Event, {
@@ -466,13 +473,21 @@ export class EventsService {
       throw new NotFoundException('Event not found');
     }
     // if name is to be updated
-    if (name.toLowerCase() !== event.name.toLowerCase()) {
+    if (name && name.toLowerCase() !== event.name.toLowerCase()) {
       if (event.bookings.length > 0) {
         throw new BadRequestException(
           'Event has bookings and name cannot be updated',
         );
       }
     }
+
+    //Required by FE to allow event update where the date was not changed
+    if (
+      eventStartDate &&
+      eventStartDate !== event.eventStartDateAndTime &&
+      eventStartDate < new Date()
+    )
+      throw new BadRequestException('Event start date must be in the future');
 
     //VAlidate event updating before processing updates
     this.validateEventCreation(

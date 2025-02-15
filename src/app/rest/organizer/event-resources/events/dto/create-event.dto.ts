@@ -83,7 +83,6 @@ export class CreateEventDto {
   @IsDate()
   @IsNotEmpty()
   @IsOptional()
-  @IsFutureDate()
   @FormatValidationException()
   eventStartDateAndTime: Date;
 
