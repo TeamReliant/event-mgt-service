@@ -1,0 +1,25 @@
+extends ../baseEmail
+
+block content
+  p #{(payload.assignee)? `Hello ${payload.assignee.firstname}`: 'Hello'},
+  p This is a reminder that you have a pending task that is due soon..
+  br
+
+  p Task Title: #{payload.task.title}
+  p Description: #{payload.task.description}
+  p Due Date: #{payload.task.dueDate}
+
+
+  br
+  p Please ensure that this task is completed on time, but if you have already completed this task, please ignore this message.
+
+  p Please log  in to your dashboard to view more details.
+  p
+    a(href="https://plaventi.dev/login") Click here to sign in
+
+  p If you have any questions, feel free to send an email to #{payload.appInfo.appEmail}. We're here to help!
+
+  p
+    small Thank you!
+    br
+    small The #{payload.companyName} Team

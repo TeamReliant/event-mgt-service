@@ -728,6 +728,7 @@ export class PaymentService {
         // Keep track of total revenue and event
         let totalRevenue: number = 0.0;
         let totalTicketsSold: number = 0;
+        let totalFreeTickets: number = 0;
         let totalTicketsProcessed: number = 0;
         const bookings: Booking[] = [];
         let event: Event = undefined;
@@ -789,6 +790,9 @@ export class PaymentService {
             totalTicketsSold = totalTicketsSold + booking.quantity;
           }
 
+          if (booking.category === TicketCategory.FREE)
+            totalFreeTickets += booking.quantity;
+
           // update the total tickets processed variable
           totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
 
@@ -802,6 +806,8 @@ export class PaymentService {
         if (event) {
           // update the event's revenue
           event.revenue = +event.revenue + totalRevenue;
+          event.totalNumberOfTicketsRsvp =
+            +event.totalNumberOfTicketsRsvp + totalFreeTickets;
           event.totalNumberOfTicketsSold =
             +event.totalNumberOfTicketsSold + totalTicketsSold;
           event.totalStripeFee = +event.totalStripeFee + transaction.stripeFee;
@@ -810,6 +816,7 @@ export class PaymentService {
           // update the user's revenue and tickets sold
           event.user.totalRevenue = +event.user.totalRevenue + totalRevenue;
           event.user.ticketsSold = +event.user.ticketsSold + totalTicketsSold;
+          event.user.ticketsRsvp = +event.user.ticketsRsvp + totalFreeTickets;
           event.user.totalStripeFee =
             +event.user.totalStripeFee + transaction.stripeFee;
           event.user.totalPlatformFee =
@@ -829,6 +836,7 @@ export class PaymentService {
         systemRegister.totalRevenue += transaction.fee;
         systemRegister.ticketsSold += totalTicketsSold;
         systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+        systemRegister.ticketsRsvp += totalFreeTickets;
         await manager.save<SystemRegister>(systemRegister);
 
         // delete old transactions from memory
@@ -836,6 +844,7 @@ export class PaymentService {
         // Save the transaction details
         return await manager.save(BookingsTransaction, transaction);
       }
+
       throw new NotAcceptableException('Payment not completed');
     });
 

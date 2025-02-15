@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
 import {
   BookingStatus,
   TicketTransferStatus,
@@ -8,9 +7,7 @@ import {
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
-import { LineItem } from '@app/rest/organizer/event-resources/line-items/entities/line-item.entity';
-import { Transaction } from '@app/rest/organizer/transaction-resources/transactions/entities/transaction.entity';
-import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
+import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 
 @Injectable()
 export class EventAnalyticsService {
@@ -47,7 +44,8 @@ export class EventAnalyticsService {
     return {
       grossRevenue: await this._getGrossRevenueAnalytics(event),
       netRevenue: await this._getNetRevenueAnalytics(event),
-      ticketsSold: await this._getTicketsSoldAnalytics(event),
+      ticketsSold: await this._getTicketsAnalytics(event, TicketCategory.PAID),
+      ticketsRsvp: await this._getTicketsAnalytics(event, TicketCategory.FREE),
       ticketsScanned: await this._getScannedTicketsAnalytics(event),
       attendanceRate: await this._getAttendanceRate(event),
       pageViews,
@@ -79,7 +77,7 @@ export class EventAnalyticsService {
     };
   }
 
-  private async _getTicketsSoldAnalytics(event: Event) {
+  private async _getTicketsAnalytics(event: Event, category: TicketCategory) {
     // get the date of yesterday
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -97,6 +95,7 @@ export class EventAnalyticsService {
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :yesterday', { yesterday })
       .andWhere('bookings.createdAt < :today', { today })
+      .andWhere('bookings.category = :category', { category })
       .select(['bookings.id', 'bookings.unitAmount'])
       .getCount();
 
@@ -106,11 +105,15 @@ export class EventAnalyticsService {
       .where('event.id = :eventId', { eventId: event.id })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :today', { today })
+      .andWhere('bookings.category = :category', { category })
       .select(['bookings.id', 'bookings.unitAmount'])
       .getCount();
 
     return {
-      value: +event.totalNumberOfTicketsSold,
+      value:
+        category === TicketCategory.PAID
+          ? +event.totalNumberOfTicketsSold
+          : +event.totalNumberOfTicketsRsvp,
       change: this._percentageChange(
         successfulBookingsToday,
         successfulBookingsYesterday,
