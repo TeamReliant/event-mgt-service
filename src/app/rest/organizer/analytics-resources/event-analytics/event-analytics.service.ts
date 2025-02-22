@@ -184,18 +184,18 @@ export class EventAnalyticsService {
     const ticketsScanned = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId: event.id })
-      .andWhere('bookings.transfer_status != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      })
+      // .andWhere('bookings.transfer_status != :transferStatus', {
+      //   transferStatus: TicketTransferStatus.TRANSFERRED,
+      // })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
     const ticketsScannedToday = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId: event.id })
-      .andWhere('bookings.transfer_status != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      })
+      // .andWhere('bookings.transfer_status != :transferStatus', {
+      //   transferStatus: TicketTransferStatus.TRANSFERRED,
+      // })
       .andWhere('bookings.createdAt >= :today', { today })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
@@ -203,9 +203,9 @@ export class EventAnalyticsService {
     const ticketsScannedYesterday = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId: event.id })
-      .andWhere('bookings.transfer_status != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      })
+      // .andWhere('bookings.transfer_status != :transferStatus', {
+      //   transferStatus: TicketTransferStatus.TRANSFERRED,
+      // })
       .andWhere('bookings.createdAt >= :yesterday', { yesterday })
       .andWhere('bookings.createdAt < :today', { today })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
