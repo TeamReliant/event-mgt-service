@@ -614,7 +614,7 @@ export class EventsService {
 
       if (params['tags']) {
         searchConditions.push(
-          `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
+          `regexp_split_to_array(LOWER(event.tags), '[,\\s]+') @> ARRAY[LOWER(:tag)]`,
         );
         searchParams.tag = params['tags'];
       }
@@ -624,11 +624,11 @@ export class EventsService {
         searchParams.searchName = `%${params['name']}%`;
       }
 
-      if (params['locationName']) {
-        searchConditions.push('event.locationName ILIKE :searchLocation');
-        const locationParts = params['locationName'].split(',');
-        searchParams.searchLocation = `%${locationParts[0].trim()}%`;
-      }
+      // if (params['locationName']) {
+      //   searchConditions.push('event.locationName ILIKE :searchLocation');
+      //   const locationParts = params['locationName'].split(',');
+      //   searchParams.searchLocation = `%${locationParts[0].trim()}%`;
+      // }
 
       // Combine search conditions with OR
       if (searchConditions.length > 0) {

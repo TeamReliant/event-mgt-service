@@ -156,7 +156,7 @@ export class UsersService {
 
   async getUserLocation(ip: string) {
     if (!ip) throw new BadRequestException('Invalid IP address');
-    const url = `http://ip-api.com/json/${ip}?fields=country,regionName,city,lat,lon,query&key=${process.env.IP_INFO_TOKEN}`;
+    const url = `http://ip-api.com/json/${ip}?fields=country,CountryCode,regionName,city,lat,lon,query&key=${process.env.IP_INFO_TOKEN}`;
 
     try {
       const response = await axios.get(url, {

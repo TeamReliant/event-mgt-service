@@ -80,12 +80,67 @@ export class MarketplaceService {
         .andWhere('(event.eventEndDateAndTime >= :now)', { now: new Date() });
 
       if (typeof countryName === 'string' && countryName.trim()) {
+        const countryVariants = {
+          'united states': [
+            'usa',
+            'united states',
+            'united states of america',
+            'us',
+            'u.s.',
+            'u.s.a.',
+          ],
+          'united kingdom': [
+            'uk',
+            'great britain',
+            'britain',
+            'england',
+            'united kingdom',
+            'u.k.',
+          ],
+          'united arab emirates': ['uae', 'emirates', 'u.a.e.'],
+          'south africa': ['sa', 'rsa', 'republic of south africa'],
+          'saudi arabia': ['ksa', 'kingdom of saudi arabia'],
+          'new zealand': ['nz', 'aotearoa'],
+          'hong kong': ['hk', 'hong kong sar'],
+          'south korea': ['korea', 'republic of korea', 'rok'],
+          'north korea': ['dprk', "democratic people's republic of korea"],
+          netherlands: ['holland', 'the netherlands'],
+        };
+
+        const variants = countryVariants[countryName.toLowerCase()] || [
+          countryName,
+        ];
+
         queryBuilder.andWhere(
-          '(LOWER(event.locationName) LIKE LOWER(:countryName) OR LOWER(event.address) LIKE LOWER(:countryName))',
-          {
-            countryName: `%${countryName.trim()}%`,
-          },
+          new Brackets((qb) => {
+            variants.forEach((variant, index) => {
+              const paramName = `countryName${index}`;
+              if (index === 0) {
+                qb.where(
+                  '(LOWER(event.locationName) ILIKE :' +
+                    paramName +
+                    ' OR LOWER(event.address) ILIKE :' +
+                    paramName +
+                    ')',
+                );
+              } else {
+                qb.orWhere(
+                  '(LOWER(event.locationName) ILIKE :' +
+                    paramName +
+                    ' OR LOWER(event.address) ILIKE :' +
+                    paramName +
+                    ')',
+                );
+              }
+            });
+          }),
         );
+
+        // Set parameters outside the Brackets
+        variants.forEach((variant, index) => {
+          const paramName = `countryName${index}`;
+          queryBuilder.setParameter(paramName, `%${variant.toLowerCase()}%`);
+        });
       }
 
       queryBuilder
