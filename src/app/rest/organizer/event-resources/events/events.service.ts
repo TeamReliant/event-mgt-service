@@ -683,6 +683,7 @@ export class EventsService {
       }
     }
 
+    queryBuilder.andWhere('event.eventEndDateAndTime >= :today', { today });
     return queryBuilder;
   }
 

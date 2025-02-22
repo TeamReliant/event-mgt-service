@@ -60,53 +60,6 @@ export class MarketplaceService {
     return events;
   }
 
-  // async getEventsNearMe(req: Request) {
-  //   if (!req.ip) {
-  //     throw new BadRequestException('User IP address not provided');
-  //   }
-
-  //   const userLocation = await this.userService.getUserLocation(req.ip);
-  //   if (!userLocation) {
-  //     throw new BadRequestException('Failed to get user location');
-  //   }
-
-  //   const radius = 0.01;
-
-  //   const queryBuilder = this.entityManager
-  //     .createQueryBuilder(Event, 'event')
-  //     .where('event.eventStatus = :status', { status: 'published' })
-  //     .andWhere('event.eventVisibility = :visibility', {
-  //       visibility: 'public',
-  //     });
-
-  //   if (userLocation.lat && userLocation.lon) {
-  //     queryBuilder.andWhere(
-  //       new Brackets((qb) => {
-  //         qb.where('event.latitude BETWEEN :minLat AND :maxLat', {
-  //           minLat: userLocation.lat - radius,
-  //           maxLat: userLocation.lat + radius,
-  //         }).andWhere('event.longitude BETWEEN :minLong AND :maxLong', {
-  //           minLong: userLocation.lon - radius,
-  //           maxLong: userLocation.lon + radius,
-  //         });
-  //       }),
-  //     );
-  //   }
-
-  //   queryBuilder
-  //     .andWhere('event.locationName ILIKE :locationName', {
-  //       locationName: `%${userLocation.city ?? 'USA'}%`,
-  //     })
-  //     .orWhere('event.address ILIKE :address', {
-  //       address: `%${userLocation.city ?? 'USA'}%`,
-  //     })
-  //     .andWhere('event.eventStartDateAndTime > :currentDate', {
-  //       currentDate: new Date(),
-  //     });
-
-  //   return queryBuilder.getMany();
-  // }
-
   async findTopEvents(req: Request) {
     const { countryName } = req.query;
     const LIMIT = 10;
@@ -135,7 +88,10 @@ export class MarketplaceService {
         );
       }
 
-      queryBuilder.addOrderBy('event.eventStartDateAndTime', 'ASC').take(LIMIT);
+      queryBuilder
+        .addOrderBy('COALESCE(event.totalNumberOfTicketsSold, 0)', 'DESC')
+        .addOrderBy('event.eventStartDateAndTime', 'ASC')
+        .take(LIMIT);
 
       return await queryBuilder.getMany();
     } catch (error) {
