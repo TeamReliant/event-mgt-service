@@ -477,7 +477,7 @@ export class EventsService {
     if (name && name.toLowerCase() !== event.name.toLowerCase()) {
       if (event.bookings.length > 0) {
         throw new BadRequestException(
-          'Event has bookings and name cannot be updated',
+          'You cannot update the name of an event with bookings',
         );
       }
     }
@@ -698,7 +698,7 @@ export class EventsService {
     const event = await this.findOne(id, user);
 
     if (event.bookings.length > 0) {
-      throw new BadRequestException('Event has bookings and cannot be deleted');
+      throw new BadRequestException('You cannot delete an event with bookings');
     }
     const userEntity = await this.userService.findOne(user.userId);
 
