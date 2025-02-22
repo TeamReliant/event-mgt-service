@@ -53,23 +53,27 @@ export class EventAnalyticsService {
   }
 
   private async _getAttendanceRate(event: Event) {
-    const { id, totalNumberOfTicketsSold } = event;
+    const { id, totalNumberOfTicketsSold, totalNumberOfTicketsRsvp } = event;
 
     // fetch ticket scanned
     const ticketsScanned = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId: id })
-      .andWhere('bookings.transfer_status != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      })
+      // .andWhere('bookings.transfer_status != :transferStatus', {
+      //   transferStatus: TicketTransferStatus.TRANSFERRED,
+      // })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
     // calculate Attendance rate
-    const attendanceRate = (ticketsScanned / totalNumberOfTicketsSold) * 100;
+    const attendanceRate =
+      (ticketsScanned / (totalNumberOfTicketsSold + totalNumberOfTicketsRsvp)) *
+      100;
 
     // calculate percentage change
-    const percentageChange = (attendanceRate * totalNumberOfTicketsSold) / 100;
+    const percentageChange =
+      (attendanceRate * (totalNumberOfTicketsSold + totalNumberOfTicketsRsvp)) /
+      100;
 
     return {
       value: Math.ceil(attendanceRate * 100) / 100,

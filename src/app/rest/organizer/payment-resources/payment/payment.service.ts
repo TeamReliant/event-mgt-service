@@ -620,19 +620,12 @@ export class PaymentService {
     bookings: Booking[],
     cancelUrl: string = null,
   ): Promise<any> {
-    const stripeFee = +this.configService.get<number>('STRIPE_FEE');
-    const percentageCut = +this.configService.get<number>(
-      'TICKET_PERCENTAGE_CUT',
-    );
-
     const totalAmount = bookings.reduce((currentAmount, booking) => {
       return currentAmount + booking.ticket.price * booking.quantity;
     }, 0);
 
-    // calculate the percentage cut of the totalAmount
-    const percentageCutAmount = (totalAmount * percentageCut) / 100;
-
-    const booking = bookings.find((booking) => booking);
+    const { stripeFee, platformFee, total } = await this.getFees(totalAmount);
+    const booking = bookings[0];
 
     // find the organizer that owns the event
     const event = await this.entityManager
@@ -647,10 +640,7 @@ export class PaymentService {
       );
 
     return await this.stripe.checkout.sessions.create({
-      payment_method_types: [
-        'card', // Credit/Debit cards
-        'alipay', // Alipay for users in China
-      ],
+      payment_method_types: ['card', 'alipay'],
       line_items: [
         {
           price_data: {
@@ -661,9 +651,7 @@ export class PaymentService {
               name: `EVENT BOOKING - ${booking.event.name.toUpperCase()}`,
               description: `By ${booking.firstName} ${booking.lastName}, Email: ${booking.email}`,
             },
-            unit_amount: Math.round(
-              (totalAmount + percentageCutAmount + stripeFee) * 100,
-            ), // Amount in cents, adjust based on ticket price
+            unit_amount: Math.round(total * 100), // Amount in cents, adjust based on ticket price
           },
           quantity: 1,
         },
@@ -671,9 +659,7 @@ export class PaymentService {
       mode: 'payment',
       customer_email: booking.email,
       payment_intent_data: {
-        application_fee_amount: Math.round(
-          (percentageCutAmount + stripeFee) * 100,
-        ), // Fee to our platform
+        application_fee_amount: Math.round((platformFee + stripeFee) * 100), // Fee to our platform
         transfer_data: {
           destination: event.user.stripeConnectedAccountId, // Organizer's connected account
         },
@@ -885,17 +871,19 @@ export class PaymentService {
 
   async getFees(amount: number) {
     const stripeFee = +this.configService.get<number>('STRIPE_FEE');
+
     const percentageCut = +this.configService.get<number>(
       'TICKET_PERCENTAGE_CUT',
     );
 
     // calculate the percentage cut of the totalAmount
-    const percentageCutAmount = (amount * percentageCut) / 100;
+    const percentageCutAmount = (amount * percentageCut) / 100 + 0.5;
+    const stripeFeeAmount = (amount * stripeFee) / 100 + 0.3;
 
     return {
       platformFee: percentageCutAmount,
-      stripeFee,
-      total: percentageCutAmount + stripeFee + amount,
+      stripeFee: stripeFeeAmount,
+      total: percentageCutAmount + stripeFeeAmount + amount,
     };
   }
 
@@ -947,9 +935,7 @@ export class PaymentService {
     }
 
     // get the booking refund data
-    const { platformFee, stripeFee, total } = await this.getFees(
-      booking.unitAmount,
-    );
+    const { platformFee, stripeFee } = await this.getFees(booking.unitAmount);
 
     const paymentIntentId = session.payment_intent as string;
     // Step 1: Fetch the connected account balance
@@ -963,9 +949,7 @@ export class PaymentService {
       0,
     );
 
-    if (
-      availableBalance < Math.round((total - platformFee - stripeFee) * 100)
-    ) {
+    if (availableBalance < Math.round(booking.unitAmount * 100)) {
       throw new NotAcceptableException(
         'Insufficient balance in connected account for the refund',
       );
