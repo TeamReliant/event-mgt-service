@@ -347,7 +347,7 @@ export class EventsService {
         'team.members',
         'team.members.user',
         'team.members.permissions',
-        'team.members.permissions.team',
+        // 'team.members.permissions.team',
         'bookings',
       ],
     });
@@ -517,7 +517,7 @@ export class EventsService {
       slugExists = await this.eventRepo
         .createQueryBuilder('event')
         .where('event.slug = :slug', { slug: slugify(name, { lower: true }) })
-        // .andWhere('event.userId != :userId', { userId: user.userId })
+        .andWhere('event.id != :eventId', { eventId: event.id })
         .getOne();
 
       slug = `${slugify(name, { lower: true })}${slugExists ? timestampInSeconds : ''}`;

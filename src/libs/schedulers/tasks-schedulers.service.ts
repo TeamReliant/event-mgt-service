@@ -53,54 +53,54 @@ export class TasksSchedulersService {
   //   this.logger.log(`Sent ${tasks.length} reminder emails.`);
   // }
 
-  // @Cron('0 0 * * *') // Runs daily at midnight
-  // async sendReminderEmails(): Promise<void> {
-  //   this.logger.log('Running scheduled tasks reminder email job...');
-  //
-  //   // Get the current date
-  //   const today = new Date();
-  //   today.setHours(0, 0, 0, 0);
-  //
-  //   const threeDaysAgo = new Date();
-  //   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  //   threeDaysAgo.setHours(0, 0, 0, 0);
-  //
-  //   const batchSize = 100; // Adjust based on system capacity
-  //   let page = 0;
-  //   let tasks: Task[];
-  //
-  //   do {
-  //     tasks = await this.entityManager
-  //       .createQueryBuilder(Task, 'tasks')
-  //       .leftJoinAndSelect('tasks.assignee', 'assignee')
-  //       .leftJoinAndSelect('assignee.user', 'user')
-  //       .where('tasks.dueDate >= :threeDaysAgo', { threeDaysAgo })
-  //       .andWhere('tasks.dueDate <= :today', { today })
-  //       .take(batchSize)
-  //       .skip(page * batchSize)
-  //       .getMany();
-  //
-  //     if (!tasks.length) {
-  //       if (page === 0) this.logger.log('No tasks found for reminders.');
-  //       break;
-  //     }
-  //
-  //     for (const task of tasks) {
-  //       try {
-  //         await this.tasksEmailService.sendTaskReminderMessage(task);
-  //       } catch (error) {
-  //         this.logger.error(
-  //           `Failed to send email for task ${task.id}: ${error.message}`,
-  //         );
-  //       }
-  //     }
-  //
-  //     this.logger.log(
-  //       `Processed batch ${page + 1}, sent ${tasks.length} emails.`,
-  //     );
-  //     page++;
-  //   } while (tasks.length === batchSize);
-  //
-  //   this.logger.log('Finished sending reminder emails.');
-  // }
+  @Cron('0 0 * * *') // Runs daily at midnight
+  async sendReminderEmails(): Promise<void> {
+    this.logger.log('Running scheduled tasks reminder email job...');
+
+    // Get the current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    threeDaysAgo.setHours(0, 0, 0, 0);
+
+    const batchSize = 100; // Adjust based on system capacity
+    let page = 0;
+    let tasks: Task[];
+
+    do {
+      tasks = await this.entityManager
+        .createQueryBuilder(Task, 'tasks')
+        .leftJoinAndSelect('tasks.assignee', 'assignee')
+        .leftJoinAndSelect('assignee.user', 'user')
+        .where('tasks.dueDate >= :threeDaysAgo', { threeDaysAgo })
+        .andWhere('tasks.dueDate <= :today', { today })
+        .take(batchSize)
+        .skip(page * batchSize)
+        .getMany();
+
+      if (!tasks.length) {
+        if (page === 0) this.logger.log('No tasks found for reminders.');
+        break;
+      }
+
+      for (const task of tasks) {
+        try {
+          await this.tasksEmailService.sendTaskReminderMessage(task);
+        } catch (error) {
+          this.logger.error(
+            `Failed to send email for task ${task.id}: ${error.message}`,
+          );
+        }
+      }
+
+      this.logger.log(
+        `Processed batch ${page + 1}, sent ${tasks.length} emails.`,
+      );
+      page++;
+    } while (tasks.length === batchSize);
+
+    this.logger.log('Finished sending reminder emails.');
+  }
 }

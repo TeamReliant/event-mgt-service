@@ -44,30 +44,22 @@ export class GuestsService {
       .leftJoinAndSelect('bookings.event', 'event')
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.team', 'team')
-      .leftJoinAndSelect('team.permissions', 'permissions')
+      // .leftJoinAndSelect('team.permissions', 'permissions')
+      .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.user', 'membersUser')
+      .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
-      .where('bookings.eventId = :eventId', { eventId })
-      .andWhere(
-        '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
-        {
-          validStatus: BookingStatus.VALID,
-          usedStatus: BookingStatus.USED,
-        },
-      )
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
-      .select([
-        'bookings',
-        'event',
-        'user.id',
-        'user.firstname',
-        'user.lastname',
-        'user.email',
-        'team',
-        'permissions',
-        'ticket',
-      ]);
+      .where('bookings.eventId = :eventId', { eventId });
+    // .andWhere(
+    //   '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
+    //   {
+    //     validStatus: BookingStatus.VALID,
+    //     usedStatus: BookingStatus.USED,
+    //   },
+    // )
+    // .andWhere('bookings.transfer_status != :transferStatus', {
+    //   transferStatus: TicketTransferStatus.TRANSFERRED,
+    // })
 
     // check if status is supplied
     if (status) {
@@ -76,11 +68,10 @@ export class GuestsService {
       });
     } else {
       queryBuilder.andWhere(
-        '(bookings.status = :validStatus OR bookings.status = :usedStatus OR bookings.refunded = :refunded)',
+        '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
         {
           validStatus: BookingStatus.VALID,
           usedStatus: BookingStatus.USED,
-          refunded: true,
         },
       );
     }
@@ -142,6 +133,24 @@ export class GuestsService {
     if (!sort) {
       queryBuilder.orderBy('bookings.createdAt', 'DESC');
     }
+
+    queryBuilder.select([
+      'bookings',
+      'event',
+      'user.id',
+      'user.firstname',
+      'user.lastname',
+      'user.email',
+      'team',
+      'members',
+      'membersUser.id',
+      'membersUser.firstname',
+      'membersUser.lastname',
+      'membersUser.email',
+      'permissions',
+      'ticket',
+    ]);
+
     return queryBuilder;
   }
 
@@ -178,7 +187,7 @@ export class GuestsService {
     const { bookingIds, title, message, all } = body;
     let bookings: Booking[];
 
-    let event = await this._entityManager
+    const event = await this._entityManager
       .getRepository(Event)
       .findOneBy({ id: eventId });
 
