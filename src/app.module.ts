@@ -37,6 +37,7 @@ import { SubscribersManagementModule } from '@app/rest/admin/subscribers-managem
 import { ScheduleModule } from '@nestjs/schedule';
 import { TasksEmailService } from '@libs/notifications/email/tasks/tasks-email.service';
 import { EmailEngineService } from '@libs/notifications/email/email-engine/email-engine.service';
+import { TasksSchedulersService } from '@libs/schedulers/tasks-schedulers.service';
 
 @Module({
   imports: [
@@ -96,7 +97,7 @@ import { EmailEngineService } from '@libs/notifications/email/email-engine/email
   ],
   providers: [
     JwtStrategy,
-    // TasksSchedulersService,
+    TasksSchedulersService,
     TasksEmailService,
     EmailEngineService,
   ],

@@ -187,7 +187,7 @@ export class GuestsService {
     const { bookingIds, title, message, all } = body;
     let bookings: Booking[];
 
-    let event = await this._entityManager
+    const event = await this._entityManager
       .getRepository(Event)
       .findOneBy({ id: eventId });
 
