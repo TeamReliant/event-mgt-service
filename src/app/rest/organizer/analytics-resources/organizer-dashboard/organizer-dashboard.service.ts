@@ -6,6 +6,7 @@ import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status'
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
+import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 
 @Injectable()
 export class OrganizerDashboardService {
@@ -136,7 +137,7 @@ export class OrganizerDashboardService {
     today.setHours(0, 0, 0, 0);
 
     // fetch successful bookings within the last 7 days
-    const successfulBookingsYesterday = await this._entityManager
+    const yesterdayBookings = this._entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.userId = :userId', { userId: user.id })
@@ -144,18 +145,28 @@ export class OrganizerDashboardService {
       .andWhere('bookings.createdAt >= :yesterday', { yesterday })
       .andWhere('bookings.createdAt < :today', { today })
       .andWhere('bookings.category = :category', { category })
-      .select(['bookings.id', 'bookings.unitAmount'])
-      .getCount();
+      .select(['bookings.id', 'bookings.unitAmount']);
 
-    const successfulBookingsToday = await this._entityManager
+    if (category === TicketCategory.FREE) {
+      yesterdayBookings.andWhere('bookings.reaction != :reaction', {
+        reaction: FreeTicketReaction.NOT_GOING,
+      });
+    }
+
+    const todayBookings = this._entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.userId = :userId', { userId: user.id })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :today', { today })
       .andWhere('bookings.category = :category', { category })
-      .select(['bookings.id', 'bookings.unitAmount'])
-      .getCount();
+      .select(['bookings.id', 'bookings.unitAmount']);
+
+    if (category === TicketCategory.FREE) {
+      todayBookings.andWhere('bookings.reaction != :reaction', {
+        reaction: FreeTicketReaction.NOT_GOING,
+      });
+    }
 
     return {
       value:
@@ -163,8 +174,8 @@ export class OrganizerDashboardService {
           ? +user.ticketsSold
           : +user.ticketsRsvp,
       change: this._percentageChange(
-        successfulBookingsToday,
-        successfulBookingsYesterday,
+        await todayBookings.getCount(),
+        await yesterdayBookings.getCount(),
       ),
     };
   }
