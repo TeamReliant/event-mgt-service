@@ -35,7 +35,6 @@ import { AdminManagementModule } from '@app/rest/admin/admin-management/admin-ma
 import { EventManagementModule } from '@app/rest/admin/event-management/event-management.module';
 import { SubscribersManagementModule } from '@app/rest/admin/subscribers-management/subscribers-management.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { TasksSchedulersService } from '@libs/schedulers/tasks-schedulers.service';
 import { TasksEmailService } from '@libs/notifications/email/tasks/tasks-email.service';
 import { EmailEngineService } from '@libs/notifications/email/email-engine/email-engine.service';
 
@@ -97,7 +96,7 @@ import { EmailEngineService } from '@libs/notifications/email/email-engine/email
   ],
   providers: [
     JwtStrategy,
-    TasksSchedulersService,
+    // TasksSchedulersService,
     TasksEmailService,
     EmailEngineService,
   ],
