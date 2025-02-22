@@ -46,6 +46,7 @@ export class GuestsService {
       .leftJoinAndSelect('event.team', 'team')
       // .leftJoinAndSelect('team.permissions', 'permissions')
       .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.user', 'membersUser')
       .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId });
@@ -142,6 +143,10 @@ export class GuestsService {
       'user.email',
       'team',
       'members',
+      'membersUser.id',
+      'membersUser.firstname',
+      'membersUser.lastname',
+      'membersUser.email',
       'permissions',
       'ticket',
     ]);
