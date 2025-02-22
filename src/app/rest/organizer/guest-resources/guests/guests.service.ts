@@ -47,13 +47,13 @@ export class GuestsService {
       .leftJoinAndSelect('team.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId })
-      .andWhere(
-        '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
-        {
-          validStatus: BookingStatus.VALID,
-          usedStatus: BookingStatus.USED,
-        },
-      )
+      // .andWhere(
+      //   '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
+      //   {
+      //     validStatus: BookingStatus.VALID,
+      //     usedStatus: BookingStatus.USED,
+      //   },
+      // )
       // .andWhere('bookings.transfer_status != :transferStatus', {
       //   transferStatus: TicketTransferStatus.TRANSFERRED,
       // })
@@ -76,11 +76,10 @@ export class GuestsService {
       });
     } else {
       queryBuilder.andWhere(
-        '(bookings.status = :validStatus OR bookings.status = :usedStatus OR bookings.refunded = :refunded)',
+        '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
         {
           validStatus: BookingStatus.VALID,
           usedStatus: BookingStatus.USED,
-          refunded: true,
         },
       );
     }
