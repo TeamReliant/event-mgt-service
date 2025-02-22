@@ -175,7 +175,9 @@ export class TicketsService {
     const ticketObj = await this.getTicketWithBookings(ticketId);
 
     if (ticketObj.bookings.length > 0) {
-      throw new BadRequestException('Ticket has already been booked');
+      throw new BadRequestException(
+        'You cannot delete a ticket that has bookings',
+      );
     }
 
     await this.entityManager.transaction(async (manager) => {
