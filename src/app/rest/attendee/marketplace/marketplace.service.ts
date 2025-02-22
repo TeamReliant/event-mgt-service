@@ -89,7 +89,8 @@ export class MarketplaceService {
       }
 
       queryBuilder
-        .addOrderBy('COALESCE("totalNumberOfTicketsSold", 0)', 'DESC')
+        .orderBy('event.totalNumberOfTicketsSold IS NULL', 'ASC') // Puts NULLS last
+        .addOrderBy('event.totalNumberOfTicketsSold', 'DESC')
         .addOrderBy('event.eventStartDateAndTime', 'ASC')
         .take(LIMIT);
 
