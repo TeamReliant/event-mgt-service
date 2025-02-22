@@ -24,6 +24,7 @@ import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 import { PaymentService } from '../../payment-resources/payment/payment.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { isEqual } from 'date-fns';
 
 @Injectable()
 export class EventsService {
@@ -126,6 +127,9 @@ export class EventsService {
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
     const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
+    const today = new Date();
+    if (createEventDto.eventStartDateAndTime < today)
+      throw new BadRequestException('Event start date must be a future date');
 
     // check if the event name already exists
     const slugExists = await this.eventRepo.findOneBy({
@@ -218,56 +222,6 @@ export class EventsService {
       throw new BadRequestException('Error creating event: ', error.message);
     }
   }
-
-  // //NEEDED BY ADMIN
-  // findAll(req: Request) {
-  //   const { query } = req;
-  //   const {
-  //     name,
-  //     location,
-  //     address,
-  //     eventVisibility,
-  //     eventStatus,
-  //     eventStartDateAndTime,
-  //   } = query;
-
-  //   const queryBuilder = this.eventRepo.createQueryBuilder('event');
-  //   if (name) {
-  //     queryBuilder.andWhere('event.name LIKE :name', { name: `%${name}%` });
-  //   }
-
-  //   if (location) {
-  //     queryBuilder.andWhere('event.location LIKE :location', {
-  //       location: `%${location}%`,
-  //     });
-  //   }
-
-  //   if (address) {
-  //     queryBuilder.andWhere('event.address LIKE :address', {
-  //       address: `%${address}%`,
-  //     });
-  //   }
-
-  //   if (eventVisibility) {
-  //     queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
-  //       eventVisibility,
-  //     });
-  //   }
-
-  //   if (eventStatus) {
-  //     queryBuilder.andWhere('event.eventStatus = :eventStatus', {
-  //       eventStatus,
-  //     });
-  //   }
-
-  //   if (eventStartDateAndTime) {
-  //     queryBuilder.andWhere('event.eventDate >= :eventStartDateAndTime', {
-  //       eventStartDateAndTime,
-  //     });
-  //   }
-
-  //   return queryBuilder;
-  // }
 
   findMyEvents(req: Request, user: TJwtPayload) {
     const {
@@ -495,6 +449,10 @@ export class EventsService {
   async update(id: string, updateEventDto: UpdateEventDto) {
     const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
     const { name } = updateEventDto;
+    let eventStartDate: Date;
+    if (updateEventDto.eventStartDateAndTime) {
+      eventStartDate = updateEventDto.eventStartDateAndTime;
+    }
 
     // check if event exists and belongs to authenticated user
     const event = await this.entityManager.findOne(Event, {
@@ -515,12 +473,22 @@ export class EventsService {
     if (!event) {
       throw new NotFoundException('Event not found');
     }
-
-    if (event.bookings.length > 0) {
-      throw new BadRequestException(
-        'Event has bookings and name cannot be updated',
-      );
+    // if name is to be updated
+    if (name && name.toLowerCase() !== event.name.toLowerCase()) {
+      if (event.bookings.length > 0) {
+        throw new BadRequestException(
+          'Event has bookings and name cannot be updated',
+        );
+      }
     }
+
+    //Required by FE to allow event update where the date was not changed
+    if (
+      eventStartDate &&
+      !isEqual(eventStartDate, event.eventStartDateAndTime) &&
+      eventStartDate < new Date()
+    )
+      throw new BadRequestException('Event start date must be in the future');
 
     //VAlidate event updating before processing updates
     this.validateEventCreation(
@@ -658,7 +626,8 @@ export class EventsService {
 
       if (params['locationName']) {
         searchConditions.push('event.locationName ILIKE :searchLocation');
-        searchParams.searchLocation = `%${params['locationName']}%`;
+        const locationParts = params['locationName'].split(',');
+        searchParams.searchLocation = `%${locationParts[0].trim()}%`;
       }
 
       // Combine search conditions with OR
@@ -677,49 +646,44 @@ export class EventsService {
 
         queryBuilder
           .andWhere(
-            '(CAST(event.latitude AS float) != 0 OR CAST(event.longitude AS float) != 0)',
+            '(event.latitude IS NOT NULL AND event.longitude IS NOT NULL AND CAST(event.latitude AS float) != 0 AND CAST(event.longitude AS float) != 0)',
           )
           .addSelect(
             `(
-            6371 * acos(
-              least(1::float, 
-                cos(radians(:lat::float)) * 
-                cos(radians(CAST(event.latitude AS float))) * 
-                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
-                sin(radians(:lat::float)) * 
-                sin(radians(CAST(event.latitude AS float)))
-              )
-            )
-          )`,
+        6371 * acos(
+          least(1::float,
+            cos(radians(:lat::float)) *
+            cos(radians(CAST(event.latitude AS float))) *
+            cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) +
+            sin(radians(:lat::float)) *
+            sin(radians(CAST(event.latitude AS float)))
+          )
+        )
+      )`,
             'distance',
           )
           .addSelect('event.latitude', 'event_latitude')
           .addSelect('event.longitude', 'event_longitude')
           .andWhere(
             `(
-            6371 * acos(
-              least(1::float, 
-                cos(radians(:lat::float)) * 
-                cos(radians(CAST(event.latitude AS float))) * 
-                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
-                sin(radians(:lat::float)) * 
-                sin(radians(CAST(event.latitude AS float)))
-              )
-            ) <= :radius
-            OR (CAST(event.latitude AS float) = :lat AND CAST(event.longitude AS float) = :lon)
-          )`,
+        6371 * acos(
+          least(1::float,
+            cos(radians(:lat::float)) *
+            cos(radians(CAST(event.latitude AS float))) *
+            cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) +
+            sin(radians(:lat::float)) *
+            sin(radians(CAST(event.latitude AS float)))
+          )
+        ) <= :radius
+      )`,
             { lat, lon, radius },
           )
-          .andWhere(
-            'event.latitude IS NOT NULL AND event.longitude IS NOT NULL',
-          )
-          .andWhere(
-            'event.eventStartDateAndTime > :today AND event.eventEndDateAndTime >= :today',
-            { today },
-          )
+          .andWhere('event.eventEndDateAndTime >= :today', { today })
           .orderBy('distance', 'ASC');
       }
     }
+
+    queryBuilder.andWhere('event.eventEndDateAndTime >= :today', { today });
     return queryBuilder;
   }
 
