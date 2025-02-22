@@ -44,19 +44,21 @@ export class GuestsService {
       .leftJoinAndSelect('bookings.event', 'event')
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.team', 'team')
-      .leftJoinAndSelect('team.permissions', 'permissions')
+      // .leftJoinAndSelect('team.permissions', 'permissions')
+      .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
-      .where('bookings.eventId = :eventId', { eventId })
-      // .andWhere(
-      //   '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
-      //   {
-      //     validStatus: BookingStatus.VALID,
-      //     usedStatus: BookingStatus.USED,
-      //   },
-      // )
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
+      .where('bookings.eventId = :eventId', { eventId });
+    // .andWhere(
+    //   '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
+    //   {
+    //     validStatus: BookingStatus.VALID,
+    //     usedStatus: BookingStatus.USED,
+    //   },
+    // )
+    // .andWhere('bookings.transfer_status != :transferStatus', {
+    //   transferStatus: TicketTransferStatus.TRANSFERRED,
+    // })
 
     // check if status is supplied
     if (status) {
@@ -131,7 +133,7 @@ export class GuestsService {
       queryBuilder.orderBy('bookings.createdAt', 'DESC');
     }
 
-  queryBuilder.select([
+    queryBuilder.select([
       'bookings',
       'event',
       'user.id',
@@ -139,6 +141,7 @@ export class GuestsService {
       'user.lastname',
       'user.email',
       'team',
+      'members',
       'permissions',
       'ticket',
     ]);

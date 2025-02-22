@@ -347,7 +347,7 @@ export class EventsService {
         'team.members',
         'team.members.user',
         'team.members.permissions',
-        'team.members.permissions.team',
+        // 'team.members.permissions.team',
         'bookings',
       ],
     });
