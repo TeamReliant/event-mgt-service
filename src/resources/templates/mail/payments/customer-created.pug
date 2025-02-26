@@ -1,18 +1,24 @@
 extends ../baseEmail
 
 block content
-  h1 Welcome to #{payload.appInfo.appName}, #{payload.user.firstname}!,
+  h1 Hey there, #{payload.user.firstname}!
 
-  p We're excited to have you with us! A Stripe customer account has been successfully created for you, and you're now a part of our community.
+  p.
+    We're thrilled to have you on board! 🎉 A Stripe customer account has been successfully created for you. 
+    Please go to your dashboard > Payouts to complete your registration with Stripe and link a bank account. 
+    This allows you to choose whether you'd like to receive your payouts daily, weekly, or monthly.
 
-  p You can start exploring our platform and make the most of the features available to you. From Creating an event to publishing it on our discovery page, everything is just a click away!
+  p.
+    Feel free to explore our platform and make the most of its amazing features. 
+    From creating an event to publishing it on our discovery page, everything is just a click away!
 
-  p If you have any questions or need assistance, our support team is always ready to help.
+  p.
+    If you have any questions or need assistance, our support team is always ready to help at 
+    a(href='mailto:support@plaventi.com') #{payload.appEmail}.
 
   p
     a(href=payload.dashboardLink, class='btn btn-primary') Go to Your Dashboard
 
-  small Thank you for joining #{payload.appName}!
-  br
-  small
-    b - #{payload.appEmail}, #{payload.appName}
+  p Thank you for joining us!
+  p.signature
+    b The #{payload.appName} Team
