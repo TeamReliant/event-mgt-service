@@ -277,7 +277,7 @@ export class PaymentService {
       throw new BadRequestException('Plan data is missing');
     }
 
-    let planName = null;
+    let planName = 'free';
     if (status === 'succeeded') {
       const product = await this.stripe.products.retrieve(
         plan.product as string,
