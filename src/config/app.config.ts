@@ -62,6 +62,7 @@ export const appInfo = {
   fromEmail: 'noreply@plaventi.dev',
   companyName: 'PLAVENTI',
   companyPhone: '+1 (212) 333-8888',
+  normalizedCompanyName: 'Plaventi',
 };
 
 export const errors = {

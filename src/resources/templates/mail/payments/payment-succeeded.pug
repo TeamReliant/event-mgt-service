@@ -1,29 +1,32 @@
 extends ../baseEmail
 
 block content
-  h1 Payment Success - #{payload.appInfo.appName}
+  h1 Hello #{payload.user.firstname}
 
-  p Hello #{payload.user.firstname},
-
-  p We are pleased to inform you that your payment was successful. Here are the details of your transaction:
+  p We're pleased to inform you that your subscription payment was successful! Here are the details of your transaction:
 
   ul
     li
-      strong Transaction ID:
-      |  #{payload.transactionId}
+      strong Transaction ID: 
+      | #{payload.transactionId}
     li
-      strong Amount Paid:
-      |  #{payload.amount} #{payload.currency}
+      strong Amount Paid: 
+      | #{payload.amount} #{payload.currency}
     li
-      strong Payment Method:
-      |  #{payload.paymentMethod}
+      strong Payment Method: 
+      | #{payload.paymentMethod}
+    li
+      strong Plan: 
+      | #{payload.plan}
 
-  p Thank you for your purchase! You can manage your account by visiting your dashboard.
+  p Thank you for subscribing! You can view your subscription details and manage your account by visiting your dashboard.
 
   p
     a(href=payload.dashboardLink, class='btn btn-primary') Go to Your Dashboard
 
-  small Thank you for being a valued customer of #{payload.appInfo.appName}!
-  br
-  small
-    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
+  p Thank you for being a valued subscriber of Plaventi.
+
+  p.signature
+    | Cheers,
+    br
+    b The #{payload.appName} Team
