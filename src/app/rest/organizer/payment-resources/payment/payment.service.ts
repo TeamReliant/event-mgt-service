@@ -877,14 +877,14 @@ export class PaymentService {
     );
 
     // calculate the percentage cut of the totalAmount
-    const percentageCutAmount = (percentageCut / amount) * 100 + 0.5;
+    const percentageCutAmount = (percentageCut * amount) / 100 + 0.5;
     const stripeFeeAmount =
-      (stripeFee / amount) * 100 * quantity + 0.3 * quantity;
+      ((stripeFee * amount) / 100) * quantity + (0.3 * quantity);
 
     return {
-      platformFee: percentageCutAmount,
-      stripeFee: stripeFeeAmount,
-      total: percentageCutAmount + stripeFeeAmount + amount,
+      platformFee: this._roundToTwo(percentageCutAmount),
+      stripeFee: this._roundToTwo(stripeFeeAmount),
+      total: this._roundToTwo(percentageCutAmount + stripeFeeAmount + amount),
     };
   }
 
@@ -1004,5 +1004,9 @@ export class PaymentService {
     this.eventEmitter.emit(events.BOOKING_REFUNDED, new BookingEvent(booking));
 
     return true;
+  }
+
+  private _roundToTwo(digits: number) {
+    return Math.ceil(digits * 100) / 100;
   }
 }
