@@ -14,7 +14,7 @@ block content
 
   p.
     If you have any questions or need assistance, our support team is always ready to help at 
-    a(href='mailto:support@plaventi.com') #{payload.appEmail}.
+    a(href=`mailto:${payload.appEmail}`)= payload.appEmail
 
   p
     a(href=payload.dashboardLink, class='btn btn-primary') Go to Your Dashboard
