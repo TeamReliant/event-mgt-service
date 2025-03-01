@@ -869,7 +869,7 @@ export class PaymentService {
     return await this.stripe.checkout.sessions.retrieve(sessionId);
   }
 
-  async getFees(amount: number) {
+  async getFees(amount: number, quantity: number = 1) {
     const stripeFee = +this.configService.get<number>('STRIPE_FEE');
 
     const percentageCut = +this.configService.get<number>(
@@ -877,8 +877,9 @@ export class PaymentService {
     );
 
     // calculate the percentage cut of the totalAmount
-    const percentageCutAmount = (amount * percentageCut) / 100 + 0.5;
-    const stripeFeeAmount = (amount * stripeFee) / 100 + 0.3;
+    const percentageCutAmount = (percentageCut / amount) * 100 + 0.5;
+    const stripeFeeAmount =
+      (stripeFee / amount) * 100 * quantity + 0.3 * quantity;
 
     return {
       platformFee: percentageCutAmount,
