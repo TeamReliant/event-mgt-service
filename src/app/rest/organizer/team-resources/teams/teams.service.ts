@@ -136,7 +136,9 @@ export class TeamsService {
         'admin.email',
         'admin.picture',
         'publicProfile',
-        'members.id',
+        'members',
+        // 'members.id',
+        // 'members.status',
       ]);
 
     // check for search query and apply it to the query builder
