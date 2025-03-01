@@ -35,6 +35,7 @@ export default class JwtAuthGuard extends AuthGuard('jwt') {
 
     // Check if user exists in the database
     const userExists = await this.usersService.findOneById(user.userId);
+    console.log(`-------------------- ${userExists}`)
     if (!userExists) throw new UnauthorizedException('UnAuthorized Access');
 
     if (user.blocked)
