@@ -145,24 +145,6 @@ export class TeamsService {
         'publicProfile',
         'members',
       ]);
-      // .where(
-      //   'teams.id IN (SELECT teamId FROM team_members WHERE userId = :userId)',
-      //   { userId },
-      // ) // Adjust based on your schema
-      // .where('members.userId = :userId', { userId })
-      // .select([
-      //   'teams',
-      //   'permissions',
-      //   'admin.id',
-      //   'admin.firstname',
-      //   'admin.lastname',
-      //   'admin.email',
-      //   'admin.picture',
-      //   'publicProfile',
-      //   'members',
-      //   // 'members.id',
-      //   // 'members.status',
-      // ]);
 
     // check for search query and apply it to the query builder
     if (query.search) {
