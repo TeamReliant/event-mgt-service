@@ -870,7 +870,7 @@ export class PaymentService {
     return await this.stripe.checkout.sessions.retrieve(sessionId);
   }
 
-  async getFees(amount: number, quantity: number = 1) {
+  async getFees(amount: number) {
     const stripeFee = +this.configService.get<number>('STRIPE_FEE');
 
     const percentageCut = +this.configService.get<number>(
