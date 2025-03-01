@@ -602,6 +602,7 @@ export class PaymentService {
     });
   }
 
+
   // confirm paymentIntent from stripe
   async confirmPaymentIntent(paymentIntentId: string): Promise<any> {
     try {
@@ -879,7 +880,7 @@ export class PaymentService {
     // calculate the percentage cut of the totalAmount
     const percentageCutAmount = (percentageCut * amount) / 100 + 0.5;
     const stripeFeeAmount =
-      ((stripeFee * amount) / 100) * quantity + (0.3 * quantity);
+      ((stripeFee * amount) / 100) * quantity + 0.3 * quantity;
 
     return {
       platformFee: this._roundToTwo(percentageCutAmount),
