@@ -949,7 +949,7 @@ export class PaymentService {
       0,
     );
 
-    if (availableBalance < Math.round(booking.unitAmount * 100)) {
+    if (availableBalance < Math.round(booking.unitAmount)) {
       throw new NotAcceptableException(
         'Insufficient balance in connected account for the refund',
       );
