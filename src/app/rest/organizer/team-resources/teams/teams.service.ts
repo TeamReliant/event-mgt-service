@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotAcceptableException,
   NotFoundException,
@@ -37,6 +38,9 @@ export class TeamsService {
 
     if (user.userType !== 'organizer')
       throw new NotAcceptableException('Only organizers can create a team');
+
+    if (user.subscribedPlan === 'free')
+      throw new BadRequestException("You can't create a team with a free plan");
 
     const { name, bio, website, primaryColor, secondaryColor, members } =
       createTeamDto;

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotAcceptableException,
   NotFoundException,
@@ -18,6 +19,7 @@ import { TeamInvitationsEvent } from './events/team-invitations.event';
 import { ResendTeamInvitationDto } from '@app/rest/organizer/team-resources/team-invitations/dto/resend-team-invitation.dto';
 import { Permission } from '@app/rest/organizer/team-resources/permissions/entities/permission.entity';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { freemem } from 'os';
 
 @Injectable()
 export class TeamInvitationsService {
@@ -134,6 +136,18 @@ export class TeamInvitationsService {
     });
   }
 
+  private validateTeamCreation(numberOfTeamMembers: number, plan: string) {
+    var planRestrictions = {
+      Pro: 5,
+      Premium: 10,
+    };
+
+    if (numberOfTeamMembers >= planRestrictions[plan.toLowerCase()])
+      throw new BadRequestException(
+        'You have reached the maximum number of team members for your plan',
+      );
+  }
+
   async inviteUser(
     createTeamInvitationDto: CreateTeamInvitationDto,
     teamId: string,
@@ -159,6 +173,11 @@ export class TeamInvitationsService {
 
     if (!adminMember)
       throw new NotFoundException('Only team admins can invite members');
+
+    this.validateTeamCreation(
+      team.numberOfTeamMembers,
+      adminMember.user.subscribedPlan,
+    );
 
     // check if any of the emails belong to the current user
     if (email === adminMember.user.email)
