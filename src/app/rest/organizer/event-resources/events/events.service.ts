@@ -245,21 +245,23 @@ export class EventsService {
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.tickets', 'tickets')
       .leftJoinAndSelect('event.team', 'team')
-      .leftJoinAndSelect('team.members', 'members') // Changed from teamMembers
+      // .innerJoin('team.members', 'teamMembers', '(teamMember.userId = :userId OR )', { userId })
+      .leftJoinAndSelect('team.members', 'members')
       .leftJoinAndSelect('members.user', 'memberUser') // Changed from teamMember
       .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.permissions', 'permissions')
-      .leftJoinAndSelect('permissions.team', 'permissionTeam');
+      // .leftJoinAndSelect('permissions.team', 'permissionTeam')
+      .where('event.userId = :userId', { userId });
 
     // Access control with correct aliases
-    queryBuilder.where(
-      new Brackets((qb) => {
-        qb.where('user.id = :userId', { userId }).orWhere(
-          'memberUser.id = :userId AND invitation.status = :invitationStatus',
-          { userId, invitationStatus: 'accepted' },
-        );
-      }),
-    );
+    // queryBuilder.where(
+    //   new Brackets((qb) => {
+    //     qb.where('user.id = :userId', { userId }).orWhere(
+    //       'memberUser.id = :userId AND invitation.status = :invitationStatus',
+    //       { userId, invitationStatus: 'accepted' },
+    //     );
+    //   }),
+    // );
 
     // Search functionality
     if (search || name || locationName || address) {
@@ -328,6 +330,22 @@ export class EventsService {
     }
 
     queryBuilder.orderBy('event.createdAt', 'DESC');
+
+    queryBuilder.select([
+      'event',
+      'user',
+      'tickets',
+      'team',
+      'members',
+      'memberUser.id',
+      'memberUser.email',
+      'memberUser.firstname',
+      'memberUser.lastname',
+      'memberUser.picture',
+      'invitation',
+      'permissions',
+      // 'permissionTeam',
+    ]);
 
     // For debugging
     console.log('Generated SQL:', queryBuilder.getSql());

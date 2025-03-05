@@ -3,7 +3,7 @@ extends ../baseEmail
 block content
   h1 🎉 Congratulations! 🎫
   p #{(payload.customer)? `Hello ${payload.customer.firstName}  ${payload.customer.lastName} `: 'Hello'},
-  p We're excited to confirm your ticket purchase for the event "#{payload.booking.event.name}"!
+  p We're excited to confirm your ticket for the event "#{payload.booking.event.name}"!
 
   p
    b Your ticket is attached to this email as a PDF and JPEG file. 📎

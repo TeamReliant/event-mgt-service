@@ -64,6 +64,21 @@ export class TeamInvitationsService {
         `You cannot invite yourself: ${adminMember.user.email}`,
       );
 
+    const invalidEmails = [];
+    for (const email of emails) {
+      const invitedUser = await this._entityManager.findOneBy<User>(User, {
+        email,
+      });
+
+      if (invitedUser && invitedUser.userType !== UserType.ORGANIZER) {
+        invalidEmails.push(email);
+      }
+    }
+    if (invalidEmails.length > 0)
+      throw new NotAcceptableException(
+        `Only organizers can be invited to a team: ${invalidEmails.join(', ')}`,
+      );
+
     const invitations = await this._entityManager.transaction(
       async (manager) => {
         const invitations = [];
@@ -183,6 +198,15 @@ export class TeamInvitationsService {
     if (email === adminMember.user.email)
       throw new NotAcceptableException(
         `You cannot invite yourself: ${adminMember.user.email}`,
+      );
+
+    const invitedUser = await this._entityManager.findOneBy<User>(User, {
+      email,
+    });
+
+    if (invitedUser && invitedUser.userType !== UserType.ORGANIZER)
+      throw new NotAcceptableException(
+        'Only organizers can be invited to a team',
       );
 
     const invitation = await this._entityManager.transaction(
@@ -452,10 +476,10 @@ export class TeamInvitationsService {
         'Invitation has already been responded to',
       );
 
-    // if (!invitation.user && (!account || account === 'registered'))
-    //   throw new NotAcceptableException(
-    //     'Please provide a registered account for the invitation, or set the account to not-registered',
-    //   );
+    if (loggedInUser.userType !== UserType.ORGANIZER)
+      throw new NotAcceptableException(
+        'An attendee cannot be invited to a team using an attendee account.  Please register as an organizer using a different email to be a part of a team',
+      );
 
     return this._entityManager.transaction(async (manager) => {
       // update the invitation status

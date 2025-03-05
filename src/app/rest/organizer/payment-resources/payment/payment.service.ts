@@ -602,7 +602,6 @@ export class PaymentService {
     });
   }
 
-
   // confirm paymentIntent from stripe
   async confirmPaymentIntent(paymentIntentId: string): Promise<any> {
     try {
@@ -879,8 +878,7 @@ export class PaymentService {
 
     // calculate the percentage cut of the totalAmount
     const percentageCutAmount = (percentageCut * amount) / 100 + 0.5;
-    const stripeFeeAmount =
-      ((stripeFee * amount) / 100) + 0.3;
+    const stripeFeeAmount = (stripeFee * amount) / 100 + 0.3;
 
     return {
       platformFee: this._roundToTwo(percentageCutAmount),
@@ -951,7 +949,7 @@ export class PaymentService {
       0,
     );
 
-    if (availableBalance < Math.round(booking.unitAmount * 100)) {
+    if (availableBalance < Math.round(booking.unitAmount)) {
       throw new NotAcceptableException(
         'Insufficient balance in connected account for the refund',
       );

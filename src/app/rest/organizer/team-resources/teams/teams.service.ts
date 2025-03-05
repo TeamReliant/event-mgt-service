@@ -119,14 +119,21 @@ export class TeamsService {
   findAll(userId: string, req: Request) {
     const { query } = req;
 
+    console.log('query', query);
+
     // create a query builder
     const queryBuilder = this._repo
       .createQueryBuilder('teams')
+      .innerJoin(
+        'teams.members',
+        'teamMembers',
+        'teamMembers.userId = :userId',
+        { userId },
+      )
       .leftJoinAndSelect('teams.members', 'members')
       .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('teams.admin', 'admin')
       .leftJoinAndSelect('admin.publicProfile', 'publicProfile')
-      .where('members.userId = :userId', { userId })
       .select([
         'teams',
         'permissions',
@@ -136,7 +143,7 @@ export class TeamsService {
         'admin.email',
         'admin.picture',
         'publicProfile',
-        'members.id',
+        'members',
       ]);
 
     // check for search query and apply it to the query builder
@@ -147,7 +154,7 @@ export class TeamsService {
       });
     }
 
-    queryBuilder.orderBy('teams.id', 'DESC');
+    queryBuilder.orderBy('teams.createdAt', 'DESC');
     // return the query builder
     return queryBuilder;
   }
