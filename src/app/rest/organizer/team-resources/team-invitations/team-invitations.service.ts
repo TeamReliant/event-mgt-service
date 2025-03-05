@@ -138,8 +138,8 @@ export class TeamInvitationsService {
 
   private validateTeamCreation(numberOfTeamMembers: number, plan: string) {
     var planRestrictions = {
-      Pro: 5,
-      Premium: 10,
+      Pro: 4,
+      Premium: 9,
     };
 
     if (numberOfTeamMembers >= planRestrictions[plan.toLowerCase()])
