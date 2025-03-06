@@ -943,11 +943,15 @@ export class PaymentService {
       stripeAccount: user.stripeConnectedAccountId,
     });
 
+    console.log('>>>>>>>Balance:', balance);
+    console.log('>>>>>>>Booking Amount:', booking.unitAmount);
     // Step 2: Check the available balance
     const availableBalance = balance.available.reduce(
       (total, balanceItem) => total + balanceItem.amount,
       0,
     );
+
+    console.log('>>>>>>>Available Balance:', availableBalance);
 
     if (availableBalance < Math.round(booking.unitAmount)) {
       throw new NotAcceptableException(
