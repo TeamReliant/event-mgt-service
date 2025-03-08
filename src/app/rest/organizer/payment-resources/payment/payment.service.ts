@@ -946,16 +946,18 @@ export class PaymentService {
     console.log('>>>>>>>Balance:', balance);
     console.log('>>>>>>>Booking Amount:', booking.unitAmount);
     // Step 2: Check the available balance
-    const availableBalance = balance.available.reduce(
-      (total, balanceItem) => total + balanceItem.amount,
-      0,
-    );
+    const availableBalance =
+      balance.available.reduce(
+        (total, balanceItem) => total + balanceItem.amount,
+        0,
+      ) / 100;
 
     //Get Pending Balance
-    const pendingBalance = balance.pending.reduce(
-      (total, balanceItem) => total + balanceItem.amount,
-      0,
-    );
+    const pendingBalance =
+      balance.pending.reduce(
+        (total, balanceItem) => total + balanceItem.amount,
+        0,
+      ) / 100;
 
     console.log('>>>>>>>Available Balance:', availableBalance);
     console.log('>>>>>>>Pending Balance:', pendingBalance);
