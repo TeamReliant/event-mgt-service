@@ -951,9 +951,19 @@ export class PaymentService {
       0,
     );
 
-    console.log('>>>>>>>Available Balance:', availableBalance);
+    //Get Pending Balance
+    const pendingBalance = balance.pending.reduce(
+      (total, balanceItem) => total + balanceItem.amount,
+      0,
+    );
 
-    if (availableBalance < Math.round(booking.unitAmount)) {
+    console.log('>>>>>>>Available Balance:', availableBalance);
+    console.log('>>>>>>>Pending Balance:', pendingBalance);
+
+    if (
+      availableBalance < Math.round(booking.unitAmount) &&
+      pendingBalance < Math.round(booking.unitAmount)
+    ) {
       throw new NotAcceptableException(
         'Insufficient balance in connected account for the refund',
       );
