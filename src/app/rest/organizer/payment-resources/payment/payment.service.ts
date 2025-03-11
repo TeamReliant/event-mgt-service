@@ -946,7 +946,7 @@ export class PaymentService {
     console.log('>>>>>>>Balance:', balance);
     console.log('>>>>>>>Booking Amount:', booking.unitAmount);
     // Step 2: Check the available balance
-    const availableBalance =
+    let availableBalance =
       balance.available.reduce(
         (total, balanceItem) => total + balanceItem.amount,
         0,
@@ -959,10 +959,21 @@ export class PaymentService {
         0,
       ) / 100;
 
+    //To properly compute balance, we need to check if the available balance is a negative balance
+    //If it is add the booking unit amount to the absolute value of the available balance
+    //then we check if the sum is greater than the pending balance and available balance
+
     console.log('>>>>>>>Available Balance:', availableBalance);
     console.log('>>>>>>>Pending Balance:', pendingBalance);
 
-    if (
+    if (availableBalance < 0) {
+      availableBalance = Math.abs(availableBalance) + booking.unitAmount;
+      if (availableBalance > pendingBalance) {
+        throw new NotAcceptableException(
+          'Insufficient balance in connected account for the refund',
+        );
+      }
+    } else if (
       availableBalance < Math.round(booking.unitAmount) &&
       pendingBalance < Math.round(booking.unitAmount)
     ) {
