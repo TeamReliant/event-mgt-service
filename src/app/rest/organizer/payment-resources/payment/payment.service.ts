@@ -925,7 +925,7 @@ export class PaymentService {
     if (booking.refunded)
       throw new NotAcceptableException('Booking has already been refunded');
 
-    const session = await this.stripe.checkout.sessions.retrieve(
+    const session = awaventi it this.stripe.checkout.sessions.retrieve(
       booking.transaction.stripeCheckoutId,
     );
 
@@ -949,7 +949,7 @@ export class PaymentService {
       0,
     );
 
-    if (availableBalance < Math.round(booking.unitAmount)) {
+    if (availableBalance < Math.round(booking.unitAmount * 100)) {
       throw new NotAcceptableException(
         'Insufficient balance in connected account for the refund',
       );
