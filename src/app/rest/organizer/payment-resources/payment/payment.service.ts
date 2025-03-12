@@ -925,7 +925,7 @@ export class PaymentService {
     if (booking.refunded)
       throw new NotAcceptableException('Booking has already been refunded');
 
-    const session = awaventi it this.stripe.checkout.sessions.retrieve(
+    const session = await this.stripe.checkout.sessions.retrieve(
       booking.transaction.stripeCheckoutId,
     );
 
@@ -944,12 +944,35 @@ export class PaymentService {
     });
 
     // Step 2: Check the available balance
-    const availableBalance = balance.available.reduce(
-      (total, balanceItem) => total + balanceItem.amount,
-      0,
-    );
+    let availableBalance =
+      balance.available.reduce(
+        (total, balanceItem) => total + balanceItem.amount,
+        0,
+      ) / 100;
 
-    if (availableBalance < Math.round(booking.unitAmount * 100)) {
+    //Get Pending Balance
+    const pendingBalance =
+      balance.pending.reduce(
+        (total, balanceItem) => total + balanceItem.amount,
+        0,
+      ) / 100;
+
+    //To properly compute balance, we need to check if the available balance is a negative balance
+    //If it is add the booking unit amount to the absolute value of the available balance
+    //then we check if the sum is greater than the pending balance and available balance
+
+
+    if (availableBalance < 0) {
+      availableBalance = Math.abs(availableBalance) + booking.unitAmount;
+      if (availableBalance > pendingBalance) {
+        throw new NotAcceptableException(
+          'Insufficient balance in connected account for the refund',
+        );
+      }
+    } else if (
+      availableBalance < Math.round(booking.unitAmount) &&
+      pendingBalance < Math.round(booking.unitAmount)
+    ) {
       throw new NotAcceptableException(
         'Insufficient balance in connected account for the refund',
       );
