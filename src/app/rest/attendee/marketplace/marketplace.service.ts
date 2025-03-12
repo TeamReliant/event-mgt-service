@@ -60,53 +60,6 @@ export class MarketplaceService {
     return events;
   }
 
-  // async getEventsNearMe(req: Request) {
-  //   if (!req.ip) {
-  //     throw new BadRequestException('User IP address not provided');
-  //   }
-
-  //   const userLocation = await this.userService.getUserLocation(req.ip);
-  //   if (!userLocation) {
-  //     throw new BadRequestException('Failed to get user location');
-  //   }
-
-  //   const radius = 0.01;
-
-  //   const queryBuilder = this.entityManager
-  //     .createQueryBuilder(Event, 'event')
-  //     .where('event.eventStatus = :status', { status: 'published' })
-  //     .andWhere('event.eventVisibility = :visibility', {
-  //       visibility: 'public',
-  //     });
-
-  //   if (userLocation.lat && userLocation.lon) {
-  //     queryBuilder.andWhere(
-  //       new Brackets((qb) => {
-  //         qb.where('event.latitude BETWEEN :minLat AND :maxLat', {
-  //           minLat: userLocation.lat - radius,
-  //           maxLat: userLocation.lat + radius,
-  //         }).andWhere('event.longitude BETWEEN :minLong AND :maxLong', {
-  //           minLong: userLocation.lon - radius,
-  //           maxLong: userLocation.lon + radius,
-  //         });
-  //       }),
-  //     );
-  //   }
-
-  //   queryBuilder
-  //     .andWhere('event.locationName ILIKE :locationName', {
-  //       locationName: `%${userLocation.city ?? 'USA'}%`,
-  //     })
-  //     .orWhere('event.address ILIKE :address', {
-  //       address: `%${userLocation.city ?? 'USA'}%`,
-  //     })
-  //     .andWhere('event.eventStartDateAndTime > :currentDate', {
-  //       currentDate: new Date(),
-  //     });
-
-  //   return queryBuilder.getMany();
-  // }
-
   async findTopEvents(req: Request) {
     const { countryName } = req.query;
     const LIMIT = 10;
@@ -127,15 +80,73 @@ export class MarketplaceService {
         .andWhere('(event.eventEndDateAndTime >= :now)', { now: new Date() });
 
       if (typeof countryName === 'string' && countryName.trim()) {
+        const countryVariants = {
+          'united states': [
+            'usa',
+            'united states',
+            'united states of america',
+            'us',
+            'u.s.',
+            'u.s.a.',
+          ],
+          'united kingdom': [
+            'uk',
+            'great britain',
+            'britain',
+            'england',
+            'united kingdom',
+            'u.k.',
+          ],
+          'united arab emirates': ['uae', 'emirates', 'u.a.e.'],
+          'south africa': ['sa', 'rsa', 'republic of south africa'],
+          'saudi arabia': ['ksa', 'kingdom of saudi arabia'],
+          'new zealand': ['nz', 'aotearoa'],
+          'hong kong': ['hk', 'hong kong sar'],
+          'south korea': ['korea', 'republic of korea', 'rok'],
+          'north korea': ['dprk', "democratic people's republic of korea"],
+          netherlands: ['holland', 'the netherlands'],
+        };
+
+        const variants = countryVariants[countryName.toLowerCase()] || [
+          countryName,
+        ];
+
         queryBuilder.andWhere(
-          '(LOWER(event.locationName) LIKE LOWER(:countryName) OR LOWER(event.address) LIKE LOWER(:countryName))',
-          {
-            countryName: `%${countryName.trim()}%`,
-          },
+          new Brackets((qb) => {
+            variants.forEach((variant, index) => {
+              const paramName = `countryName${index}`;
+              if (index === 0) {
+                qb.where(
+                  '(LOWER(event.locationName) ILIKE :' +
+                    paramName +
+                    ' OR LOWER(event.address) ILIKE :' +
+                    paramName +
+                    ')',
+                );
+              } else {
+                qb.orWhere(
+                  '(LOWER(event.locationName) ILIKE :' +
+                    paramName +
+                    ' OR LOWER(event.address) ILIKE :' +
+                    paramName +
+                    ')',
+                );
+              }
+            });
+          }),
         );
+
+        // Set parameters outside the Brackets
+        variants.forEach((variant, index) => {
+          const paramName = `countryName${index}`;
+          queryBuilder.setParameter(paramName, `%${variant.toLowerCase()}%`);
+        });
       }
 
-      queryBuilder.addOrderBy('event.eventStartDateAndTime', 'ASC').take(LIMIT);
+      queryBuilder
+        .addOrderBy('event.totalNumberOfTicketsSold', 'DESC')
+        .addOrderBy('event.eventStartDateAndTime', 'ASC')
+        .take(LIMIT);
 
       return await queryBuilder.getMany();
     } catch (error) {

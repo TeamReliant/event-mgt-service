@@ -1,7 +1,8 @@
 name: Deploy to Azure VM
 on:
-  workflow_dispatch:
-
+  push:
+    branches:
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,18 +13,63 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v2
         with:
-          username: teamreliant
-          password: Joshua1234
+          login-server: plaventi.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: teamreliant/plavent-auth:latest
+          tags: plaventi.azurecr.io/prod-plaventi-core-service:latest
+          build-args: |
+            NODE_ENV=${{ secrets.NODE_ENV }}
+            PORT=${{ secrets.PROD_PORT }}
+            LIVE_DB_TYPE=${{ secrets.PROD_DB_TYPE }}
+            LIVE_DB_HOST=${{ secrets.PROD_DB_HOST }}
+            LIVE_DB_PORT=${{ secrets.PROD_DB_PORT }}
+            LIVE_DB_USER=${{ secrets.PROD_DB_USER }}
+            LIVE_DB_NAME=${{ secrets.PROD_DB_NAME }}
+            LIVE_DB_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
+            JWT_SECRET=${{ secrets.PROD_JWT_SECRET }}
+            REFRESH_JWT_SECRET=${{ secrets.PROD_REFRESH_JWT_SECRET }}
+            JWT_AUTH_TOKEN_EXPIRATION=${{ secrets.PROD_JWT_AUTH_TOKEN_EXPIRATION }}
+            JWT_REFRESH_TOKEN_EXPIRATION=${{ secrets.PROD_JWT_REFRESH_TOKEN_EXPIRATION }}
+            LIVE_EMAIL_HOST=${{ secrets.PROD_EMAIL_HOST }}
+            LIVE_EMAIL_USER=${{ secrets.PROD_EMAIL_USER }}
+            LIVE_EMAIL_PASS=${{ secrets.PROD_EMAIL_PASS }}
+            LIVE_EMAIL_PORT=${{ secrets.PROD_EMAIL_PORT }}
+            REQUEST_RATE_TTL=${{ secrets.PROD_REQUEST_RATE_TTL }}
+            REQUEST_RATE_LIMIT=${{ secrets.PROD_REQUEST_RATE_LIMIT }}
+            REDIS_HOST=${{ secrets.PROD_REDIS_HOST }}
+            REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
+            AZURE_BLOB_STORAGE_CONNECTION_STRING=${{ secrets.PROD_AZURE_BLOB_STORAGE_CONNECTION_STRING }}
+            AZURE_BLOB_STORAGE_CONTAINER_NAME=${{ secrets.PROD_AZURE_BLOB_STORAGE_CONTAINER_NAME }}
+            AZURE_BLOB_STORAGE_URL=${{ secrets.PROD_AZURE_BLOB_STORAGE_URL }}
+            GOOGLE_CLIENT_ID=${{ secrets.PROD_GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}
+            AUTH_V1_SERVICE_URL=${{ secrets.PROD_AUTH_V1_SERVICE_URL }}
+            ORG_V1_SERVICE_URL=${{ secrets.PROD_ORG_V1_SERVICE_URL }}
+            STRIPE_SECRET_KEY=${{ secrets.PROD_STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.PROD_STRIPE_WEBHOOK_SECRET }}
+            STRIPE_REDIRECT_URI=${{ secrets.PROD_STRIPE_REDIRECT_URI }}
+            STRIPE_PRO_PRICE_ID=${{ secrets.PROD_STRIPE_PRO_PRICE_ID }}
+            STRIPE_PREMIUM_PRICE_ID=${{ secrets.PROD_STRIPE_PREMIUM_PRICE_ID }}
+            STRIPE_SUBSCRIPTION_SUCCESS_URI=${{ secrets.PROD_STRIPE_SUBSCRIPTION_SUCCESS_URI }}
+            STRIPE_SUBSCRIPTION_CANCEL_URI=${{ secrets.PROD_STRIPE_SUBSCRIPTION_CANCEL_URI }}
+            FRONTEND_URL=${{ secrets.PROD_FRONTEND_URL }}
+            FORM_URL=${{ secrets.PROD_FORM_URL }}
+            IP_INFO_TOKEN=${{ secrets.PROD_IP_INFO_TOKEN }}
+            STRIPE_CHECKOUT_SESSION_SUCCESS_URL=${{ secrets.PROD_STRIPE_CHECKOUT_SESSION_SUCCESS_URL }}
+            STRIPE_CHECKOUT_SESSION_CANCEL_URL=${{ secrets.PROD_STRIPE_CHECKOUT_SESSION_CANCEL_URL }}
+            STRIPE_CHECKOUT_SESSION_CURRENCY=${{ secrets.PROD_STRIPE_CHECKOUT_SESSION_CURRENCY }}
+            TICKET_PERCENTAGE_CUT=${{ secrets.PROD_TICKET_PERCENTAGE_CUT }}
+            STRIPE_FEE=${{ secrets.PROD_STRIPE_FEE }}
+
 
   deploy:
     runs-on: ubuntu-latest
@@ -32,14 +78,17 @@ jobs:
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 40.67.241.162
-          username: plaventi
-          password: "Josh1.$ua1234567"
+          host: ${{ secrets.PROD_VM_IP_ADDRESS }}
+          username: ${{ secrets.PROD_VM_USERNAME }}
+          password: ${{ secrets.PROD_VM_PASSWORD }}
           port: 22
           timeout: '60s'
           command_timeout: '5m'
           script: |
-            sudo docker image pull teamreliant/plavent-auth:latest
-            sudo docker stop plaventi-auth || true
-            sudo docker container rm plaventi-auth || true
-            sudo docker run -d --name plaventi-auth -p 5000:5000 teamreliant/plavent-auth:latest
+            sudo docker login plaventi.azurecr.io -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
+            sudo docker image pull plaventi.azurecr.io/prod-plaventi-core-service:latest
+            sudo docker stop prod-plaventi-core-service || true
+            sudo docker container rm prod-plaventi-core-service || true
+            sudo docker container prune -f || true
+            sudo docker image prune -a -f || true
+            sudo docker run -d --name prod-plaventi-core-service -p 5001:5001 plaventi.azurecr.io/prod-plaventi-core-service:latest

@@ -36,8 +36,10 @@ export class PaymentsEmailService {
     const subject: string = `${appInfo.appName}: Subscription Canceled!`;
     const template = `payments/subscription-canceled`;
     const additionalPayload = {
-      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}`,
       formLink: `${this.configService.get<string>('FORM_URL')}`,
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
     };
     await this.sendEmail(
       paymentNotification,
@@ -57,7 +59,9 @@ export class PaymentsEmailService {
     const subject: string = `${appInfo.appName}: Your Payouts are Now Enabled!`;
     const template = `payments/payouts-enabled`;
     const additionalPayload = {
-      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}`,
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
     };
 
     await this.sendEmail(
@@ -72,7 +76,9 @@ export class PaymentsEmailService {
     const subject: string = `${appInfo.appName}: Customer Created!`;
     const template = `payments/customer-created`;
     const additionalPayload = {
-      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}`,
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
     };
 
     await this.sendEmail(
@@ -93,8 +99,10 @@ export class PaymentsEmailService {
     const subject: string = `${appInfo.appName}: Payout Success!`;
     const template = `payments/payout-success`;
     const additionalPayload = {
-      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}`,
       payoutAmount: (payoutNotification.payout.amount / 100).toFixed(2),
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
     };
     await this.sendEmail(
       payoutNotification,
@@ -108,8 +116,10 @@ export class PaymentsEmailService {
     const subject: string = `${appInfo.appName}: Payout Failed!`;
     const template = `payments/payout-success`;
     const additionalPayload = {
-      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}`,
       payoutAmount: (payoutNotification.payout.amount / 100).toFixed(2),
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
     };
     await this.sendEmail(
       payoutNotification,
@@ -125,7 +135,9 @@ export class PaymentsEmailService {
     const { transactionObj } = paymentNotification;
     await this.sendEmail(paymentNotification, subject, template);
     const additionalPayload = {
-      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}`,
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
       ...transactionObj,
     };
 
@@ -143,6 +155,8 @@ export class PaymentsEmailService {
     const { transactionObj } = paymentNotification;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
       ...transactionObj,
     };
 
@@ -160,6 +174,8 @@ export class PaymentsEmailService {
     const { transactionObj } = paymentNotification;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
       ...transactionObj,
     };
 
@@ -177,6 +193,8 @@ export class PaymentsEmailService {
     const { transactionObj } = paymentNotification;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}/dashboard`,
+      appName: appInfo.normalizedCompanyName,
+      appEmail: appInfo.appEmail,
       ...transactionObj,
     };
 

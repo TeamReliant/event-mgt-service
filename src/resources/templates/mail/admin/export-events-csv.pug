@@ -1,0 +1,18 @@
+extends ../baseEmail
+
+block content
+  h1 📊 Events Export Ready
+  p Hello Admin,
+  
+  p Your requested events export is ready and attached to this email.
+  
+  p If you have any issues accessing the file or need assistance, please contact our support team at #{payload.appEmail}.
+  
+  p
+    small Thank you for using our platform!
+
+
+  p
+    small Best Regards,
+    br
+    small The #{payload.companyName} Team

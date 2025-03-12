@@ -53,6 +53,7 @@ export const events = {
   BROADCAST_MESSAGE: 'BROADCAST_MESSAGE',
   EXPORT_ALL_USERS_CSV: 'EXPORT_ALL_USERS_CSV',
   EXPORT_ALL_SUBSCRIBERS_CSV: 'EXPORT_SUBSCRIBERS_USERS_CSV',
+  EXPORT_ALL_EVENTS_CSV: 'EXPORT_ALL_EVENTS_CSV',
 };
 
 export const appInfo = {
@@ -61,6 +62,7 @@ export const appInfo = {
   fromEmail: 'noreply@plaventi.dev',
   companyName: 'PLAVENTI',
   companyPhone: '+1 (212) 333-8888',
+  normalizedCompanyName: 'Plaventi',
 };
 
 export const errors = {

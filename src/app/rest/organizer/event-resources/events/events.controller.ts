@@ -36,7 +36,6 @@ import { UpdateEventParamsDto } from '@app/rest/organizer/event-resources/events
 import { AssignTeamParamsDto } from '@app/rest/organizer/event-resources/events/dto/assign-team-params.dto';
 import { AssignTeamDto } from '@app/rest/organizer/event-resources/events/dto/assign-team.dto';
 import { GetOneEventResponseDto } from './dto/get-one-event-response.dto';
-import { GetAllEventsResponseDto } from './dto/get-all-events-response.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { AttendeeShowEventParamsDto } from '@app/rest/organizer/event-resources/events/dto/attendee-show-event-params.dto';
@@ -45,8 +44,6 @@ import { TeamPermissions } from '@app/rest/organizer/team-resources/permissions/
 import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
 import { GetCurrentUserId } from '@libs/decorators/get-current-user-id.decorator';
 import { Ticket } from '@app/rest/organizer/ticket-resources/tickets/entities/ticket.entity';
-import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
-import { UserDto } from '@app/rest/users/dto/shared/user.dto';
 import { UserProfileDto } from '@app/rest/users/dto/shared/user-profile.dto';
 
 const allowedFileTypes = ['.jpeg', '.jpg', '.png'];

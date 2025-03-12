@@ -40,12 +40,11 @@ export class GuestsController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
   async findAllGuests(
-    @CurrentUser() user: TJwtPayload,
     @Param() { eventId }: FindGuestsParamsDto,
     @Req() request: Request,
     @Query() query: FindGuestsQueriesDto,
   ) {
-    const data = this.guestsService.findAllGuests(eventId, user.userId, query);
+    const data = this.guestsService.findAllGuests(eventId, query);
     return ResponseSerializer.applyHTEAOS(request, data);
   }
 
