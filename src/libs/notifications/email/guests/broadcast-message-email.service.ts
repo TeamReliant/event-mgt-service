@@ -30,7 +30,7 @@ export class BroadcastMessageEmailService {
       };
 
       const subject: string = `MESSAGE RECEIVED - ${appName}`;
-      await this.emailEngineService.sendHtmlEmail(
+      await this.emailEngineService.sendHtmlEmailUndisclosed(
         [booking.email],
         subject,
         `guests/broadcast-message`,

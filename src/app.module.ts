@@ -31,9 +31,13 @@ import { AttendeeDashboardModule } from '@app/rest/attendee/dashboard/attendee-d
 import { GuestsModule } from '@app/rest/organizer/guest-resources/guests/guests.module';
 import { AdminDashboardModule } from '@app/rest/admin/admin-dashboard/admin-dashboard.module';
 import { SystemRegisterModule } from '@app/rest/admin/system-register/system-register.module';
-import { AdminManagementModule } from './app/rest/admin/admin-management/admin-management.module';
-import { EventManagementModule } from './app/rest/admin/event-management/event-management.module';
-import { SubscribersManagementModule } from './app/rest/admin/subscribers-management/subscribers-management.module';
+import { AdminManagementModule } from '@app/rest/admin/admin-management/admin-management.module';
+import { EventManagementModule } from '@app/rest/admin/event-management/event-management.module';
+import { SubscribersManagementModule } from '@app/rest/admin/subscribers-management/subscribers-management.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TasksEmailService } from '@libs/notifications/email/tasks/tasks-email.service';
+import { EmailEngineService } from '@libs/notifications/email/email-engine/email-engine.service';
+import { TasksSchedulersService } from '@libs/schedulers/tasks-schedulers.service';
 
 @Module({
   imports: [
@@ -62,6 +66,7 @@ import { SubscribersManagementModule } from './app/rest/admin/subscribers-manage
     }),
     MulterModule.register(),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     EventsListenerModule,
     UsersModule,
     EventsModule,
@@ -90,6 +95,11 @@ import { SubscribersManagementModule } from './app/rest/admin/subscribers-manage
     EventManagementModule,
     SubscribersManagementModule,
   ],
-  providers: [JwtStrategy],
+  providers: [
+    JwtStrategy,
+    TasksSchedulersService,
+    TasksEmailService,
+    EmailEngineService,
+  ],
 })
 export class AppModule {}

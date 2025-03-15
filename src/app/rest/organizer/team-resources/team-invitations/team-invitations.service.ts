@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotAcceptableException,
   NotFoundException,
@@ -18,6 +19,7 @@ import { TeamInvitationsEvent } from './events/team-invitations.event';
 import { ResendTeamInvitationDto } from '@app/rest/organizer/team-resources/team-invitations/dto/resend-team-invitation.dto';
 import { Permission } from '@app/rest/organizer/team-resources/permissions/entities/permission.entity';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { freemem } from 'os';
 
 @Injectable()
 export class TeamInvitationsService {
@@ -60,6 +62,21 @@ export class TeamInvitationsService {
     if (emails.includes(adminMember.user.email))
       throw new NotAcceptableException(
         `You cannot invite yourself: ${adminMember.user.email}`,
+      );
+
+    const invalidEmails = [];
+    for (const email of emails) {
+      const invitedUser = await this._entityManager.findOneBy<User>(User, {
+        email,
+      });
+
+      if (invitedUser && invitedUser.userType !== UserType.ORGANIZER) {
+        invalidEmails.push(email);
+      }
+    }
+    if (invalidEmails.length > 0)
+      throw new NotAcceptableException(
+        `Only organizers can be invited to a team: ${invalidEmails.join(', ')}`,
       );
 
     const invitations = await this._entityManager.transaction(
@@ -134,6 +151,18 @@ export class TeamInvitationsService {
     });
   }
 
+  private validateTeamCreation(numberOfTeamMembers: number, plan: string) {
+    var planRestrictions = {
+      Pro: 4,
+      Premium: 9,
+    };
+
+    if (numberOfTeamMembers >= planRestrictions[plan.toLowerCase()])
+      throw new BadRequestException(
+        'You have reached the maximum number of team members for your plan',
+      );
+  }
+
   async inviteUser(
     createTeamInvitationDto: CreateTeamInvitationDto,
     teamId: string,
@@ -160,10 +189,24 @@ export class TeamInvitationsService {
     if (!adminMember)
       throw new NotFoundException('Only team admins can invite members');
 
+    this.validateTeamCreation(
+      team.numberOfTeamMembers,
+      adminMember.user.subscribedPlan,
+    );
+
     // check if any of the emails belong to the current user
     if (email === adminMember.user.email)
       throw new NotAcceptableException(
         `You cannot invite yourself: ${adminMember.user.email}`,
+      );
+
+    const invitedUser = await this._entityManager.findOneBy<User>(User, {
+      email,
+    });
+
+    if (invitedUser && invitedUser.userType !== UserType.ORGANIZER)
+      throw new NotAcceptableException(
+        'Only organizers can be invited to a team',
       );
 
     const invitation = await this._entityManager.transaction(
@@ -400,6 +443,7 @@ export class TeamInvitationsService {
     const invitation = await this._repo
       .createQueryBuilder('teamInvitations')
       .leftJoinAndSelect('teamInvitations.team', 'team')
+      .leftJoinAndSelect('team.admin', 'admin')
       .leftJoinAndSelect('teamInvitations.user', 'user')
       .where('teamInvitations.token = :token', { token })
       .andWhere('teamInvitations.email = :email', { email: loggedInUser.email })
@@ -409,6 +453,11 @@ export class TeamInvitationsService {
         'teamInvitations.status',
         'teamInvitations.createdAt',
         'teamInvitations.updatedAt',
+        'admin.id',
+        'admin.email',
+        'admin.firstname',
+        'admin.lastname',
+        'admin.picture',
         'team',
         'user.id',
         'user.email',
@@ -427,10 +476,10 @@ export class TeamInvitationsService {
         'Invitation has already been responded to',
       );
 
-    // if (!invitation.user && (!account || account === 'registered'))
-    //   throw new NotAcceptableException(
-    //     'Please provide a registered account for the invitation, or set the account to not-registered',
-    //   );
+    if (loggedInUser.userType !== UserType.ORGANIZER)
+      throw new NotAcceptableException(
+        'An attendee cannot be invited to a team using an attendee account.  Please register as an organizer using a different email to be a part of a team',
+      );
 
     return this._entityManager.transaction(async (manager) => {
       // update the invitation status

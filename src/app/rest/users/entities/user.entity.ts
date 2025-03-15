@@ -178,6 +178,9 @@ export class User extends AbstractEntity<User> {
   @Column({ name: 'tickets_sold', type: 'bigint', nullable: true })
   ticketsSold: number;
 
+  @Column({ name: 'tickets_rsvp', default: 0, nullable: true, type: 'int' })
+  ticketsRsvp: number;
+
   @Column({ name: 'last_logged_in', type: 'timestamp', nullable: true })
   lastLoggedIn?: Date;
 
@@ -205,16 +208,6 @@ export class User extends AbstractEntity<User> {
     cascade: true,
   })
   eventViews?: EventView[];
-
-  // @OneToMany(() => Booking, (booking) => booking.transferredTo, {
-  //   cascade: true,
-  // })
-  // bookingsTransferredTo?: Booking[];
-  //
-  // @OneToMany(() => Booking, (booking) => booking.transferredFrom, {
-  //   cascade: true,
-  // })
-  // bookingsTransferredFrom?: Booking[];
 
   @OneToMany(() => BookingsTransaction, (trans) => trans.user, {
     cascade: true,

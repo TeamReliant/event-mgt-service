@@ -49,11 +49,11 @@ export class PermissionsService {
     if (!member) throw new NotFoundException('Team member not found');
 
     await this._entityManager.transaction(async (manager) => {
+      // remove the existing permissions
+      await manager.remove(Permission, member.permissions);
+
       // add the new ones
       if (permissions && permissions.length) {
-        // remove the existing permissions
-        await manager.remove(Permission, member.permissions);
-
         const permissionEntities = [];
         for (const permission of permissions) {
           const permissionEntity = manager.create(Permission, {

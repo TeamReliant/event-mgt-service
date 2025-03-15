@@ -37,6 +37,9 @@ export class SystemRegister extends AbstractEntity<SystemRegister> {
   @Column({ name: 'tickets_sold', default: 0, nullable: true, type: 'int' })
   ticketsSold: number;
 
+  @Column({ name: 'tickets_rsvp', default: 0, nullable: true, type: 'int' })
+  ticketsRsvp: number;
+
   @Column({
     name: 'tickets_transferred',
     default: 0,

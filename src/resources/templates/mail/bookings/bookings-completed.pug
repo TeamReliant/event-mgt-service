@@ -3,7 +3,7 @@ extends ../baseEmail
 block content
   h1 🎉 Congratulations! 🎫
   p #{(payload.customer)? `Hello ${payload.customer.firstName}  ${payload.customer.lastName} `: 'Hello'},
-  p We're excited to confirm your ticket purchase for the event "#{payload.booking.event.name}"!
+  p We're excited to confirm your ticket for the event "#{payload.booking.event.name}"!
 
   p
    b Your ticket is attached to this email as a PDF and JPEG file. 📎
@@ -12,7 +12,6 @@ block content
   p Here's what you need to do next:
   ul
     li Show your ticket at the event for a smooth check-in.
-    li Keep the QR code on your ticket handy for quick verification.
   p If you have any questions, feel free to reach out to us at #{payload.appEmail}.
 
   p

@@ -6,7 +6,6 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TeamInvitationsEmailService {
-  b;
   constructor(
     private readonly emailEngineService: EmailEngineService,
     private readonly configService: ConfigService,
@@ -36,10 +35,25 @@ export class TeamInvitationsEmailService {
   }
 
   async sendInvitationAcceptedMessage(invitation: TeamInvitation) {
-    const { email } = invitation;
+    const { email } = invitation.team.admin;
     const { appName } = appInfo;
 
+    const date = new Date();
+    const formattedDate = date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    const formattedTime = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+    const dateTime = `${formattedDate} at ${formattedTime}`;
+
     const payload = {
+      dateTime,
       invitation: invitation,
       appInfo,
     };

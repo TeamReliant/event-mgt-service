@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotAcceptableException,
   NotFoundException,
@@ -15,6 +16,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { BroadcastMessageEvent } from '@app/rest/organizer/guest-resources/guests/events/BroadcastMessage.event';
 import { CheckGuestDto } from '@app/rest/organizer/guest-resources/guests/dto/check-guest.dto';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { Event } from '../../event-resources/events/entities/event.entity';
+import { User } from '@app/rest/users/entities/user.entity';
 
 @Injectable()
 export class GuestsService {
@@ -23,11 +26,7 @@ export class GuestsService {
     private readonly _eventEmitter: EventEmitter2,
   ) {}
 
-  findAllGuests(
-    eventId: string,
-    userId: string,
-    { ...query },
-  ): SelectQueryBuilder<Booking> {
+  findAllGuests(eventId: string, { ...query }): SelectQueryBuilder<Booking> {
     const {
       sort,
       sortDir,
@@ -45,31 +44,22 @@ export class GuestsService {
       .leftJoinAndSelect('bookings.event', 'event')
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.team', 'team')
-      .leftJoinAndSelect('team.permissions', 'permissions')
+      // .leftJoinAndSelect('team.permissions', 'permissions')
+      .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.user', 'membersUser')
+      .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
-      .where('bookings.eventId = :eventId', { eventId })
-      // .andWhere(
-      //   '(bookings.status = :validStatus OR bookings.status = :usedStatus OR bookings.refunded = :refunded)',
-      //   {
-      //     validStatus: BookingStatus.VALID,
-      //     usedStatus: BookingStatus.USED,
-      //     refunded: true,
-      //   },
-      // )
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
-      .select([
-        'bookings',
-        'event',
-        'user.id',
-        'user.firstname',
-        'user.lastname',
-        'user.email',
-        'team',
-        'permissions',
-        'ticket',
-      ]);
+      .where('bookings.eventId = :eventId', { eventId });
+    // .andWhere(
+    //   '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
+    //   {
+    //     validStatus: BookingStatus.VALID,
+    //     usedStatus: BookingStatus.USED,
+    //   },
+    // )
+    // .andWhere('bookings.transfer_status != :transferStatus', {
+    //   transferStatus: TicketTransferStatus.TRANSFERRED,
+    // })
 
     // check if status is supplied
     if (status) {
@@ -78,11 +68,10 @@ export class GuestsService {
       });
     } else {
       queryBuilder.andWhere(
-        '(bookings.status = :validStatus OR bookings.status = :usedStatus OR bookings.refunded = :refunded)',
+        '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
         {
           validStatus: BookingStatus.VALID,
           usedStatus: BookingStatus.USED,
-          refunded: true,
         },
       );
     }
@@ -144,9 +133,52 @@ export class GuestsService {
     if (!sort) {
       queryBuilder.orderBy('bookings.createdAt', 'DESC');
     }
+
+    queryBuilder.select([
+      'bookings',
+      'event',
+      'user.id',
+      'user.firstname',
+      'user.lastname',
+      'user.email',
+      'team',
+      'members',
+      'membersUser.id',
+      'membersUser.firstname',
+      'membersUser.lastname',
+      'membersUser.email',
+      'permissions',
+      'ticket',
+    ]);
+
     return queryBuilder;
   }
 
+  private async validateBroadcastMessageSending(event: Event, userId: string) {
+    // get user to get subscribedPlan
+    const user = await this._entityManager
+      .getRepository(User)
+      .findOneBy({ id: userId });
+
+    if (!user)
+      throw new NotFoundException(
+        `SendBroadcastMessage: User with Id: ${userId} not found`,
+      );
+
+    const planRestrictions = {
+      free: 1,
+      pro: 5,
+      premium: 10,
+    };
+
+    const limit = planRestrictions[user.subscribedPlan];
+
+    if (event.numberOfBroadcastMessageSent >= limit) {
+      throw new NotAcceptableException(
+        `Broadcast limit of (${limit}) reached for ${user.subscribedPlan} plan`,
+      );
+    }
+  }
   async sendBroadcastMessage(
     eventId: string,
     userId: string,
@@ -154,6 +186,19 @@ export class GuestsService {
   ) {
     const { bookingIds, title, message, all } = body;
     let bookings: Booking[];
+
+    const event = await this._entityManager
+      .getRepository(Event)
+      .findOneBy({ id: eventId });
+
+    if (!event) {
+      throw new NotFoundException(
+        `SendBroadcastMessage: Event with Id - ${eventId} not found`,
+      );
+    }
+
+    //Validate before sending
+    await this.validateBroadcastMessageSending(event, userId);
 
     // check if all is true
     if (all && all === 'true') {
@@ -201,13 +246,19 @@ export class GuestsService {
         .getMany();
     }
 
-    console.log(bookings);
-
     // check if the bookings are found
     if (!bookings.length)
       throw new NotAcceptableException(
         'No bookings found for the given bookingIds',
       );
+
+    //Update broadcast count
+    await this._entityManager.getRepository(Event).update(
+      { id: eventId },
+      {
+        numberOfBroadcastMessageSent: event.numberOfBroadcastMessageSent + 1,
+      },
+    );
 
     // dispatch the broadcast message event
     this._eventEmitter.emit(
@@ -235,7 +286,7 @@ export class GuestsService {
       .andWhere('bookings.status != :status', {
         status: BookingStatus.PENDING,
       })
-      .andWhere('booking.refunded != :refunded', { refunded: true })
+      .andWhere('bookings.refunded != :refunded', { refunded: true })
       .select([
         'bookings',
         'event',

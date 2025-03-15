@@ -8,7 +8,6 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
-import { UsersService } from '@app/rest/users/users.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { events } from '@config/app.config';
