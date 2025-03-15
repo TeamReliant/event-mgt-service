@@ -13,18 +13,63 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v2
         with:
-          username: teamreliant
-          password: Joshua1234
+          login-server: plaventi.azurecr.io
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: teamreliant/plaventi-organizer-service:latest
+          tags: plaventi.azurecr.io/staging-plaventi-core-service:latest
+          build-args: |
+            NODE_ENV=${{ secrets.NODE_ENV }}
+            PORT=${{ secrets.STAGING_PORT }}
+            LIVE_DB_TYPE=${{ secrets.STAGING_DB_TYPE }}
+            LIVE_DB_HOST=${{ secrets.STAGING_DB_HOST }}
+            LIVE_DB_PORT=${{ secrets.STAGING_DB_PORT }}
+            LIVE_DB_USER=${{ secrets.STAGING_DB_USER }}
+            LIVE_DB_NAME=${{ secrets.STAGING_DB_NAME }}
+            LIVE_DB_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}
+            JWT_SECRET=${{ secrets.STAGING_JWT_SECRET }}
+            REFRESH_JWT_SECRET=${{ secrets.STAGING_REFRESH_JWT_SECRET }}
+            JWT_AUTH_TOKEN_EXPIRATION=${{ secrets.STAGING_JWT_AUTH_TOKEN_EXPIRATION }}
+            JWT_REFRESH_TOKEN_EXPIRATION=${{ secrets.STAGING_JWT_REFRESH_TOKEN_EXPIRATION }}
+            LIVE_EMAIL_HOST=${{ secrets.STAGING_EMAIL_HOST }}
+            LIVE_EMAIL_USER=${{ secrets.STAGING_EMAIL_USER }}
+            LIVE_EMAIL_PASS=${{ secrets.STAGING_EMAIL_PASS }}
+            LIVE_EMAIL_PORT=${{ secrets.STAGING_EMAIL_PORT }}
+            REQUEST_RATE_TTL=${{ secrets.STAGING_REQUEST_RATE_TTL }}
+            REQUEST_RATE_LIMIT=${{ secrets.STAGING_REQUEST_RATE_LIMIT }}
+            REDIS_HOST=${{ secrets.STAGING_REDIS_HOST }}
+            REDIS_PORT=${{ secrets.STAGING_REDIS_PORT }}
+            AZURE_BLOB_STORAGE_CONNECTION_STRING=${{ secrets.STAGING_AZURE_BLOB_STORAGE_CONNECTION_STRING }}
+            AZURE_BLOB_STORAGE_CONTAINER_NAME=${{ secrets.STAGING_AZURE_BLOB_STORAGE_CONTAINER_NAME }}
+            AZURE_BLOB_STORAGE_URL=${{ secrets.STAGING_AZURE_BLOB_STORAGE_URL }}
+            GOOGLE_CLIENT_ID=${{ secrets.STAGING_GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.STAGING_GOOGLE_CLIENT_SECRET }}
+            AUTH_V1_SERVICE_URL=${{ secrets.STAGING_AUTH_V1_SERVICE_URL }}
+            ORG_V1_SERVICE_URL=${{ secrets.STAGING_ORG_V1_SERVICE_URL }}
+            STRIPE_SECRET_KEY=${{ secrets.STAGING_STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STAGING_STRIPE_WEBHOOK_SECRET }}
+            STRIPE_REDIRECT_URI=${{ secrets.STAGING_STRIPE_REDIRECT_URI }}
+            STRIPE_PRO_PRICE_ID=${{ secrets.STAGING_STRIPE_PRO_PRICE_ID }}
+            STRIPE_PREMIUM_PRICE_ID=${{ secrets.STAGING_STRIPE_PREMIUM_PRICE_ID }}
+            STRIPE_SUBSCRIPTION_SUCCESS_URI=${{ secrets.STAGING_STRIPE_SUBSCRIPTION_SUCCESS_URI }}
+            STRIPE_SUBSCRIPTION_CANCEL_URI=${{ secrets.STAGING_STRIPE_SUBSCRIPTION_CANCEL_URI }}
+            FRONTEND_URL=${{ secrets.STAGING_FRONTEND_URL }}
+            FORM_URL=${{ secrets.STAGING_FORM_URL }}
+            IP_INFO_TOKEN=${{ secrets.STAGING_IP_INFO_TOKEN }}
+            STRIPE_CHECKOUT_SESSION_SUCCESS_URL=${{ secrets.STAGING_STRIPE_CHECKOUT_SESSION_SUCCESS_URL }}
+            STRIPE_CHECKOUT_SESSION_CANCEL_URL=${{ secrets.STAGING_STRIPE_CHECKOUT_SESSION_CANCEL_URL }}
+            STRIPE_CHECKOUT_SESSION_CURRENCY=${{ secrets.STAGING_STRIPE_CHECKOUT_SESSION_CURRENCY }}
+            TICKET_PERCENTAGE_CUT=${{ secrets.STAGING_TICKET_PERCENTAGE_CUT }}
+            STRIPE_FEE=${{ secrets.STAGING_STRIPE_FEE }}
+
 
   deploy:
     runs-on: ubuntu-latest
@@ -33,15 +78,17 @@ jobs:
       - name: Deploy to Azure VM
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 20.115.86.176
-          username: plaventi
-          password: 'youCanNeverGuess!Right@vm'
+          host: ${{ secrets.STAGING_VM_IP_ADDRESS }}
+          username: ${{ secrets.STAGING_VM_USERNAME }}
+          password: ${{ secrets.STAGING_VM_PASSWORD }}
           port: 22
           timeout: '60s'
           command_timeout: '5m'
           script: |
-            sudo docker image pull teamreliant/plaventi-organizer-service:latest
-            sudo docker stop plaventi-organizer-service || true
+            sudo docker login plaventi.azurecr.io -u ${{ secrets.ACR_USERNAME }} -p ${{ secrets.ACR_PASSWORD }}
+            sudo docker image pull plaventi.azurecr.io/staging-plaventi-core-service:latest
+            sudo docker stop staging-plaventi-core-service || true
+            sudo docker container rm staging-plaventi-core-service || true
             sudo docker container prune -f || true
             sudo docker image prune -a -f || true
-            sudo docker run -d --name plaventi-organizer-service -p 5001:5001 teamreliant/plaventi-organizer-service:latest
+            sudo docker run -d --name staging-plaventi-core-service -p 5001:5001 plaventi.azurecr.io/staging-plaventi-core-service:latest

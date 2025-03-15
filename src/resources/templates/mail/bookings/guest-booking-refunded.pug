@@ -5,8 +5,8 @@ block content
 
   p We're excited to confirm that your ticket refund for the event "#{payload.booking.event.name}" was initiated, the fund will get into your account within two business days!
 
-  p
-   b TICKET: #{payload.booking.name}
+  p Ticket Id: #{payload.booking.bookingId}
+  p Ticket Name: #{payload.booking.ticket.name}
 
   p
     small Best Regards,

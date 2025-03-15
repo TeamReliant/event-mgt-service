@@ -34,6 +34,9 @@ export class Team extends AbstractEntity<Team> {
   })
   secondaryColor?: string;
 
+  @Column({ default: 0 })
+  numberOfTeamMembers: number;
+
   @Column({ name: 'bio', type: 'text', nullable: true })
   bio?: string;
 

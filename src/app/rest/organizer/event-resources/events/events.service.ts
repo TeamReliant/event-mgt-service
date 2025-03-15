@@ -24,6 +24,7 @@ import { EventStatus } from '@app/rest/organizer/event-resources/events/enums';
 import { PaymentService } from '../../payment-resources/payment/payment.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UserType } from '@app/rest/users/enums/user-type';
+import { isEqual } from 'date-fns';
 
 @Injectable()
 export class EventsService {
@@ -126,6 +127,9 @@ export class EventsService {
   async create(createEventDto: CreateEventDto, user: TJwtPayload) {
     let eventImageURL: string;
     const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
+    const today = new Date();
+    if (createEventDto.eventStartDateAndTime < today)
+      throw new BadRequestException('Event start date must be a future date');
 
     // check if the event name already exists
     const slugExists = await this.eventRepo.findOneBy({
@@ -219,58 +223,7 @@ export class EventsService {
     }
   }
 
-  // //NEEDED BY ADMIN
-  // findAll(req: Request) {
-  //   const { query } = req;
-  //   const {
-  //     name,
-  //     location,
-  //     address,
-  //     eventVisibility,
-  //     eventStatus,
-  //     eventStartDateAndTime,
-  //   } = query;
-
-  //   const queryBuilder = this.eventRepo.createQueryBuilder('event');
-  //   if (name) {
-  //     queryBuilder.andWhere('event.name LIKE :name', { name: `%${name}%` });
-  //   }
-
-  //   if (location) {
-  //     queryBuilder.andWhere('event.location LIKE :location', {
-  //       location: `%${location}%`,
-  //     });
-  //   }
-
-  //   if (address) {
-  //     queryBuilder.andWhere('event.address LIKE :address', {
-  //       address: `%${address}%`,
-  //     });
-  //   }
-
-  //   if (eventVisibility) {
-  //     queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
-  //       eventVisibility,
-  //     });
-  //   }
-
-  //   if (eventStatus) {
-  //     queryBuilder.andWhere('event.eventStatus = :eventStatus', {
-  //       eventStatus,
-  //     });
-  //   }
-
-  //   if (eventStartDateAndTime) {
-  //     queryBuilder.andWhere('event.eventDate >= :eventStartDateAndTime', {
-  //       eventStartDateAndTime,
-  //     });
-  //   }
-
-  //   return queryBuilder;
-  // }
-
   findMyEvents(req: Request, user: TJwtPayload) {
-    const { query } = req;
     const {
       name,
       locationName,
@@ -281,87 +234,123 @@ export class EventsService {
       dateRangeStart,
       dateRangeEnd,
       pastPublishedEvents,
-    } = query;
+      search,
+    } = req.query;
 
     const userId = user.userId;
     const queryBuilder = this.eventRepo.createQueryBuilder('event');
+
+    // Base query with joins
     queryBuilder
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.tickets', 'tickets')
       .leftJoinAndSelect('event.team', 'team')
-      .leftJoinAndSelect('team.members', 'teamMembers')
-      .leftJoinAndSelect('teamMembers.user', 'teamMember')
-      .leftJoinAndSelect('teamMembers.invitation', 'invitation')
-      .leftJoinAndSelect('teamMembers.permissions', 'permissions')
-      .leftJoinAndSelect('permissions.team', 'permissionTeam')
-      .where('event.user = :userId')
-      .orWhere(
-        '(teamMember.id = :userId  AND invitation.status = :invitationStatus)',
-        {
-          userId,
-          invitationStatus: 'accepted',
-        },
-      );
+      // .innerJoin('team.members', 'teamMembers', '(teamMember.userId = :userId OR )', { userId })
+      .leftJoinAndSelect('team.members', 'members')
+      .leftJoinAndSelect('members.user', 'memberUser') // Changed from teamMember
+      .leftJoinAndSelect('members.invitation', 'invitation')
+      .leftJoinAndSelect('members.permissions', 'permissions')
+      // .leftJoinAndSelect('permissions.team', 'permissionTeam')
+      .where('event.userId = :userId', { userId });
 
-    //select event where user is the owner or a team member
-    // queryBuilder.andWhere(
+    // Access control with correct aliases
+    // queryBuilder.where(
     //   new Brackets((qb) => {
-    //     qb.where('event.user = :userId', { userId }).orWhere(
-    //       'teamMember.id = :userId',
-    //       { userId },
+    //     qb.where('user.id = :userId', { userId }).orWhere(
+    //       'memberUser.id = :userId AND invitation.status = :invitationStatus',
+    //       { userId, invitationStatus: 'accepted' },
     //     );
     //   }),
     // );
 
-    if (name)
-      queryBuilder.andWhere('event.name ILIKE :name', { name: `%${name}%` });
+    // Search functionality
+    if (search || name || locationName || address) {
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          if (search) {
+            qb.where('event.name ILIKE :search', { search: `%${search}%` })
+              .orWhere('event.locationName ILIKE :search', {
+                search: `%${search}%`,
+              })
+              .orWhere('event.address ILIKE :search', {
+                search: `%${search}%`,
+              });
+          }
+          if (name) {
+            qb.orWhere('event.name ILIKE :name', { name: `%${name}%` });
+          }
+          if (locationName) {
+            qb.orWhere('event.locationName ILIKE :locationName', {
+              locationName: `%${locationName}%`,
+            });
+          }
+          if (address) {
+            qb.orWhere('event.address ILIKE :address', {
+              address: `%${address}%`,
+            });
+          }
+        }),
+      );
+    }
 
-    if (locationName)
-      queryBuilder.andWhere('event.locationName ILIKE :locationName', {
-        locationName: `%${locationName}%`,
-      });
-
-    if (address)
-      queryBuilder.andWhere('event.address ILIKE :address', {
-        address: `%${address}%`,
-      });
-
-    if (eventVisibility)
+    // Rest of the filters remain the same
+    if (eventVisibility) {
       queryBuilder.andWhere('event.eventVisibility = :eventVisibility', {
         eventVisibility,
       });
+    }
 
-    if (eventStatus)
+    if (eventStatus) {
       queryBuilder.andWhere('event.eventStatus = :eventStatus', {
         eventStatus,
       });
+    }
 
-    if (eventStartDateAndTime)
+    if (eventStartDateAndTime) {
       queryBuilder.andWhere(
         'event.eventStartDateAndTime >= :eventStartDateAndTime',
-        {
-          eventStartDateAndTime,
-        },
+        { eventStartDateAndTime },
       );
+    }
 
-    if (dateRangeStart && dateRangeEnd)
+    if (dateRangeStart && dateRangeEnd) {
       queryBuilder.andWhere(
         'event.createdAt BETWEEN :dateRangeStart AND :dateRangeEnd',
         { dateRangeStart, dateRangeEnd },
       );
+    }
 
     if (pastPublishedEvents) {
       const currentDate = new Date();
-      queryBuilder.andWhere('event.eventEndDateAndTime < :currentDate', {
-        currentDate,
-      });
-
-      queryBuilder.andWhere('event.eventStatus = :publishedStatus', {
-        publishedStatus: 'published',
-      });
+      queryBuilder
+        .andWhere('event.eventEndDateAndTime < :currentDate', { currentDate })
+        .andWhere('event.eventStatus = :publishedStatus', {
+          publishedStatus: 'published',
+        });
     }
 
     queryBuilder.orderBy('event.createdAt', 'DESC');
+
+    queryBuilder.select([
+      'event',
+      'user',
+      'tickets',
+      'team',
+      'members',
+      'memberUser.id',
+      'memberUser.email',
+      'memberUser.firstname',
+      'memberUser.lastname',
+      'memberUser.picture',
+      'invitation',
+      'permissions',
+      // 'permissionTeam',
+    ]);
+
+    // For debugging
+    console.log('Generated SQL:', queryBuilder.getSql());
+    console.log('Parameters:', queryBuilder.getParameters());
+
     return queryBuilder;
   }
 
@@ -376,7 +365,8 @@ export class EventsService {
         'team.members',
         'team.members.user',
         'team.members.permissions',
-        'team.members.permissions.team',
+        // 'team.members.permissions.team',
+        'bookings',
       ],
     });
 
@@ -409,7 +399,7 @@ export class EventsService {
       .andWhere(
         new Brackets((qb) => {
           qb.where('event.eventStatus = :publishedStatus', {
-            publishedStatus: 'published',
+            publishedStatus: EventStatus.PUBLISHED,
           });
         }),
       )
@@ -477,6 +467,10 @@ export class EventsService {
   async update(id: string, updateEventDto: UpdateEventDto) {
     const timestampInSeconds = `-${Math.floor(Date.now() / 1000)}`;
     const { name } = updateEventDto;
+    let eventStartDate: Date;
+    if (updateEventDto.eventStartDateAndTime) {
+      eventStartDate = updateEventDto.eventStartDateAndTime;
+    }
 
     // check if event exists and belongs to authenticated user
     const event = await this.entityManager.findOne(Event, {
@@ -490,12 +484,30 @@ export class EventsService {
         'team.members.user',
         'team.members.permissions',
         'team.members.permissions.team',
+        'bookings',
       ],
     });
 
     if (!event) {
       throw new NotFoundException('Event not found');
     }
+    // if name is to be updated
+    if (name && name.toLowerCase() !== event.name.toLowerCase()) {
+      if (event.bookings.length > 0) {
+        throw new BadRequestException(
+          'You cannot update the name of an event with bookings',
+        );
+      }
+    }
+
+    //Required by FE to allow event update where the date was not changed
+    if (
+      eventStartDate &&
+      !isEqual(eventStartDate, event.eventStartDateAndTime) &&
+      eventStartDate < new Date()
+    )
+      throw new BadRequestException('Event start date must be in the future');
+
     //VAlidate event updating before processing updates
     this.validateEventCreation(
       event.user,
@@ -523,7 +535,7 @@ export class EventsService {
       slugExists = await this.eventRepo
         .createQueryBuilder('event')
         .where('event.slug = :slug', { slug: slugify(name, { lower: true }) })
-        // .andWhere('event.userId != :userId', { userId: user.userId })
+        .andWhere('event.id != :eventId', { eventId: event.id })
         .getOne();
 
       slug = `${slugify(name, { lower: true })}${slugExists ? timestampInSeconds : ''}`;
@@ -620,7 +632,7 @@ export class EventsService {
 
       if (params['tags']) {
         searchConditions.push(
-          `regexp_split_to_array(event.tags, '[,\\s]+') @> ARRAY[:tag]`,
+          `regexp_split_to_array(LOWER(event.tags), '[,\\s]+') @> ARRAY[LOWER(:tag)]`,
         );
         searchParams.tag = params['tags'];
       }
@@ -630,10 +642,11 @@ export class EventsService {
         searchParams.searchName = `%${params['name']}%`;
       }
 
-      if (params['locationName']) {
-        searchConditions.push('event.locationName ILIKE :searchLocation');
-        searchParams.searchLocation = `%${params['locationName']}%`;
-      }
+      // if (params['locationName']) {
+      //   searchConditions.push('event.locationName ILIKE :searchLocation');
+      //   const locationParts = params['locationName'].split(',');
+      //   searchParams.searchLocation = `%${locationParts[0].trim()}%`;
+      // }
 
       // Combine search conditions with OR
       if (searchConditions.length > 0) {
@@ -651,46 +664,44 @@ export class EventsService {
 
         queryBuilder
           .andWhere(
-            '(CAST(event.latitude AS float) != 0 OR CAST(event.longitude AS float) != 0)',
+            '(event.latitude IS NOT NULL AND event.longitude IS NOT NULL AND CAST(event.latitude AS float) != 0 AND CAST(event.longitude AS float) != 0)',
           )
           .addSelect(
             `(
-            6371 * acos(
-              least(1::float, 
-                cos(radians(:lat::float)) * 
-                cos(radians(CAST(event.latitude AS float))) * 
-                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
-                sin(radians(:lat::float)) * 
-                sin(radians(CAST(event.latitude AS float)))
-              )
-            )
-          )`,
+        6371 * acos(
+          least(1::float,
+            cos(radians(:lat::float)) *
+            cos(radians(CAST(event.latitude AS float))) *
+            cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) +
+            sin(radians(:lat::float)) *
+            sin(radians(CAST(event.latitude AS float)))
+          )
+        )
+      )`,
             'distance',
           )
           .addSelect('event.latitude', 'event_latitude')
           .addSelect('event.longitude', 'event_longitude')
           .andWhere(
             `(
-            6371 * acos(
-              least(1::float, 
-                cos(radians(:lat::float)) * 
-                cos(radians(CAST(event.latitude AS float))) * 
-                cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) + 
-                sin(radians(:lat::float)) * 
-                sin(radians(CAST(event.latitude AS float)))
-              )
-            ) <= :radius
-            OR (CAST(event.latitude AS float) = :lat AND CAST(event.longitude AS float) = :lon)
-          )`,
+        6371 * acos(
+          least(1::float,
+            cos(radians(:lat::float)) *
+            cos(radians(CAST(event.latitude AS float))) *
+            cos(radians(CAST(event.longitude AS float)) - radians(:lon::float)) +
+            sin(radians(:lat::float)) *
+            sin(radians(CAST(event.latitude AS float)))
+          )
+        ) <= :radius
+      )`,
             { lat, lon, radius },
           )
-          .andWhere(
-            'event.latitude IS NOT NULL AND event.longitude IS NOT NULL',
-          )
-          .andWhere('event.eventStartDateAndTime > :today', { today })
+          .andWhere('event.eventEndDateAndTime >= :today', { today })
           .orderBy('distance', 'ASC');
       }
     }
+
+    queryBuilder.andWhere('event.eventEndDateAndTime >= :today', { today });
     return queryBuilder;
   }
 
@@ -703,6 +714,10 @@ export class EventsService {
   async remove(id: string, user: TJwtPayload) {
     //check if event exists and belongs to authenticated user
     const event = await this.findOne(id, user);
+
+    if (event.bookings.length > 0) {
+      throw new BadRequestException('You cannot delete an event with bookings');
+    }
     const userEntity = await this.userService.findOne(user.userId);
 
     //delete event and it's related tickets

@@ -1,9 +1,13 @@
 extends ../baseEmail
 
 block content
-  p #{(payload.organizer)? `Hello ${payload.customer.firstname}`: 'Hello'},
+  p #{(payload.organizer)? `Hello ${payload.organizer.firstname}`: 'Hello'},
 
   p The refund for the ticket #{payload.booking.name} for the event "#{payload.booking.event.name}" was initiated, the fund will get into the buyer's account within two business days!
+
+  p Guest Name: #{payload.booking.firstName} #{payload.booking.lastName}
+  p Ticket Id: #{payload.booking.bookingId}
+  p Ticket Name: #{payload.booking.ticket.name}
 
   p
     small Best Regards,
