@@ -943,8 +943,6 @@ export class PaymentService {
       stripeAccount: user.stripeConnectedAccountId,
     });
 
-    console.log('>>>>>>>Balance:', balance);
-    console.log('>>>>>>>Booking Amount:', booking.unitAmount);
     // Step 2: Check the available balance
     let availableBalance =
       balance.available.reduce(
@@ -963,8 +961,6 @@ export class PaymentService {
     //If it is add the booking unit amount to the absolute value of the available balance
     //then we check if the sum is greater than the pending balance and available balance
 
-    console.log('>>>>>>>Available Balance:', availableBalance);
-    console.log('>>>>>>>Pending Balance:', pendingBalance);
 
     if (availableBalance < 0) {
       availableBalance = Math.abs(availableBalance) + booking.unitAmount;
