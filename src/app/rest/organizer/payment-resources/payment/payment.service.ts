@@ -961,7 +961,6 @@ export class PaymentService {
     //If it is add the booking unit amount to the absolute value of the available balance
     //then we check if the sum is greater than the pending balance and available balance
 
-
     if (availableBalance < 0) {
       availableBalance = Math.abs(availableBalance) + booking.unitAmount;
       if (availableBalance > pendingBalance) {
