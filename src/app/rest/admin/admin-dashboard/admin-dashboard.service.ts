@@ -255,8 +255,10 @@ export class AdminDashboardService {
       TotalTicketSold: ticketsSold,
       TotalTicketRsvp: ticketsRsvp,
       ScannedTicket: scannedTickets,
-      monthlyRevenue: Number(bookingRevenue + subscriptionRevenue).toFixed(2),
-      totalRevenue: totalRevenue.toFixed(2),
+      monthlyRevenue: this._roundDownToTwo(
+        Number(bookingRevenue + subscriptionRevenue),
+      ),
+      totalRevenue: this._roundDownToTwo(totalRevenue),
 
       conversionRate: this._calculateRate(
         totalOrganizers,
@@ -276,6 +278,10 @@ export class AdminDashboardService {
     if (part === 0) return 0;
 
     const percentage = (part / whole) * 100;
-    return percentage.toFixed(2); // Rounds to 2 decimal places
+    return this._roundDownToTwo(percentage);
+  }
+
+  private _roundDownToTwo(digits: number) {
+    return Math.floor(digits * 100) / 100;
   }
 }
