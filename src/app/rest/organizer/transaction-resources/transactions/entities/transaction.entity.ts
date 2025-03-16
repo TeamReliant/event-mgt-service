@@ -1,10 +1,12 @@
 import { AbstractEntity } from '@libs/database';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { User } from '@app/rest/users/entities/user.entity';
 
 @Entity()
 export class Transaction extends AbstractEntity<Transaction> {
-  @Column()
-  userId: string;
+  @ManyToOne(() => User, (user) => user.history)
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
   @Column()
   plan: string;
