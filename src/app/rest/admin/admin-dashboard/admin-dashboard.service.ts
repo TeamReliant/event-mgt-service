@@ -204,12 +204,15 @@ export class AdminDashboardService {
     const currentMonthTransactions = await this._entityManager
       .getRepository(Transaction)
       .createQueryBuilder('transactions')
+      .leftJoinAndSelect('transactions.user', 'user')
       .where('transactions.created_at >= :startOfMonth', {
         startOfMonth: currentMonthStart,
       })
       .andWhere('transactions.created_at <= :endOfMonth', {
         endOfMonth: currentMonthEnd,
       })
+      .andWhere('transactions.status = :status', { status: 'succeeded' })
+      .andWhere('user.subscriptionStatus != :status', { status: 'trailing' })
       .select(['transactions.id', 'transactions.amount'])
       .getMany();
 
@@ -282,6 +285,6 @@ export class AdminDashboardService {
   }
 
   private _roundDownToTwo(digits: number) {
-    return Math.floor(digits * 100) / 100;
+    return Math.ceil(digits * 100) / 100;
   }
 }
