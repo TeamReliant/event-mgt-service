@@ -351,6 +351,14 @@ export class PaymentService {
     };
 
     if (status === 'succeeded') {
+      if ((subscription.status as unknown as string) !== 'trailing') {
+        const systemRegister = await this.entityManager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
+        systemRegister.totalRevenue += plan.amount / 100;
+        await this.entityManager.save<SystemRegister>(systemRegister);
+      }
+
       this.eventEmitter.emit(
         events.PAYMENT_SUCCESS,
         new PaymentEvent(notification),

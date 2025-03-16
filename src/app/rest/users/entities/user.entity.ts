@@ -9,6 +9,7 @@ import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/en
 import { UserType } from '@app/rest/users/enums/user-type';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { UsersPublicProfile } from './users-public-profile.entity';
+import { Transaction } from '@app/rest/organizer/transaction-resources/transactions/entities/transaction.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -208,6 +209,11 @@ export class User extends AbstractEntity<User> {
     cascade: true,
   })
   eventViews?: EventView[];
+
+  @OneToMany(() => Transaction, (subscription) => subscription.user, {
+    cascade: true,
+  })
+  history?: Transaction[];
 
   @OneToMany(() => BookingsTransaction, (trans) => trans.user, {
     cascade: true,
