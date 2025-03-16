@@ -190,6 +190,7 @@ export class AdminDashboardService {
       .andWhere('transactions.created_at <= :endOfMonth', {
         endOfMonth: currentMonthEnd,
       })
+      .andWhere('transactions.paid = :paid', { paid: true })
       .select(['transactions.id', 'transactions.fee'])
       .getMany();
 
