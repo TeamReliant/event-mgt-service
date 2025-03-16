@@ -9,7 +9,8 @@ import {
   Param,
   ParseFilePipeBuilder,
   Patch,
-  Post, Query,
+  Post,
+  Query,
   Req,
   Res,
   UnprocessableEntityException,
@@ -185,7 +186,7 @@ export class EventsController {
   async findOneForAttendee(
     @Param() { slug }: AttendeeShowEventParamsDto,
     @GetCurrentUserId() userId: string,
-    @Query('track') track: boolean = false,
+    @Query('track') track: string = 'true',
   ) {
     const data = await this.eventsService.findOneForAttendee(
       slug,
