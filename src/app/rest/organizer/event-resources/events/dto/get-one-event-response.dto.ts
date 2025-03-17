@@ -27,6 +27,9 @@ export class GetOneEventResponseDto {
   latitude?: string;
 
   @Expose()
+  additionalInfo: string;
+
+  @Expose()
   longitude?: string;
 
   @Expose()
