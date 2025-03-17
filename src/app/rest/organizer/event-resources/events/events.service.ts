@@ -389,7 +389,7 @@ export class EventsService {
     return event;
   }
 
-  async findOneForAttendee(slug: string, userId?: string) {
+  async findOneForAttendee(slug: string, track: string, userId?: string) {
     const event = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
@@ -407,8 +407,8 @@ export class EventsService {
 
     if (!event) throw new NotFoundException('Event not found');
 
-    // update the views
-    await this.updateView(event, userId);
+    if (track === 'true') await this.updateView(event, userId);
+
     // return the found event
     return event;
   }

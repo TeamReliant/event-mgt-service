@@ -351,6 +351,14 @@ export class PaymentService {
     };
 
     if (status === 'succeeded') {
+      if ((subscription.status as unknown as string) !== 'trailing') {
+        const systemRegister = await this.entityManager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
+        systemRegister.totalRevenue += plan.amount / 100;
+        await this.entityManager.save<SystemRegister>(systemRegister);
+      }
+
       this.eventEmitter.emit(
         events.PAYMENT_SUCCESS,
         new PaymentEvent(notification),
@@ -640,7 +648,7 @@ export class PaymentService {
       );
 
     return await this.stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'alipay'],
+      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
@@ -960,7 +968,6 @@ export class PaymentService {
     //To properly compute balance, we need to check if the available balance is a negative balance
     //If it is add the booking unit amount to the absolute value of the available balance
     //then we check if the sum is greater than the pending balance and available balance
-
 
     if (availableBalance < 0) {
       availableBalance = Math.abs(availableBalance) + booking.unitAmount;
