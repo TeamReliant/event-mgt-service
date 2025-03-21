@@ -60,9 +60,6 @@ export class EventAnalyticsService {
     const ticketsScanned = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId: id })
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
