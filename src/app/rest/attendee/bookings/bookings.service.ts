@@ -505,8 +505,10 @@ export class BookingsService {
         systemRegister.totalTicketsProcessed += totalTicketsProcessed;
         systemRegister.ticketsRsvp += totalTicketsProcessed;
         bookings[0].event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
+        bookings[0].event.user.ticketsRsvp += totalTicketsProcessed;
 
         await manager.save<SystemRegister>(systemRegister);
+        await manager.save<User>(bookings[0].event.user);
       }
 
       await manager.save<Event>(bookings[0].event);
@@ -686,8 +688,9 @@ export class BookingsService {
       }
 
       booking.reaction = reaction;
-      await this._repo.save(booking);
+      await manager.save(Booking, booking);
       await manager.save<SystemRegister>(systemRegister);
+      await manager.save(Event, booking.event);
 
       // emit in case the reaction is not going
       if (reaction !== FreeTicketReaction.NOT_GOING) {
