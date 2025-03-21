@@ -784,8 +784,14 @@ export class PaymentService {
             totalTicketsSold = totalTicketsSold + booking.quantity;
           }
 
-          if (booking.category === TicketCategory.FREE)
+          if (
+            booking.category === TicketCategory.FREE &&
+            booking.reaction !== FreeTicketReaction.NOT_GOING
+          ) {
             totalFreeTickets += booking.quantity;
+            booking.ticket.numberOfTicketsSold += booking.quantity;
+            await manager.save(Ticket, booking.ticket);
+          }
 
           // update the total tickets processed variable
           totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
