@@ -143,14 +143,14 @@ export class EventsController {
     const { data } = response;
     response.data = data.map((event) => {
       let totalAvailableTickets = 0;
-      let totalTicketSold = 0;
+      // let totalTicketSold = 0;
       event.tickets.forEach((ticket: Ticket) => {
         totalAvailableTickets += +ticket.availableTickets;
-        totalTicketSold += +ticket.numberOfTicketsSold;
+        // totalTicketSold += +ticket.numberOfTicketsSold;
       });
 
       event.totalTickets = totalAvailableTickets;
-      event.totalTicketSold = totalTicketSold;
+      // event.totalTicketSold = event.totalTicketSold;
       // delete event.tickets;
       delete event.user.password;
       delete event.user.refreshToken;

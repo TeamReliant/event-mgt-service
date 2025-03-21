@@ -1027,6 +1027,8 @@ export class PaymentService {
       await manager.save<User>(booking.event.user);
       await manager.save<Event>(booking.event);
       await manager.save<Booking>(booking);
+      await manager.save(Ticket, booking.ticket);
+      await manager.save(Transaction, booking.transaction);
       await manager.save<SystemRegister>(systemRegister);
     });
 
