@@ -448,6 +448,7 @@ export class BookingsService {
   private async processFreeBookings(bookings: Booking[]): Promise<any> {
     const newBookings: Booking[] = [];
     let ticket: Ticket;
+    let host: User;
 
     await this._entityManager.transaction(async (manager) => {
       let totalTicketsProcessed: number = 0;
@@ -489,6 +490,8 @@ export class BookingsService {
           newBookings.push(newBooking);
         }
 
+        host = booking.event.user;
+
         // update the total tickets processed variable
         totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
 
@@ -506,7 +509,7 @@ export class BookingsService {
         systemRegister.totalTicketsProcessed += totalTicketsProcessed;
         systemRegister.ticketsRsvp += totalTicketsProcessed;
         bookings[0].event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
-        bookings[0].event.user.ticketsRsvp += totalTicketsProcessed;
+        host.ticketsRsvp += totalTicketsProcessed;
 
         await manager.save<SystemRegister>(systemRegister);
         await manager.save<User>(bookings[0].event.user);
@@ -519,7 +522,6 @@ export class BookingsService {
       await manager.save(Ticket, ticket);
     });
 
-    console.log('>>>>>>>I got here<<<<<<<<<<<<<<<<<<<<<<<<<<', newBookings);
     this._eventEmitter.emit(
       events.BOOKING_COMPLETED,
       new BookingsEvent(newBookings),
