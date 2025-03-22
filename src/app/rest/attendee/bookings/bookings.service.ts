@@ -506,7 +506,7 @@ export class BookingsService {
         systemRegister.totalTicketsProcessed += totalTicketsProcessed;
         systemRegister.ticketsRsvp += totalTicketsProcessed;
         bookings[0].event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
-        bookings[0].event.user.ticketsRsvp += totalTicketsProcessed;
+        // bookings[0].event.user.ticketsRsvp += totalTicketsProcessed;
 
         await manager.save<SystemRegister>(systemRegister);
         await manager.save<User>(bookings[0].event.user);
