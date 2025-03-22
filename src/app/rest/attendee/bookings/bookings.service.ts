@@ -347,6 +347,7 @@ export class BookingsService {
         .createQueryBuilder('booking')
         .leftJoinAndSelect('booking.ticket', 'ticket')
         .leftJoinAndSelect('booking.event', 'event')
+        .leftJoinAndSelect('event.user', 'host')
         .leftJoinAndSelect('booking.user', 'user')
         .andWhere('booking.id = :id', { id })
         .getOne();
