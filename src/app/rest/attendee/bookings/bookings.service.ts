@@ -448,7 +448,7 @@ export class BookingsService {
   private async processFreeBookings(bookings: Booking[]): Promise<any> {
     const newBookings: Booking[] = [];
     let ticket: Ticket;
-    let host: User;
+    // let event: User;
 
     await this._entityManager.transaction(async (manager) => {
       let totalTicketsProcessed: number = 0;
@@ -490,7 +490,7 @@ export class BookingsService {
           newBookings.push(newBooking);
         }
 
-        host = booking.event.user;
+        // if (!event) event = booking.event.user;
 
         // update the total tickets processed variable
         totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
@@ -508,11 +508,16 @@ export class BookingsService {
         // update the system register
         systemRegister.totalTicketsProcessed += totalTicketsProcessed;
         systemRegister.ticketsRsvp += totalTicketsProcessed;
-        bookings[0].event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
-        host.ticketsRsvp += totalTicketsProcessed;
+        const event = await manager
+          .createQueryBuilder(Event, 'event')
+          .leftJoinAndSelect('event.user', 'user')
+          .where('event.id = :id', { id: bookings[0].event.id })
+          .getOne();
+        event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
+        event.user.ticketsRsvp += totalTicketsProcessed;
 
         await manager.save<SystemRegister>(systemRegister);
-        await manager.save<User>(bookings[0].event.user);
+        await manager.save<User>(event.user);
       }
 
       await manager.save<Event>(bookings[0].event);
