@@ -518,6 +518,8 @@ export class BookingsService {
       await manager.save(Ticket, ticket);
     });
 
+  
+    console.log(">>>>>>>I got here<<<<<<<<<<<<<<<<<<<<<<<<<<", newBookings);
     this._eventEmitter.emit(
       events.BOOKING_COMPLETED,
       new BookingsEvent(newBookings),
