@@ -58,8 +58,8 @@ export const events = {
 
 export const appInfo = {
   appName: 'PLAVENTI',
-  appEmail: 'support@plaventi.dev',
-  fromEmail: 'no-reply@plaventi.dev',
+  appEmail: 'support@plaventi.com',
+  fromEmail: 'no-reply@plaventi.com',
   companyName: 'PLAVENTI',
   companyPhone: '+16232633788',
   normalizedCompanyName: 'PLAVENTI',
