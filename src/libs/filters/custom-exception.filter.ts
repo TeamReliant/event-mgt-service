@@ -12,6 +12,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { CustomLoggerService } from '@libs/services/logging/custom-logger.service';
 
 @Catch(
   UnauthorizedException,
@@ -23,6 +24,8 @@ import { Response } from 'express';
   InternalServerErrorException,
 )
 export class CustomExceptionFilter implements ExceptionFilter {
+  private logger = new CustomLoggerService();
+
   catch(
     exception:
       | UnauthorizedException
@@ -36,6 +39,7 @@ export class CustomExceptionFilter implements ExceptionFilter {
   ) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
     const errorResponse = exception.getResponse() as {
       status: string;
       data?: any;
@@ -72,6 +76,11 @@ export class CustomExceptionFilter implements ExceptionFilter {
       statusCode = 500;
       status = errorCodes.INTERNAL_SERVER_ERROR;
     }
+
+    // Log the error with full request details
+    this.logger.error(
+      `ERROR: ${status} ${request.method} ${request.url} | Message: ${message} | Body: ${JSON.stringify(request.body)}`,
+    );
 
     response.status(statusCode).json({
       status,
