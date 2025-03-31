@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppConfig } from '@config/index';
 import { MulterModule } from '@nestjs/platform-express';
@@ -38,6 +38,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TasksEmailService } from '@libs/notifications/email/tasks/tasks-email.service';
 import { EmailEngineService } from '@libs/notifications/email/email-engine/email-engine.service';
 import { TasksSchedulersService } from '@libs/schedulers/tasks-schedulers.service';
+import { CustomLoggerService } from '@libs/services/logging/custom-logger.service';
+import { LoggingMiddleware } from '@libs/middlewares/logging.middleware';
 
 @Module({
   imports: [
@@ -100,6 +102,11 @@ import { TasksSchedulersService } from '@libs/schedulers/tasks-schedulers.servic
     TasksSchedulersService,
     TasksEmailService,
     EmailEngineService,
+    CustomLoggerService,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggingMiddleware).forRoutes('*');
+  }
+}
