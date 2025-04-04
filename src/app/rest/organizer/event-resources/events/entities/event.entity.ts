@@ -109,6 +109,12 @@ export class Event extends AbstractEntity<Event> {
   revenue?: number;
 
   @Column({
+    name: 'views',
+    nullable: true,
+  })
+  views?: number;
+
+  @Column({
     name: 'total_platform_fee',
     nullable: true,
     type: 'decimal',
