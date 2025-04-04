@@ -93,8 +93,8 @@ jobs:
             sudo docker image prune -a -f || true
             sudo docker run -d --name prod-plaventi-core-service \
             --restart unless-stopped \
-            --memory=7g \
-            --memory-swap=7g \
+#            --memory=7g \
+#            --memory-swap=7g \
             -p 5001:5001 \
             -v /var/logs/plaventi-core:/usr/src/app/logs \
             plaventi.azurecr.io/prod-plaventi-core-service:latest
