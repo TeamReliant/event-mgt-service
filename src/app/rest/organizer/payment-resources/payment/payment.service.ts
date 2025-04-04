@@ -351,6 +351,14 @@ export class PaymentService {
     };
 
     if (status === 'succeeded') {
+      if ((subscription.status as unknown as string) !== 'trailing') {
+        const systemRegister = await this.entityManager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
+        systemRegister.totalRevenue += plan.amount / 100;
+        await this.entityManager.save<SystemRegister>(systemRegister);
+      }
+
       this.eventEmitter.emit(
         events.PAYMENT_SUCCESS,
         new PaymentEvent(notification),
@@ -640,7 +648,7 @@ export class PaymentService {
       );
 
     return await this.stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'alipay'],
+      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
@@ -776,8 +784,14 @@ export class PaymentService {
             totalTicketsSold = totalTicketsSold + booking.quantity;
           }
 
-          if (booking.category === TicketCategory.FREE)
+          if (
+            booking.category === TicketCategory.FREE &&
+            booking.reaction !== FreeTicketReaction.NOT_GOING
+          ) {
             totalFreeTickets += booking.quantity;
+            booking.ticket.numberOfTicketsSold += booking.quantity;
+            await manager.save(Ticket, booking.ticket);
+          }
 
           // update the total tickets processed variable
           totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
@@ -961,7 +975,6 @@ export class PaymentService {
     //If it is add the booking unit amount to the absolute value of the available balance
     //then we check if the sum is greater than the pending balance and available balance
 
-
     if (availableBalance < 0) {
       availableBalance = Math.abs(availableBalance) + booking.unitAmount;
       if (availableBalance > pendingBalance) {
@@ -1020,6 +1033,8 @@ export class PaymentService {
       await manager.save<User>(booking.event.user);
       await manager.save<Event>(booking.event);
       await manager.save<Booking>(booking);
+      await manager.save(Ticket, booking.ticket);
+      await manager.save(Transaction, booking.transaction);
       await manager.save<SystemRegister>(systemRegister);
     });
 

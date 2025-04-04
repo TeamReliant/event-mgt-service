@@ -245,23 +245,11 @@ export class EventsService {
       .leftJoinAndSelect('event.user', 'user')
       .leftJoinAndSelect('event.tickets', 'tickets')
       .leftJoinAndSelect('event.team', 'team')
-      // .innerJoin('team.members', 'teamMembers', '(teamMember.userId = :userId OR )', { userId })
       .leftJoinAndSelect('team.members', 'members')
-      .leftJoinAndSelect('members.user', 'memberUser') // Changed from teamMember
+      .leftJoinAndSelect('members.user', 'memberUser')
       .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.permissions', 'permissions')
-      // .leftJoinAndSelect('permissions.team', 'permissionTeam')
       .where('event.userId = :userId', { userId });
-
-    // Access control with correct aliases
-    // queryBuilder.where(
-    //   new Brackets((qb) => {
-    //     qb.where('user.id = :userId', { userId }).orWhere(
-    //       'memberUser.id = :userId AND invitation.status = :invitationStatus',
-    //       { userId, invitationStatus: 'accepted' },
-    //     );
-    //   }),
-    // );
 
     // Search functionality
     if (search || name || locationName || address) {
@@ -344,7 +332,6 @@ export class EventsService {
       'memberUser.picture',
       'invitation',
       'permissions',
-      // 'permissionTeam',
     ]);
 
     // For debugging
@@ -365,7 +352,6 @@ export class EventsService {
         'team.members',
         'team.members.user',
         'team.members.permissions',
-        // 'team.members.permissions.team',
         'bookings',
       ],
     });
@@ -389,7 +375,7 @@ export class EventsService {
     return event;
   }
 
-  async findOneForAttendee(slug: string, userId?: string) {
+  async findOneForAttendee(slug: string, track: string, userId?: string) {
     const event = await this.eventRepo
       .createQueryBuilder('event')
       .leftJoinAndSelect('event.user', 'user')
@@ -407,8 +393,8 @@ export class EventsService {
 
     if (!event) throw new NotFoundException('Event not found');
 
-    // update the views
-    await this.updateView(event, userId);
+    if (track === 'true') await this.updateView(event, userId);
+
     // return the found event
     return event;
   }

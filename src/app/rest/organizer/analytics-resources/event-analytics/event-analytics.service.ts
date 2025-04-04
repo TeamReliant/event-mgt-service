@@ -60,9 +60,6 @@ export class EventAnalyticsService {
     const ticketsScanned = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId: id })
-      // .andWhere('bookings.transfer_status != :transferStatus', {
-      //   transferStatus: TicketTransferStatus.TRANSFERRED,
-      // })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
@@ -100,8 +97,7 @@ export class EventAnalyticsService {
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :yesterday', { yesterday })
       .andWhere('bookings.createdAt < :today', { today })
-      .andWhere('bookings.category = :category', { category })
-      .select(['bookings.id', 'bookings.unitAmount']);
+      .andWhere('bookings.category = :category', { category });
 
     if (category === TicketCategory.FREE) {
       yesterdayBookings.andWhere('bookings.reaction != :reaction', {
@@ -109,20 +105,23 @@ export class EventAnalyticsService {
       });
     }
 
+    yesterdayBookings.select(['bookings.id', 'bookings.unitAmount']);
+
     const todayBookings = this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.id = :eventId', { eventId: event.id })
       .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
       .andWhere('bookings.createdAt >= :today', { today })
-      .andWhere('bookings.category = :category', { category })
-      .select(['bookings.id', 'bookings.unitAmount']);
+      .andWhere('bookings.category = :category', { category });
 
     if (category === TicketCategory.FREE) {
       todayBookings.andWhere('bookings.reaction != :reaction', {
         reaction: FreeTicketReaction.NOT_GOING,
       });
     }
+
+    todayBookings.select(['bookings.id', 'bookings.unitAmount']);
 
     return {
       value:

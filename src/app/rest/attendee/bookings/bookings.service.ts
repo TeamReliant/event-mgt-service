@@ -347,6 +347,7 @@ export class BookingsService {
         .createQueryBuilder('booking')
         .leftJoinAndSelect('booking.ticket', 'ticket')
         .leftJoinAndSelect('booking.event', 'event')
+        .leftJoinAndSelect('event.user', 'host')
         .leftJoinAndSelect('booking.user', 'user')
         .andWhere('booking.id = :id', { id })
         .getOne();
@@ -447,6 +448,7 @@ export class BookingsService {
   private async processFreeBookings(bookings: Booking[]): Promise<any> {
     const newBookings: Booking[] = [];
     let ticket: Ticket;
+    // let event: User;
 
     await this._entityManager.transaction(async (manager) => {
       let totalTicketsProcessed: number = 0;
@@ -488,6 +490,8 @@ export class BookingsService {
           newBookings.push(newBooking);
         }
 
+        // if (!event) event = booking.event.user;
+
         // update the total tickets processed variable
         totalTicketsProcessed = totalTicketsProcessed + booking.quantity;
 
@@ -495,17 +499,27 @@ export class BookingsService {
         await manager.remove(Booking, booking);
       }
 
-      // fetch the system register
-      const systemRegister = await manager
-        .createQueryBuilder(SystemRegister, 'system')
-        .getOne();
+      if (bookings[0].reaction !== FreeTicketReaction.NOT_GOING) {
+        // fetch the system register
+        const systemRegister = await manager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
 
-      // update the system register
-      systemRegister.totalTicketsProcessed += totalTicketsProcessed;
-      systemRegister.ticketsRsvp += totalTicketsProcessed;
-      bookings[0].event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
+        // update the system register
+        systemRegister.totalTicketsProcessed += totalTicketsProcessed;
+        systemRegister.ticketsRsvp += totalTicketsProcessed;
+        const event = await manager
+          .createQueryBuilder(Event, 'event')
+          .leftJoinAndSelect('event.user', 'user')
+          .where('event.id = :id', { id: bookings[0].event.id })
+          .getOne();
+        event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
+        event.user.ticketsRsvp += totalTicketsProcessed;
 
-      await manager.save<SystemRegister>(systemRegister);
+        await manager.save<SystemRegister>(systemRegister);
+        await manager.save<User>(event.user);
+      }
+
       await manager.save<Event>(bookings[0].event);
 
       // save the newly generated bookings
@@ -600,6 +614,7 @@ export class BookingsService {
       .createQueryBuilder('booking')
       .leftJoinAndSelect('booking.ticket', 'ticket')
       .leftJoinAndSelect('booking.event', 'event')
+      .leftJoinAndSelect('event.user', 'user')
       .where('booking.userId = :userId', { userId })
       .andWhere('booking.id = :bookingId', { bookingId })
       .getOne();
@@ -636,42 +651,65 @@ export class BookingsService {
     const { availableTickets, numberOfTicketsSold, isAvailable } =
       booking.ticket;
 
-    // If the user is not going
-    if (reaction === FreeTicketReaction.NOT_GOING) {
-      booking.status = BookingStatus.INVALID;
-      booking.ticket.isAvailable = true;
+    return await this._entityManager.transaction(async (manager) => {
+      // fetch the system register
+      const systemRegister = await manager
+        .createQueryBuilder(SystemRegister, 'system')
+        .getOne();
 
-      // decrease the number of tickets sold for the ticket
-      booking.ticket.numberOfTicketsSold -= 1;
-      await this._entityManager.save(Ticket, booking.ticket);
-    }
+      // If the user may go or go
+      if (
+        reaction !== FreeTicketReaction.NOT_GOING &&
+        booking.reaction === FreeTicketReaction.NOT_GOING
+      ) {
+        if (!isAvailable)
+          throw new NotAcceptableException('Ticket out of stock');
+        if (availableTickets && +numberOfTicketsSold + 1 === availableTickets)
+          booking.ticket.isAvailable = false;
 
-    // If the user may go or go
-    if (reaction !== FreeTicketReaction.NOT_GOING) {
-      if (!isAvailable) throw new NotAcceptableException('Ticket out of stock');
-      if (availableTickets && +numberOfTicketsSold + 1 === availableTickets) {
-        booking.ticket.isAvailable = false;
+        // increase the number of tickets sold for the ticket
+        booking.ticket.numberOfTicketsSold += 1;
+        systemRegister.ticketsRsvp += 1;
+        booking.event.totalNumberOfTicketsRsvp += 1;
+        booking.event.user.ticketsRsvp += 1;
+        await manager.save(Ticket, booking.ticket);
+        await manager.save(User, booking.event.user);
+
+        booking.status = BookingStatus.VALID;
       }
 
-      // increase the number of tickets sold for the ticket
-      booking.ticket.numberOfTicketsSold += 1;
-      await this._entityManager.save(Ticket, booking.ticket);
-      booking.status = BookingStatus.VALID;
-    }
+      if (
+        reaction === FreeTicketReaction.NOT_GOING &&
+        booking.reaction !== FreeTicketReaction.NOT_GOING
+      ) {
+        // decrease the number of tickets sold for the ticket
+        booking.ticket.numberOfTicketsSold -= 1;
+        systemRegister.ticketsRsvp -= 1;
+        booking.event.totalNumberOfTicketsRsvp -= 1;
+        booking.event.user.ticketsRsvp -= 1;
+        await manager.save(Ticket, booking.ticket);
+        await manager.save(User, booking.event.user);
 
-    booking.reaction = reaction;
-    await this._repo.save(booking);
+        booking.status = BookingStatus.INVALID;
+        booking.ticket.isAvailable = true;
+      }
 
-    // emit in case the reaction is not going
-    if (reaction !== FreeTicketReaction.NOT_GOING) {
-      this._eventEmitter.emit(
-        events.BOOKING_REACTION_UPDATED,
-        new BookingsEvent([booking]),
-      );
-    }
+      booking.reaction = reaction;
+      await manager.save(Booking, booking);
+      await manager.save<SystemRegister>(systemRegister);
+      await manager.save(Event, booking.event);
 
-    // return the saved booking
-    return booking;
+      // emit in case the reaction is not going
+      if (reaction !== FreeTicketReaction.NOT_GOING) {
+        this._eventEmitter.emit(
+          events.BOOKING_REACTION_UPDATED,
+          new BookingsEvent([booking]),
+        );
+      }
+
+      // return the saved booking
+      return booking;
+    });
   }
 
   async transferBooking(body: TransferBookingDto, userId: string) {

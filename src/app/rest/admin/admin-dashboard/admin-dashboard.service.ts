@@ -190,6 +190,7 @@ export class AdminDashboardService {
       .andWhere('transactions.created_at <= :endOfMonth', {
         endOfMonth: currentMonthEnd,
       })
+      .andWhere('transactions.paid = :paid', { paid: true })
       .select(['transactions.id', 'transactions.fee'])
       .getMany();
 
@@ -204,12 +205,15 @@ export class AdminDashboardService {
     const currentMonthTransactions = await this._entityManager
       .getRepository(Transaction)
       .createQueryBuilder('transactions')
+      .leftJoinAndSelect('transactions.user', 'user')
       .where('transactions.created_at >= :startOfMonth', {
         startOfMonth: currentMonthStart,
       })
       .andWhere('transactions.created_at <= :endOfMonth', {
         endOfMonth: currentMonthEnd,
       })
+      .andWhere('transactions.status = :status', { status: 'succeeded' })
+      .andWhere('user.subscriptionStatus != :status', { status: 'trailing' })
       .select(['transactions.id', 'transactions.amount'])
       .getMany();
 
@@ -255,8 +259,10 @@ export class AdminDashboardService {
       TotalTicketSold: ticketsSold,
       TotalTicketRsvp: ticketsRsvp,
       ScannedTicket: scannedTickets,
-      monthlyRevenue: Number(bookingRevenue + subscriptionRevenue).toFixed(2),
-      totalRevenue: totalRevenue.toFixed(2),
+      monthlyRevenue: this._roundDownToTwo(
+        Number(bookingRevenue + subscriptionRevenue),
+      ),
+      totalRevenue: this._roundDownToTwo(totalRevenue),
 
       conversionRate: this._calculateRate(
         totalOrganizers,
@@ -276,6 +282,10 @@ export class AdminDashboardService {
     if (part === 0) return 0;
 
     const percentage = (part / whole) * 100;
-    return percentage.toFixed(2); // Rounds to 2 decimal places
+    return this._roundDownToTwo(percentage);
+  }
+
+  private _roundDownToTwo(digits: number) {
+    return Math.ceil(digits * 100) / 100;
   }
 }
