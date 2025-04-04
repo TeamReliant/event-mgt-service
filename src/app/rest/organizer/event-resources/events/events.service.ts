@@ -347,7 +347,7 @@ export class EventsService {
       relations: [
         'user',
         'tickets',
-        'eventViews',
+        // 'eventViews',
         'team',
         'team.members',
         'team.members.user',
@@ -417,11 +417,15 @@ export class EventsService {
 
     if (existingView) {
       existingView.updatedAt = new Date();
+      event.views++;
       await this.entityManager.save(EventView, existingView);
+      await this.entityManager.save(Event, event);
       return;
     }
 
     const view = this.entityManager.create(EventView, { event, user });
+    event.views++;
+    await this.entityManager.save(Event, event);
     await this.entityManager.save(EventView, view);
     return;
   }
