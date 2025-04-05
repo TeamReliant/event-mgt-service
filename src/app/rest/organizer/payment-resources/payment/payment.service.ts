@@ -1035,7 +1035,7 @@ export class PaymentService {
 
       // update the transaction record
       booking.transaction.refundedAmount += booking.unitAmount;
-      booking.transaction.refundedFee += platformFee;
+      // booking.transaction.refundedFee += platformFee;
 
       await manager.save<User>(booking.event.user);
       await manager.save<Event>(booking.event);
