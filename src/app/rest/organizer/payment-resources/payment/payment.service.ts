@@ -671,6 +671,7 @@ export class PaymentService {
         transfer_data: {
           destination: event.user.stripeConnectedAccountId, // Organizer's connected account
         },
+        on_behalf_of: event.user.stripeConnectedAccountId,
       },
       currency: this.configService.get<string>(
         'STRIPE_CHECKOUT_SESSION_CURRENCY',
