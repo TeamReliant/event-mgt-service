@@ -4,16 +4,15 @@ import * as path from 'path';
 import * as pug from 'pug';
 import { ConfigService } from '@nestjs/config';
 import { appInfo } from '@config/app.config';
-import process from 'node:process';
 
 @Injectable()
 export class EmailEngineService {
   private transporter: nodemailer.Transporter;
-  private from_email: string;
+  private readonly from_email: string;
   private readonly appInfo: any;
 
   constructor(private configService: ConfigService) {
-    this.from_email = process.env.FROM_EMAIL || appInfo.fromEmail;
+    this.from_email = process.env.FROM_EMAIL;
 
     const { appEmail, appName, companyName, companyPhone } = appInfo;
     this.appInfo = {
