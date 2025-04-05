@@ -8,10 +8,12 @@ import { appInfo } from '@config/app.config';
 @Injectable()
 export class EmailEngineService {
   private transporter: nodemailer.Transporter;
-  private from_email: string = appInfo.fromEmail;
+  private readonly from_email: string;
   private readonly appInfo: any;
 
   constructor(private configService: ConfigService) {
+    this.from_email = process.env.FROM_EMAIL;
+
     const { appEmail, appName, companyName, companyPhone } = appInfo;
     this.appInfo = {
       name: appName,
