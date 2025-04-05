@@ -1,0 +1,386 @@
+2025-03-31T09:47:12.141Z - INFO: Starting Nest application...
+2025-03-31T09:47:12.184Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.184Z - INFO: MulterModule dependencies initialized
+2025-03-31T09:47:12.186Z - INFO: ConfigHostModule dependencies initialized
+2025-03-31T09:47:12.186Z - INFO: NewsletterModule dependencies initialized
+2025-03-31T09:47:12.187Z - INFO: BookingsTransactionsModule dependencies initialized
+2025-03-31T09:47:12.187Z - INFO: SystemRegisterModule dependencies initialized
+2025-03-31T09:47:12.187Z - INFO: DiscoveryModule dependencies initialized
+2025-03-31T09:47:12.188Z - INFO: ConfigModule dependencies initialized
+2025-03-31T09:47:12.189Z - INFO: ConfigModule dependencies initialized
+2025-03-31T09:47:12.190Z - INFO: ScheduleModule dependencies initialized
+2025-03-31T09:47:12.191Z - INFO: EventEmitterModule dependencies initialized
+2025-03-31T09:47:12.244Z - INFO: CacheModule dependencies initialized
+2025-03-31T09:47:12.947Z - INFO: TypeOrmCoreModule dependencies initialized
+2025-03-31T09:47:12.948Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.949Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.949Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.949Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.949Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.950Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.950Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.950Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.950Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.951Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.951Z - INFO: PaginationModule dependencies initialized
+2025-03-31T09:47:12.951Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.951Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.952Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.952Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.952Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:47:12.956Z - INFO: AppModule dependencies initialized
+2025-03-31T09:47:12.958Z - INFO: UsersModule dependencies initialized
+2025-03-31T09:47:12.961Z - INFO: EventsListenerModule dependencies initialized
+2025-03-31T09:47:12.965Z - INFO: SubscribersModule dependencies initialized
+2025-03-31T09:47:12.970Z - INFO: OrganizerDashboardModule dependencies initialized
+2025-03-31T09:47:12.971Z - INFO: GeneralEventAnalyticsModule dependencies initialized
+2025-03-31T09:47:12.971Z - INFO: AdminDashboardModule dependencies initialized
+2025-03-31T09:47:12.971Z - INFO: EventManagementModule dependencies initialized
+2025-03-31T09:47:12.972Z - INFO: AttendeeDashboardModule dependencies initialized
+2025-03-31T09:47:12.972Z - INFO: PermissionsModule dependencies initialized
+2025-03-31T09:47:12.973Z - INFO: TeamMembersModule dependencies initialized
+2025-03-31T09:47:12.973Z - INFO: TeamInvitationsModule dependencies initialized
+2025-03-31T09:47:12.974Z - INFO: EventAnalyticsModule dependencies initialized
+2025-03-31T09:47:12.974Z - INFO: GuestsModule dependencies initialized
+2025-03-31T09:47:12.974Z - INFO: SubscribersManagementModule dependencies initialized
+2025-03-31T09:47:12.975Z - INFO: MarketplaceModule dependencies initialized
+2025-03-31T09:47:12.976Z - INFO: TasksModule dependencies initialized
+2025-03-31T09:47:12.976Z - INFO: LineItemsModule dependencies initialized
+2025-03-31T09:47:12.976Z - INFO: AdminManagementModule dependencies initialized
+2025-03-31T09:47:12.977Z - INFO: TransactionsModule dependencies initialized
+2025-03-31T09:47:12.977Z - INFO: PaymentModule dependencies initialized
+2025-03-31T09:47:12.978Z - INFO: TeamsModule dependencies initialized
+2025-03-31T09:47:12.978Z - INFO: BookingsModule dependencies initialized
+2025-03-31T09:47:12.979Z - INFO: EventsModule dependencies initialized
+2025-03-31T09:47:12.980Z - INFO: TicketsModule dependencies initialized
+2025-03-31T09:47:12.998Z - INFO: EventsController {/api/v1/em/events}:
+2025-03-31T09:47:13.003Z - INFO: Mapped {/api/v1/em/events/user-onboarded-status, GET} route
+2025-03-31T09:47:13.004Z - INFO: Mapped {/api/v1/em/events, POST} route
+2025-03-31T09:47:13.005Z - INFO: Mapped {/api/v1/em/events, GET} route
+2025-03-31T09:47:13.006Z - INFO: Mapped {/api/v1/em/events/:id, GET} route
+2025-03-31T09:47:13.007Z - INFO: Mapped {/api/v1/em/events/:id/soft-deleted-event, GET} route
+2025-03-31T09:47:13.008Z - INFO: Mapped {/api/v1/em/events/:slug/attendee, GET} route
+2025-03-31T09:47:13.008Z - INFO: Mapped {/api/v1/em/events/:id, PATCH} route
+2025-03-31T09:47:13.009Z - INFO: Mapped {/api/v1/em/events/:id, DELETE} route
+2025-03-31T09:47:13.010Z - INFO: Mapped {/api/v1/em/events/restore/:id, GET} route
+2025-03-31T09:47:13.011Z - INFO: Mapped {/api/v1/em/events/:id/team, POST} route
+2025-03-31T09:47:13.011Z - INFO: Mapped {/api/v1/em/events/:id/team/remove, POST} route
+2025-03-31T09:47:13.012Z - INFO: PaymentController {/api/v1/em/payment}:
+2025-03-31T09:47:13.013Z - INFO: Mapped {/api/v1/em/payment/create-sessions, POST} route
+2025-03-31T09:47:13.013Z - INFO: Mapped {/api/v1/em/payment/create-subscription, POST} route
+2025-03-31T09:47:13.013Z - INFO: Mapped {/api/v1/em/payment/cancel-subscription, POST} route
+2025-03-31T09:47:13.014Z - INFO: Mapped {/api/v1/em/payment/stripe-webhooks, POST} route
+2025-03-31T09:47:13.015Z - INFO: Mapped {/api/v1/em/payment/express-dashboard, GET} route
+2025-03-31T09:47:13.015Z - INFO: Mapped {/api/v1/em/payment/fees, POST} route
+2025-03-31T09:47:13.016Z - INFO: Mapped {/api/v1/em/payment/refund, POST} route
+2025-03-31T09:47:13.016Z - INFO: TransactionsController {/api/v1/em/transactions}:
+2025-03-31T09:47:13.017Z - INFO: Mapped {/api/v1/em/transactions, GET} route
+2025-03-31T09:47:13.017Z - INFO: Mapped {/api/v1/em/transactions/:transactionId, GET} route
+2025-03-31T09:47:13.018Z - INFO: PermissionsController {/api/v1/em}:
+2025-03-31T09:47:13.018Z - INFO: Mapped {/api/v1/em/permissions, POST} route
+2025-03-31T09:47:13.018Z - INFO: Mapped {/api/v1/em/teams/:teamId/team-members/:memberId, GET} route
+2025-03-31T09:47:13.019Z - INFO: Mapped {/api/v1/em/permissions, DELETE} route
+2025-03-31T09:47:13.019Z - INFO: TicketsController {/api/v1/em/tickets}:
+2025-03-31T09:47:13.020Z - INFO: Mapped {/api/v1/em/tickets, POST} route
+2025-03-31T09:47:13.020Z - INFO: Mapped {/api/v1/em/tickets/:id, GET} route
+2025-03-31T09:47:13.020Z - INFO: Mapped {/api/v1/em/tickets, GET} route
+2025-03-31T09:47:13.021Z - INFO: Mapped {/api/v1/em/tickets/:id, PATCH} route
+2025-03-31T09:47:13.022Z - INFO: Mapped {/api/v1/em/tickets/:id, DELETE} route
+2025-03-31T09:47:13.022Z - INFO: TeamMembersController {/api/v1/em/teams/:teamId/members}:
+2025-03-31T09:47:13.023Z - INFO: Mapped {/api/v1/em/teams/:teamId/members, GET} route
+2025-03-31T09:47:13.024Z - INFO: Mapped {/api/v1/em/teams/:teamId/members/:id, GET} route
+2025-03-31T09:47:13.024Z - INFO: Mapped {/api/v1/em/teams/:teamId/members/:id, PATCH} route
+2025-03-31T09:47:13.025Z - INFO: Mapped {/api/v1/em/teams/:teamId/members/:id, DELETE} route
+2025-03-31T09:47:13.025Z - INFO: TeamInvitationsController {/api/v1/em}:
+2025-03-31T09:47:13.025Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations, POST} route
+2025-03-31T09:47:13.026Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations, GET} route
+2025-03-31T09:47:13.026Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations/:id, GET} route
+2025-03-31T09:47:13.027Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations/resend, POST} route
+2025-03-31T09:47:13.027Z - INFO: Mapped {/api/v1/em/invitations/respond, POST} route
+2025-03-31T09:47:13.027Z - INFO: Mapped {/api/v1/em/invitations/details-by-token/:token, GET} route
+2025-03-31T09:47:13.028Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations/:id, DELETE} route
+2025-03-31T09:47:13.028Z - INFO: TeamsController {/api/v1/em/teams}:
+2025-03-31T09:47:13.028Z - INFO: Mapped {/api/v1/em/teams, POST} route
+2025-03-31T09:47:13.029Z - INFO: Mapped {/api/v1/em/teams, GET} route
+2025-03-31T09:47:13.030Z - INFO: Mapped {/api/v1/em/teams/:id, GET} route
+2025-03-31T09:47:13.030Z - INFO: Mapped {/api/v1/em/teams/:id, PATCH} route
+2025-03-31T09:47:13.031Z - INFO: Mapped {/api/v1/em/teams/:id, DELETE} route
+2025-03-31T09:47:13.031Z - INFO: TasksController {/api/v1/em/events/:eventId/tasks}:
+2025-03-31T09:47:13.031Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks, POST} route
+2025-03-31T09:47:13.032Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks, GET} route
+2025-03-31T09:47:13.033Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks/:id, GET} route
+2025-03-31T09:47:13.033Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks/:id, PATCH} route
+2025-03-31T09:47:13.033Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks/:id, DELETE} route
+2025-03-31T09:47:13.034Z - INFO: LineItemsController {/api/v1/em/events/:eventId/line-items}:
+2025-03-31T09:47:13.035Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items, POST} route
+2025-03-31T09:47:13.035Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/budget/analytics, GET} route
+2025-03-31T09:47:13.035Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items, GET} route
+2025-03-31T09:47:13.036Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/categories/all, GET} route
+2025-03-31T09:47:13.036Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/:id, GET} route
+2025-03-31T09:47:13.036Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/:id, PATCH} route
+2025-03-31T09:47:13.037Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/:id, DELETE} route
+2025-03-31T09:47:13.037Z - INFO: OrganizerDashboardController {/api/v1/em}:
+2025-03-31T09:47:13.037Z - INFO: Mapped {/api/v1/em/organizer-dashboard, GET} route
+2025-03-31T09:47:13.038Z - INFO: EventAnalyticsController {/api/v1/em}:
+2025-03-31T09:47:13.039Z - INFO: Mapped {/api/v1/em/event-analytics/:eventId, GET} route
+2025-03-31T09:47:13.039Z - INFO: GeneralEventAnalyticsController {/api/v1/em}:
+2025-03-31T09:47:13.039Z - INFO: Mapped {/api/v1/em/general-event-analytics, GET} route
+2025-03-31T09:47:13.041Z - INFO: MarketplaceController {/api/v1/em/marketplace}:
+2025-03-31T09:47:13.042Z - INFO: Mapped {/api/v1/em/marketplace/find-events, GET} route
+2025-03-31T09:47:13.043Z - INFO: Mapped {/api/v1/em/marketplace/find-top-events, GET} route
+2025-03-31T09:47:13.044Z - INFO: NewsletterController {/api/v1/em/newsletter}:
+2025-03-31T09:47:13.044Z - INFO: Mapped {/api/v1/em/newsletter, POST} route
+2025-03-31T09:47:13.045Z - INFO: Mapped {/api/v1/em/newsletter, GET} route
+2025-03-31T09:47:13.046Z - INFO: Mapped {/api/v1/em/newsletter/:id, GET} route
+2025-03-31T09:47:13.047Z - INFO: Mapped {/api/v1/em/newsletter/:id, PATCH} route
+2025-03-31T09:47:13.048Z - INFO: Mapped {/api/v1/em/newsletter/:id, DELETE} route
+2025-03-31T09:47:13.049Z - INFO: SubscribersController {/api/v1/em/subscribers}:
+2025-03-31T09:47:13.051Z - INFO: Mapped {/api/v1/em/subscribers, POST} route
+2025-03-31T09:47:13.052Z - INFO: Mapped {/api/v1/em/subscribers, PATCH} route
+2025-03-31T09:47:13.052Z - INFO: BookingsController {/api/v1/em}:
+2025-03-31T09:47:13.053Z - INFO: Mapped {/api/v1/em/events/:eventId/bookings, POST} route
+2025-03-31T09:47:13.055Z - INFO: Mapped {/api/v1/em/events/:eventId/bookings/process, POST} route
+2025-03-31T09:47:13.055Z - INFO: Mapped {/api/v1/em/bookings, GET} route
+2025-03-31T09:47:13.056Z - INFO: Mapped {/api/v1/em/bookings/:id, GET} route
+2025-03-31T09:47:13.057Z - INFO: Mapped {/api/v1/em/bookings/:id, DELETE} route
+2025-03-31T09:47:13.058Z - INFO: Mapped {/api/v1/em/bookings/transfer, POST} route
+2025-03-31T09:47:13.058Z - INFO: Mapped {/api/v1/em/bookings/update-rsvp, PATCH} route
+2025-03-31T09:47:13.059Z - INFO: Mapped {/api/v1/em/bookings/complimentary, POST} route
+2025-03-31T09:47:13.059Z - INFO: Mapped {/api/v1/em/bookings/verify, POST} route
+2025-03-31T09:47:13.059Z - INFO: BookingsTransactionsController {/api/v1/em/bookings-transactions}:
+2025-03-31T09:47:13.060Z - INFO: Mapped {/api/v1/em/bookings-transactions, POST} route
+2025-03-31T09:47:13.061Z - INFO: Mapped {/api/v1/em/bookings-transactions, GET} route
+2025-03-31T09:47:13.061Z - INFO: Mapped {/api/v1/em/bookings-transactions/:id, GET} route
+2025-03-31T09:47:13.061Z - INFO: Mapped {/api/v1/em/bookings-transactions/:id, PATCH} route
+2025-03-31T09:47:13.062Z - INFO: Mapped {/api/v1/em/bookings-transactions/:id, DELETE} route
+2025-03-31T09:47:13.062Z - INFO: AttendeeDashboardController {/api/v1/em/attendee-dashboard}:
+2025-03-31T09:47:13.063Z - INFO: Mapped {/api/v1/em/attendee-dashboard, GET} route
+2025-03-31T09:47:13.063Z - INFO: GuestsController {/api/v1/em}:
+2025-03-31T09:47:13.064Z - INFO: Mapped {/api/v1/em/events/:eventId/guests, GET} route
+2025-03-31T09:47:13.064Z - INFO: Mapped {/api/v1/em/guests/:bookingId, GET} route
+2025-03-31T09:47:13.065Z - INFO: Mapped {/api/v1/em/events/:eventId/guests/broadcast, POST} route
+2025-03-31T09:47:13.065Z - INFO: Mapped {/api/v1/em/events/:eventId/guests/check, POST} route
+2025-03-31T09:47:13.065Z - INFO: AdminDashboardController {/api/v1/em/admin/dashboard}:
+2025-03-31T09:47:13.066Z - INFO: Mapped {/api/v1/em/admin/dashboard/active-users-chart, GET} route
+2025-03-31T09:47:13.066Z - INFO: Mapped {/api/v1/em/admin/dashboard/analytics, GET} route
+2025-03-31T09:47:13.066Z - INFO: SystemRegisterController {/api/v1/em/system-register}:
+2025-03-31T09:47:13.067Z - INFO: Mapped {/api/v1/em/system-register, POST} route
+2025-03-31T09:47:13.067Z - INFO: Mapped {/api/v1/em/system-register, GET} route
+2025-03-31T09:47:13.067Z - INFO: Mapped {/api/v1/em/system-register/:id, GET} route
+2025-03-31T09:47:13.068Z - INFO: Mapped {/api/v1/em/system-register/:id, PATCH} route
+2025-03-31T09:47:13.068Z - INFO: Mapped {/api/v1/em/system-register/:id, DELETE} route
+2025-03-31T09:47:13.068Z - INFO: AdminManagementController {/api/v1/em/admin-management}:
+2025-03-31T09:47:13.069Z - INFO: Mapped {/api/v1/em/admin-management/get-all-users, GET} route
+2025-03-31T09:47:13.069Z - INFO: Mapped {/api/v1/em/admin-management/user-stats, GET} route
+2025-03-31T09:47:13.070Z - INFO: Mapped {/api/v1/em/admin-management/:id, GET} route
+2025-03-31T09:47:13.070Z - INFO: Mapped {/api/v1/em/admin-management/export-all-users, POST} route
+2025-03-31T09:47:13.071Z - INFO: Mapped {/api/v1/em/admin-management/:id/block-user, POST} route
+2025-03-31T09:47:13.071Z - INFO: Mapped {/api/v1/em/admin-management/:id/unblock-user, POST} route
+2025-03-31T09:47:13.071Z - INFO: EventManagementController {/api/v1/em/admin/events}:
+2025-03-31T09:47:13.071Z - INFO: Mapped {/api/v1/em/admin/events, GET} route
+2025-03-31T09:47:13.072Z - INFO: Mapped {/api/v1/em/admin/events/export, POST} route
+2025-03-31T09:47:13.072Z - INFO: SubscribersManagementController {/api/v1/em/admin/subscribers}:
+2025-03-31T09:47:13.072Z - INFO: Mapped {/api/v1/em/admin/subscribers, GET} route
+2025-03-31T09:47:13.073Z - INFO: Mapped {/api/v1/em/admin/subscribers/:id, GET} route
+2025-03-31T09:47:13.073Z - INFO: Mapped {/api/v1/em/admin/subscribers/export, POST} route
+2025-03-31T09:47:13.073Z - INFO: Mapped {/api/v1/em/admin/subscribers/:id, DELETE} route
+2025-03-31T09:47:13.106Z - INFO: Nest application successfully started
+2025-03-31T09:47:29.218Z - INFO: Incoming Request: GET /api/v1/em/organizer-dashboard | Params: {"0":"organizer-dashboard"} | Query: {} | Body: {}
+2025-03-31T09:47:29.302Z - ERROR: ERROR: AUTHORIZATION_ERROR GET /api/v1/em/organizer-dashboard | Message: UnAuthorized Access | Body: {}
+2025-03-31T09:47:29.308Z - INFO: Response: 401 GET /api/v1/em/organizer-dashboard | Duration: 90ms
+2025-03-31T09:47:42.632Z - INFO: Incoming Request: GET /api/v1/em/organizer-dashboard | Params: {"0":"organizer-dashboard"} | Query: {} | Body: {}
+2025-03-31T09:47:42.713Z - ERROR: ERROR: AUTHORIZATION_ERROR GET /api/v1/em/organizer-dashboard | Message: UnAuthorized Access | Body: {}
+2025-03-31T09:47:42.714Z - INFO: Response: 401 GET /api/v1/em/organizer-dashboard | Duration: 82ms
+2025-03-31T09:48:40.450Z - INFO: Incoming Request: GET /api/v1/em/organizer-dashboard | Params: {"0":"organizer-dashboard"} | Query: {} | Body: {}
+2025-03-31T09:48:40.532Z - ERROR: ERROR: AUTHORIZATION_ERROR GET /api/v1/em/organizer-dashboard | Message: UnAuthorized Access | Body: {}
+2025-03-31T09:48:40.533Z - INFO: Response: 401 GET /api/v1/em/organizer-dashboard | Duration: 83ms
+2025-03-31T09:49:33.574Z - INFO: Starting Nest application...
+2025-03-31T09:49:33.613Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:33.614Z - INFO: MulterModule dependencies initialized
+2025-03-31T09:49:33.615Z - INFO: ConfigHostModule dependencies initialized
+2025-03-31T09:49:33.616Z - INFO: NewsletterModule dependencies initialized
+2025-03-31T09:49:33.616Z - INFO: BookingsTransactionsModule dependencies initialized
+2025-03-31T09:49:33.616Z - INFO: SystemRegisterModule dependencies initialized
+2025-03-31T09:49:33.617Z - INFO: DiscoveryModule dependencies initialized
+2025-03-31T09:49:33.618Z - INFO: ConfigModule dependencies initialized
+2025-03-31T09:49:33.618Z - INFO: ConfigModule dependencies initialized
+2025-03-31T09:49:33.619Z - INFO: ScheduleModule dependencies initialized
+2025-03-31T09:49:33.619Z - INFO: EventEmitterModule dependencies initialized
+2025-03-31T09:49:33.673Z - INFO: CacheModule dependencies initialized
+2025-03-31T09:49:34.116Z - INFO: TypeOrmCoreModule dependencies initialized
+2025-03-31T09:49:34.116Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.117Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.117Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.117Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.117Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.117Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.118Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.118Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.118Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.118Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.119Z - INFO: PaginationModule dependencies initialized
+2025-03-31T09:49:34.119Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.119Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.119Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.119Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.120Z - INFO: TypeOrmModule dependencies initialized
+2025-03-31T09:49:34.121Z - INFO: AppModule dependencies initialized
+2025-03-31T09:49:34.123Z - INFO: UsersModule dependencies initialized
+2025-03-31T09:49:34.125Z - INFO: EventsListenerModule dependencies initialized
+2025-03-31T09:49:34.127Z - INFO: SubscribersModule dependencies initialized
+2025-03-31T09:49:34.130Z - INFO: OrganizerDashboardModule dependencies initialized
+2025-03-31T09:49:34.130Z - INFO: GeneralEventAnalyticsModule dependencies initialized
+2025-03-31T09:49:34.130Z - INFO: AdminDashboardModule dependencies initialized
+2025-03-31T09:49:34.131Z - INFO: EventManagementModule dependencies initialized
+2025-03-31T09:49:34.131Z - INFO: AttendeeDashboardModule dependencies initialized
+2025-03-31T09:49:34.132Z - INFO: PermissionsModule dependencies initialized
+2025-03-31T09:49:34.132Z - INFO: TeamMembersModule dependencies initialized
+2025-03-31T09:49:34.132Z - INFO: TeamInvitationsModule dependencies initialized
+2025-03-31T09:49:34.133Z - INFO: EventAnalyticsModule dependencies initialized
+2025-03-31T09:49:34.133Z - INFO: GuestsModule dependencies initialized
+2025-03-31T09:49:34.133Z - INFO: SubscribersManagementModule dependencies initialized
+2025-03-31T09:49:34.135Z - INFO: MarketplaceModule dependencies initialized
+2025-03-31T09:49:34.135Z - INFO: TasksModule dependencies initialized
+2025-03-31T09:49:34.135Z - INFO: LineItemsModule dependencies initialized
+2025-03-31T09:49:34.135Z - INFO: AdminManagementModule dependencies initialized
+2025-03-31T09:49:34.136Z - INFO: TransactionsModule dependencies initialized
+2025-03-31T09:49:34.136Z - INFO: PaymentModule dependencies initialized
+2025-03-31T09:49:34.136Z - INFO: TeamsModule dependencies initialized
+2025-03-31T09:49:34.137Z - INFO: BookingsModule dependencies initialized
+2025-03-31T09:49:34.137Z - INFO: EventsModule dependencies initialized
+2025-03-31T09:49:34.138Z - INFO: TicketsModule dependencies initialized
+2025-03-31T09:49:34.153Z - INFO: EventsController {/api/v1/em/events}:
+2025-03-31T09:49:34.158Z - INFO: Mapped {/api/v1/em/events/user-onboarded-status, GET} route
+2025-03-31T09:49:34.159Z - INFO: Mapped {/api/v1/em/events, POST} route
+2025-03-31T09:49:34.160Z - INFO: Mapped {/api/v1/em/events, GET} route
+2025-03-31T09:49:34.161Z - INFO: Mapped {/api/v1/em/events/:id, GET} route
+2025-03-31T09:49:34.162Z - INFO: Mapped {/api/v1/em/events/:id/soft-deleted-event, GET} route
+2025-03-31T09:49:34.162Z - INFO: Mapped {/api/v1/em/events/:slug/attendee, GET} route
+2025-03-31T09:49:34.163Z - INFO: Mapped {/api/v1/em/events/:id, PATCH} route
+2025-03-31T09:49:34.164Z - INFO: Mapped {/api/v1/em/events/:id, DELETE} route
+2025-03-31T09:49:34.164Z - INFO: Mapped {/api/v1/em/events/restore/:id, GET} route
+2025-03-31T09:49:34.165Z - INFO: Mapped {/api/v1/em/events/:id/team, POST} route
+2025-03-31T09:49:34.166Z - INFO: Mapped {/api/v1/em/events/:id/team/remove, POST} route
+2025-03-31T09:49:34.166Z - INFO: PaymentController {/api/v1/em/payment}:
+2025-03-31T09:49:34.166Z - INFO: Mapped {/api/v1/em/payment/create-sessions, POST} route
+2025-03-31T09:49:34.167Z - INFO: Mapped {/api/v1/em/payment/create-subscription, POST} route
+2025-03-31T09:49:34.167Z - INFO: Mapped {/api/v1/em/payment/cancel-subscription, POST} route
+2025-03-31T09:49:34.168Z - INFO: Mapped {/api/v1/em/payment/stripe-webhooks, POST} route
+2025-03-31T09:49:34.168Z - INFO: Mapped {/api/v1/em/payment/express-dashboard, GET} route
+2025-03-31T09:49:34.168Z - INFO: Mapped {/api/v1/em/payment/fees, POST} route
+2025-03-31T09:49:34.169Z - INFO: Mapped {/api/v1/em/payment/refund, POST} route
+2025-03-31T09:49:34.169Z - INFO: TransactionsController {/api/v1/em/transactions}:
+2025-03-31T09:49:34.170Z - INFO: Mapped {/api/v1/em/transactions, GET} route
+2025-03-31T09:49:34.170Z - INFO: Mapped {/api/v1/em/transactions/:transactionId, GET} route
+2025-03-31T09:49:34.170Z - INFO: PermissionsController {/api/v1/em}:
+2025-03-31T09:49:34.170Z - INFO: Mapped {/api/v1/em/permissions, POST} route
+2025-03-31T09:49:34.171Z - INFO: Mapped {/api/v1/em/teams/:teamId/team-members/:memberId, GET} route
+2025-03-31T09:49:34.171Z - INFO: Mapped {/api/v1/em/permissions, DELETE} route
+2025-03-31T09:49:34.172Z - INFO: TicketsController {/api/v1/em/tickets}:
+2025-03-31T09:49:34.172Z - INFO: Mapped {/api/v1/em/tickets, POST} route
+2025-03-31T09:49:34.173Z - INFO: Mapped {/api/v1/em/tickets/:id, GET} route
+2025-03-31T09:49:34.174Z - INFO: Mapped {/api/v1/em/tickets, GET} route
+2025-03-31T09:49:34.175Z - INFO: Mapped {/api/v1/em/tickets/:id, PATCH} route
+2025-03-31T09:49:34.175Z - INFO: Mapped {/api/v1/em/tickets/:id, DELETE} route
+2025-03-31T09:49:34.175Z - INFO: TeamMembersController {/api/v1/em/teams/:teamId/members}:
+2025-03-31T09:49:34.176Z - INFO: Mapped {/api/v1/em/teams/:teamId/members, GET} route
+2025-03-31T09:49:34.176Z - INFO: Mapped {/api/v1/em/teams/:teamId/members/:id, GET} route
+2025-03-31T09:49:34.177Z - INFO: Mapped {/api/v1/em/teams/:teamId/members/:id, PATCH} route
+2025-03-31T09:49:34.177Z - INFO: Mapped {/api/v1/em/teams/:teamId/members/:id, DELETE} route
+2025-03-31T09:49:34.178Z - INFO: TeamInvitationsController {/api/v1/em}:
+2025-03-31T09:49:34.178Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations, POST} route
+2025-03-31T09:49:34.179Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations, GET} route
+2025-03-31T09:49:34.179Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations/:id, GET} route
+2025-03-31T09:49:34.179Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations/resend, POST} route
+2025-03-31T09:49:34.180Z - INFO: Mapped {/api/v1/em/invitations/respond, POST} route
+2025-03-31T09:49:34.180Z - INFO: Mapped {/api/v1/em/invitations/details-by-token/:token, GET} route
+2025-03-31T09:49:34.180Z - INFO: Mapped {/api/v1/em/teams/:teamId/invitations/:id, DELETE} route
+2025-03-31T09:49:34.181Z - INFO: TeamsController {/api/v1/em/teams}:
+2025-03-31T09:49:34.181Z - INFO: Mapped {/api/v1/em/teams, POST} route
+2025-03-31T09:49:34.182Z - INFO: Mapped {/api/v1/em/teams, GET} route
+2025-03-31T09:49:34.182Z - INFO: Mapped {/api/v1/em/teams/:id, GET} route
+2025-03-31T09:49:34.183Z - INFO: Mapped {/api/v1/em/teams/:id, PATCH} route
+2025-03-31T09:49:34.183Z - INFO: Mapped {/api/v1/em/teams/:id, DELETE} route
+2025-03-31T09:49:34.183Z - INFO: TasksController {/api/v1/em/events/:eventId/tasks}:
+2025-03-31T09:49:34.184Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks, POST} route
+2025-03-31T09:49:34.184Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks, GET} route
+2025-03-31T09:49:34.185Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks/:id, GET} route
+2025-03-31T09:49:34.185Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks/:id, PATCH} route
+2025-03-31T09:49:34.185Z - INFO: Mapped {/api/v1/em/events/:eventId/tasks/:id, DELETE} route
+2025-03-31T09:49:34.186Z - INFO: LineItemsController {/api/v1/em/events/:eventId/line-items}:
+2025-03-31T09:49:34.187Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items, POST} route
+2025-03-31T09:49:34.188Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/budget/analytics, GET} route
+2025-03-31T09:49:34.188Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items, GET} route
+2025-03-31T09:49:34.189Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/categories/all, GET} route
+2025-03-31T09:49:34.189Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/:id, GET} route
+2025-03-31T09:49:34.189Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/:id, PATCH} route
+2025-03-31T09:49:34.190Z - INFO: Mapped {/api/v1/em/events/:eventId/line-items/:id, DELETE} route
+2025-03-31T09:49:34.190Z - INFO: OrganizerDashboardController {/api/v1/em}:
+2025-03-31T09:49:34.190Z - INFO: Mapped {/api/v1/em/organizer-dashboard, GET} route
+2025-03-31T09:49:34.191Z - INFO: EventAnalyticsController {/api/v1/em}:
+2025-03-31T09:49:34.191Z - INFO: Mapped {/api/v1/em/event-analytics/:eventId, GET} route
+2025-03-31T09:49:34.192Z - INFO: GeneralEventAnalyticsController {/api/v1/em}:
+2025-03-31T09:49:34.192Z - INFO: Mapped {/api/v1/em/general-event-analytics, GET} route
+2025-03-31T09:49:34.192Z - INFO: MarketplaceController {/api/v1/em/marketplace}:
+2025-03-31T09:49:34.193Z - INFO: Mapped {/api/v1/em/marketplace/find-events, GET} route
+2025-03-31T09:49:34.193Z - INFO: Mapped {/api/v1/em/marketplace/find-top-events, GET} route
+2025-03-31T09:49:34.193Z - INFO: NewsletterController {/api/v1/em/newsletter}:
+2025-03-31T09:49:34.194Z - INFO: Mapped {/api/v1/em/newsletter, POST} route
+2025-03-31T09:49:34.194Z - INFO: Mapped {/api/v1/em/newsletter, GET} route
+2025-03-31T09:49:34.194Z - INFO: Mapped {/api/v1/em/newsletter/:id, GET} route
+2025-03-31T09:49:34.195Z - INFO: Mapped {/api/v1/em/newsletter/:id, PATCH} route
+2025-03-31T09:49:34.195Z - INFO: Mapped {/api/v1/em/newsletter/:id, DELETE} route
+2025-03-31T09:49:34.195Z - INFO: SubscribersController {/api/v1/em/subscribers}:
+2025-03-31T09:49:34.196Z - INFO: Mapped {/api/v1/em/subscribers, POST} route
+2025-03-31T09:49:34.196Z - INFO: Mapped {/api/v1/em/subscribers, PATCH} route
+2025-03-31T09:49:34.196Z - INFO: BookingsController {/api/v1/em}:
+2025-03-31T09:49:34.197Z - INFO: Mapped {/api/v1/em/events/:eventId/bookings, POST} route
+2025-03-31T09:49:34.197Z - INFO: Mapped {/api/v1/em/events/:eventId/bookings/process, POST} route
+2025-03-31T09:49:34.197Z - INFO: Mapped {/api/v1/em/bookings, GET} route
+2025-03-31T09:49:34.198Z - INFO: Mapped {/api/v1/em/bookings/:id, GET} route
+2025-03-31T09:49:34.198Z - INFO: Mapped {/api/v1/em/bookings/:id, DELETE} route
+2025-03-31T09:49:34.198Z - INFO: Mapped {/api/v1/em/bookings/transfer, POST} route
+2025-03-31T09:49:34.199Z - INFO: Mapped {/api/v1/em/bookings/update-rsvp, PATCH} route
+2025-03-31T09:49:34.199Z - INFO: Mapped {/api/v1/em/bookings/complimentary, POST} route
+2025-03-31T09:49:34.199Z - INFO: Mapped {/api/v1/em/bookings/verify, POST} route
+2025-03-31T09:49:34.200Z - INFO: BookingsTransactionsController {/api/v1/em/bookings-transactions}:
+2025-03-31T09:49:34.200Z - INFO: Mapped {/api/v1/em/bookings-transactions, POST} route
+2025-03-31T09:49:34.200Z - INFO: Mapped {/api/v1/em/bookings-transactions, GET} route
+2025-03-31T09:49:34.201Z - INFO: Mapped {/api/v1/em/bookings-transactions/:id, GET} route
+2025-03-31T09:49:34.201Z - INFO: Mapped {/api/v1/em/bookings-transactions/:id, PATCH} route
+2025-03-31T09:49:34.201Z - INFO: Mapped {/api/v1/em/bookings-transactions/:id, DELETE} route
+2025-03-31T09:49:34.202Z - INFO: AttendeeDashboardController {/api/v1/em/attendee-dashboard}:
+2025-03-31T09:49:34.202Z - INFO: Mapped {/api/v1/em/attendee-dashboard, GET} route
+2025-03-31T09:49:34.202Z - INFO: GuestsController {/api/v1/em}:
+2025-03-31T09:49:34.203Z - INFO: Mapped {/api/v1/em/events/:eventId/guests, GET} route
+2025-03-31T09:49:34.203Z - INFO: Mapped {/api/v1/em/guests/:bookingId, GET} route
+2025-03-31T09:49:34.204Z - INFO: Mapped {/api/v1/em/events/:eventId/guests/broadcast, POST} route
+2025-03-31T09:49:34.204Z - INFO: Mapped {/api/v1/em/events/:eventId/guests/check, POST} route
+2025-03-31T09:49:34.204Z - INFO: AdminDashboardController {/api/v1/em/admin/dashboard}:
+2025-03-31T09:49:34.205Z - INFO: Mapped {/api/v1/em/admin/dashboard/active-users-chart, GET} route
+2025-03-31T09:49:34.206Z - INFO: Mapped {/api/v1/em/admin/dashboard/analytics, GET} route
+2025-03-31T09:49:34.206Z - INFO: SystemRegisterController {/api/v1/em/system-register}:
+2025-03-31T09:49:34.206Z - INFO: Mapped {/api/v1/em/system-register, POST} route
+2025-03-31T09:49:34.207Z - INFO: Mapped {/api/v1/em/system-register, GET} route
+2025-03-31T09:49:34.207Z - INFO: Mapped {/api/v1/em/system-register/:id, GET} route
+2025-03-31T09:49:34.208Z - INFO: Mapped {/api/v1/em/system-register/:id, PATCH} route
+2025-03-31T09:49:34.208Z - INFO: Mapped {/api/v1/em/system-register/:id, DELETE} route
+2025-03-31T09:49:34.208Z - INFO: AdminManagementController {/api/v1/em/admin-management}:
+2025-03-31T09:49:34.209Z - INFO: Mapped {/api/v1/em/admin-management/get-all-users, GET} route
+2025-03-31T09:49:34.209Z - INFO: Mapped {/api/v1/em/admin-management/user-stats, GET} route
+2025-03-31T09:49:34.209Z - INFO: Mapped {/api/v1/em/admin-management/:id, GET} route
+2025-03-31T09:49:34.210Z - INFO: Mapped {/api/v1/em/admin-management/export-all-users, POST} route
+2025-03-31T09:49:34.210Z - INFO: Mapped {/api/v1/em/admin-management/:id/block-user, POST} route
+2025-03-31T09:49:34.210Z - INFO: Mapped {/api/v1/em/admin-management/:id/unblock-user, POST} route
+2025-03-31T09:49:34.211Z - INFO: EventManagementController {/api/v1/em/admin/events}:
+2025-03-31T09:49:34.211Z - INFO: Mapped {/api/v1/em/admin/events, GET} route
+2025-03-31T09:49:34.211Z - INFO: Mapped {/api/v1/em/admin/events/export, POST} route
+2025-03-31T09:49:34.212Z - INFO: SubscribersManagementController {/api/v1/em/admin/subscribers}:
+2025-03-31T09:49:34.212Z - INFO: Mapped {/api/v1/em/admin/subscribers, GET} route
+2025-03-31T09:49:34.212Z - INFO: Mapped {/api/v1/em/admin/subscribers/:id, GET} route
+2025-03-31T09:49:34.212Z - INFO: Mapped {/api/v1/em/admin/subscribers/export, POST} route
+2025-03-31T09:49:34.213Z - INFO: Mapped {/api/v1/em/admin/subscribers/:id, DELETE} route
+2025-03-31T09:49:34.238Z - INFO: Nest application successfully started
+2025-03-31T09:50:05.860Z - INFO: Incoming Request: GET /api/v1/em/organizer-dashboard | Params: {"0":"organizer-dashboard"} | Query: {} | Body: {}
+2025-03-31T09:50:05.955Z - ERROR: ERROR: AUTHORIZATION_ERROR GET /api/v1/em/organizer-dashboard | Message: UnAuthorized Access | Body: {}
+2025-03-31T09:50:05.961Z - INFO: Response: 401 GET /api/v1/em/organizer-dashboard | Duration: 101ms
