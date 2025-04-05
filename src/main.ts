@@ -32,18 +32,18 @@ async function bootstrap() {
 
   const port = configService.get<number>('PORT');
 
-  // // Catch Uncaught Exceptions (Sync Errors)
-  // process.on('uncaughtException', (error) => {
-  //   logger.error(
-  //     `Uncaught Exception: ${error.message} | Stack: ${error.stack}`,
-  //   );
-  //   process.exit(1); // Exit process after logging
-  // });
-  //
-  // // Catch Unhandled Promise Rejections (Async Errors)
-  // process.on('unhandledRejection', (reason: any) => {
-  //   logger.error(`Unhandled Rejection: ${reason.message || reason}`);
-  // });
+  // Catch Uncaught Exceptions (Sync Errors)
+  process.on('uncaughtException', (error) => {
+    customLogger.error(
+      `Uncaught Exception: ${error.message} | Stack: ${error.stack}`,
+    );
+    process.exit(1); // Exit process after logging
+  });
+
+  // Catch Unhandled Promise Rejections (Async Errors)
+  process.on('unhandledRejection', (reason: any) => {
+    customLogger.error(`Unhandled Rejection: ${reason.message || reason}`);
+  });
 
   process.on('uncaughtException', (err) => {
     customLogger.error('Uncaught Exception', err);
