@@ -69,7 +69,8 @@ jobs:
             STRIPE_CHECKOUT_SESSION_CURRENCY=${{ secrets.PROD_STRIPE_CHECKOUT_SESSION_CURRENCY }}
             TICKET_PERCENTAGE_CUT=${{ secrets.PROD_TICKET_PERCENTAGE_CUT }}
             STRIPE_FEE=${{ secrets.PROD_STRIPE_FEE }}
-
+            FROM_EMAIL=${{ secrets.PROD_FROM_EMAIL }}
+            
 
   deploy:
     runs-on: ubuntu-latest
