@@ -95,12 +95,14 @@ export class CustomLoggerService implements LoggerService {
     console.info(message, ...optionalParams);
   }
 
-
   private formatMessage(message: any, optionalParams: any[]): string {
-    const base = typeof message === 'string' ? message : JSON.stringify(message);
-    const extras = optionalParams.map(param =>
-      typeof param === 'string' ? param : JSON.stringify(param)
-    ).join(' ');
+    const base =
+      typeof message === 'string' ? message : JSON.stringify(message);
+    const extras = optionalParams
+      .map((param) =>
+        typeof param === 'string' ? param : JSON.stringify(param),
+      )
+      .join(' ');
 
     return `${base} ${extras}`.trim();
   }
