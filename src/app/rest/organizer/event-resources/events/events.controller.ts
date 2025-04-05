@@ -119,8 +119,6 @@ export class EventsController {
     }
   }
 
-
-
   @Get()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)

@@ -2,7 +2,7 @@ extends ../baseEmail
 
 block content
   p #{(payload.assignee)? `Hello ${payload.assignee.firstname}  ${payload.assignee.lastname}`: 'Hello'},
-  p You have been assigned a new task within the Quick Test team for the event #{payload.task.event.name}.
+  p You have been assigned a new task within the #{payload.task.event.team.name} team for the event #{payload.task.event.name}.
 
 
   p Task Title: **#{payload.task.title}**
