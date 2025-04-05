@@ -17,7 +17,7 @@ async function bootstrap() {
   app.useGlobalFilters(new CustomExceptionFilter());
 
   app.enableCors({
-    origin: '*',
+    origin: '*path',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
 
