@@ -62,16 +62,46 @@ export class CustomLoggerService implements LoggerService {
     this.currentLineCount++;
   }
 
-  log(message: string) {
-    this.writeToFile('INFO', message);
+  log(message: any, ...optionalParams: any[]) {
+    this.writeToFile('LOG', this.formatMessage(message, optionalParams));
+    console.log(message, ...optionalParams);
   }
 
-  warn(message: string) {
-    console.warn(message);
-    this.writeToFile('WARNING', `WARNING: ${message}`);
+  error(message: any, ...optionalParams: any[]) {
+    let errorMessage = '';
+
+    if (message instanceof Error) {
+      errorMessage = `${message.message}\n${message.stack}`;
+    } else {
+      errorMessage = this.formatMessage(message, optionalParams);
+    }
+
+    this.writeToFile('ERROR', errorMessage);
+    console.error(errorMessage);
   }
 
-  error(message: string) {
-    this.writeToFile('ERROR', message);
+  warn(message: any, ...optionalParams: any[]) {
+    this.writeToFile('WARN', this.formatMessage(message, optionalParams));
+    console.warn(message, ...optionalParams);
+  }
+
+  debug(message: any, ...optionalParams: any[]) {
+    this.writeToFile('DEBUG', this.formatMessage(message, optionalParams));
+    console.debug(message, ...optionalParams);
+  }
+
+  verbose(message: any, ...optionalParams: any[]) {
+    this.writeToFile('VERBOSE', this.formatMessage(message, optionalParams));
+    console.info(message, ...optionalParams);
+  }
+
+
+  private formatMessage(message: any, optionalParams: any[]): string {
+    const base = typeof message === 'string' ? message : JSON.stringify(message);
+    const extras = optionalParams.map(param =>
+      typeof param === 'string' ? param : JSON.stringify(param)
+    ).join(' ');
+
+    return `${base} ${extras}`.trim();
   }
 }
