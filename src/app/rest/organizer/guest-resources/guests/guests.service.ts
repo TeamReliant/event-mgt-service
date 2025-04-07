@@ -333,18 +333,23 @@ export class GuestsService {
       throw new NotAcceptableException('Ticket has not been used');
 
     return await this._entityManager.transaction(async (manager) => {
-      // update the ticket accordinly
-      booking.status =
-        check === 'in' ? BookingStatus.USED : BookingStatus.VALID;
+      // update the ticket accordingly
+      if (booking.status === BookingStatus.USED && check === 'out') {
+        booking.status = BookingStatus.VALID;
+      }
 
-      // fetch the system register
-      const systemRegister = await manager
-        .createQueryBuilder(SystemRegister, 'system')
-        .getOne();
+      if (booking.status === BookingStatus.VALID && check === 'in') {
+        booking.status = BookingStatus.USED;
 
-      // update the register
-      systemRegister.scannedTickets += 1;
-      await manager.save<SystemRegister>(systemRegister);
+        // fetch the system register
+        const systemRegister = await manager
+          .createQueryBuilder(SystemRegister, 'system')
+          .getOne();
+
+        // update the register
+        systemRegister.scannedTickets += 1;
+        await manager.save<SystemRegister>(systemRegister);
+      }
 
       return manager.getRepository(Booking).save(booking);
     });
