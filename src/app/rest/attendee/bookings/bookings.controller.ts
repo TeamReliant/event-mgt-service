@@ -67,7 +67,7 @@ export class BookingsController {
     @Query() query: FetchBookingsQueriesDto,
     @Req() req: Request,
   ) {
-    const response = this._bookingsService.findAll(userId, query);
+    const response = await this._bookingsService.findAll(userId, query);
     const paginatedData = await ResponseSerializer.applyHTEAOS(req, response);
     paginatedData.data = paginatedData.data.map((booking: Booking) => {
       return {

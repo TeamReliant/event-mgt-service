@@ -203,15 +203,19 @@ export class BookingsService {
     });
   }
 
-  findAll(userId: string, { ...query }) {
+  async findAll(userId: string, { ...query }) {
+    const user = await this._entityManager.findOneBy(User, { id: userId });
+
     const queryBuilder = this._repo
       .createQueryBuilder('bookings')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .leftJoinAndSelect('bookings.event', 'event')
-      .where('bookings.userId = :userId', { userId });
+      .where('bookings.email = :email', { email: user.email });
     // .andWhere('bookings.transferStatus != :transferStatus', {
     //   transferStatus: TicketTransferStatus.TRANSFERRED,
     // });
+
+
 
     const { search, dateRangeStart, dateRangeEnd, status, transferStatus } =
       query;
