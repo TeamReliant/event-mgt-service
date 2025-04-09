@@ -45,13 +45,13 @@ async function bootstrap() {
     customLogger.error(`Unhandled Rejection: ${reason.message || reason}`);
   });
 
-  process.on('uncaughtException', (err) => {
-    customLogger.error('Uncaught Exception', err);
-  });
+  // process.on('uncaughtException', (err) => {
+  //   customLogger.error('Uncaught Exception', err);
+  // });
 
-  process.on('unhandledRejection', (reason: any) => {
-    customLogger.error('Unhandled Rejection', reason);
-  });
+  // process.on('unhandledRejection', (reason: any) => {
+  //   customLogger.error('Unhandled Rejection', reason);
+  // });
 
   await app.listen(port);
 }
