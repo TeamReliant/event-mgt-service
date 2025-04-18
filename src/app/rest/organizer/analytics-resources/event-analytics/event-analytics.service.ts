@@ -319,7 +319,7 @@ export class EventAnalyticsService {
     const end = DateTime.fromISO(dateRangeEnd, { zone });
 
     if (!start.isValid || !end.isValid) {
-      throw new NotAcceptableException('Invalid date range values');
+      throw new NotAcceptableException(`Invalid date range, start: ${start}, end: ${end}`);
     }
 
     let startOfDay = start.startOf('day');
