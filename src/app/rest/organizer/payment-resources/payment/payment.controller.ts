@@ -104,7 +104,12 @@ export class PaymentController {
       //   break;
       case 'payout.paid':
       case 'payout.failed':
-        await this.paymentService.handlePayout(event, events.PAYOUT_FAILED);
+        await this.paymentService.handlePayout(
+          event,
+          event.type === 'payout.paid'
+            ? events.PAYOUT_SUCCESS
+            : events.PAYOUT_FAILED,
+        );
         break;
       case 'customer.created':
         await this.paymentService.handleCustomerCreated(event);

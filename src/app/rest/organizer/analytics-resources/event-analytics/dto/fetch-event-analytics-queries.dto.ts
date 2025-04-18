@@ -1,4 +1,4 @@
-import { IsDate, IsEnum, IsOptional } from 'class-validator';
+import { IsDate, IsEnum, IsOptional, IsTimeZone } from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import { PaginationQueryDto } from '@libs/helpers/pagination/dto/pagination.query.dto';
 import { Transform } from 'class-transformer';
@@ -32,4 +32,8 @@ export class FetchEventAnalyticsQueriesDto extends PaginationQueryDto {
   })
   @FormatValidationException()
   range: string = 'weekly';
+
+  @IsOptional()
+  @FormatValidationException()
+  timezone: string = 'UTC+00:00';
 }

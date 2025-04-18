@@ -557,7 +557,7 @@ export class BookingsService {
 
     // unsure the event is not over yet
     const now = new Date();
-    const eventDate = new Date(ticket.event.eventStartDateAndTime);
+    const eventDate = new Date(ticket.event.eventEndDateAndTime);
     if (now > eventDate)
       throw new NotAcceptableException('Event has already ended');
 

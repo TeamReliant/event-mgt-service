@@ -12,7 +12,7 @@ block content
   p
     a(href=payload.dashboardLink, class='btn btn-primary') Update Bank Details
 
-  small We're here to support you. Thank you for using #{payload.appInfo.name}!
+  small We're here to support you. Thank you for using #{payload.appName}!
   br
-  small
-    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
+  p.signature
+    b The #{payload.appName} Team

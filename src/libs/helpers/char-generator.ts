@@ -1,4 +1,5 @@
 import { randomInt } from 'crypto';
+import { NotAcceptableException } from '@nestjs/common';
 
 export const generateSixDigitToken = () => {
   const token = randomInt(100000, 999999);
@@ -21,3 +22,20 @@ export const generateRandomString = (length: number) => {
   }
   return result;
 };
+
+export function parseTimezoneOffset(offset: string): number {
+  const match = offset.match(/^UTC([+-])(\d{2}):(\d{2})$/);
+  if (!match) throw new NotAcceptableException('Invalid timezone format');
+
+  const [, sign, hours, minutes] = match;
+  const totalMinutes = parseInt(hours, 10) * 60 + parseInt(minutes, 10);
+
+  return sign === '+' ? totalMinutes : -totalMinutes;
+}
+
+export function convertOffsetToPostgresTZ(offset: string): string {
+  const match = offset.match(/^UTC([+-]\d{2}):(\d{2})$/);
+  if (!match) throw new NotAcceptableException('Invalid timezone format');
+
+  return `${match[1]}:${match[2]}`;
+}
