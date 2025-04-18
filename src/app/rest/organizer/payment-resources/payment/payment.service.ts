@@ -291,6 +291,7 @@ export class PaymentService {
     const subscriptionEndDateISO = subscriptionEndDate.toISOString();
     user.subscriptionEndDate = subscriptionEndDateISO;
 
+    let isFreeTrial = subscription.status == 'trialing';
     //update the status of the user and the plan subscribed for
     user.subscriptionStatus = subscription.status;
     user.subscribedPlan = planName !== null ? planName.toLowerCase() : 'free';
@@ -319,10 +320,10 @@ export class PaymentService {
     }
 
     const transactionObj = {
-      plan: planName,
+      plan: isFreeTrial ? `${planName} (Free Trial)`: planName,
       type: 'subscription',
       userId: user.id,
-      amount: plan.amount / 100,
+      amount: isFreeTrial ? 0 : plan.amount / 100,
       currency: plan.currency,
       transactionId: subscription.latest_invoice,
       paymentMethod,
@@ -351,7 +352,7 @@ export class PaymentService {
     };
 
     if (status === 'succeeded') {
-      if ((subscription.status as unknown as string) !== 'trailing') {
+      if ((subscription.status as unknown as string) !== 'trialing') {
         const systemRegister = await this.entityManager
           .createQueryBuilder(SystemRegister, 'system')
           .getOne();
@@ -359,10 +360,13 @@ export class PaymentService {
         await this.entityManager.save<SystemRegister>(systemRegister);
       }
 
-      this.eventEmitter.emit(
-        events.PAYMENT_SUCCESS,
-        new PaymentEvent(notification),
-      );
+      if (!isFreeTrial)
+      {
+        this.eventEmitter.emit(
+          events.PAYMENT_SUCCESS,
+          new PaymentEvent(notification),
+        );
+      }
 
       this.eventEmitter.emit(
         events.SUBSCRIPTION_PAYMENT_SUCCESS,
@@ -671,6 +675,7 @@ export class PaymentService {
         transfer_data: {
           destination: event.user.stripeConnectedAccountId, // Organizer's connected account
         },
+        on_behalf_of: event.user.stripeConnectedAccountId,
       },
       currency: this.configService.get<string>(
         'STRIPE_CHECKOUT_SESSION_CURRENCY',
@@ -991,12 +996,18 @@ export class PaymentService {
       );
     }
 
-    await this.stripe.refunds.create({
+    const refund = await this.stripe.refunds.create({
       payment_intent: paymentIntentId,
       amount: Math.round(+booking.unitAmount * 100),
       // refund_application_fee: true,
       reverse_transfer: true,
     });
+
+    if (!refund || !['succeeded', 'pending'].includes(refund.status)) {
+      throw new NotAcceptableException(
+        `Refund failed or is in an invalid state: ${refund.status}`,
+      );
+    }
 
     await this.entityManager.transaction(async (manager) => {
       // update system analytics
@@ -1027,14 +1038,16 @@ export class PaymentService {
       booking.event.user.totalPlatformFee -= platformFee;
 
       // update the transaction record
-      booking.transaction.refundedAmount += booking.unitAmount;
-      booking.transaction.refundedFee += platformFee;
+      booking.transaction.refundedAmount =
+        +booking.transaction.refundedAmount + +booking.unitAmount;
+      booking.transaction.refundedFee =
+        +booking.transaction.refundedFee + +platformFee;
 
       await manager.save<User>(booking.event.user);
       await manager.save<Event>(booking.event);
       await manager.save<Booking>(booking);
       await manager.save(Ticket, booking.ticket);
-      await manager.save(Transaction, booking.transaction);
+      await manager.save(BookingsTransaction, booking.transaction);
       await manager.save<SystemRegister>(systemRegister);
     });
 

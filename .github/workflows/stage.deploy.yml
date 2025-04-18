@@ -69,7 +69,8 @@ jobs:
             STRIPE_CHECKOUT_SESSION_CURRENCY=${{ secrets.STAGING_STRIPE_CHECKOUT_SESSION_CURRENCY }}
             TICKET_PERCENTAGE_CUT=${{ secrets.STAGING_TICKET_PERCENTAGE_CUT }}
             STRIPE_FEE=${{ secrets.STAGING_STRIPE_FEE }}
-
+            FROM_EMAIL=${{ secrets.STAGING_FROM_EMAIL }}
+            
 
   deploy:
     runs-on: ubuntu-latest
@@ -91,4 +92,8 @@ jobs:
             sudo docker container rm staging-plaventi-core-service || true
             sudo docker container prune -f || true
             sudo docker image prune -a -f || true
-            sudo docker run -d --name staging-plaventi-core-service -p 5001:5001 plaventi.azurecr.io/staging-plaventi-core-service:latest
+            sudo docker run -d \
+            --name staging-plaventi-core-service \
+            -p 5001:5001 \
+            -v /var/logs/plaventi-core:/usr/src/app/logs \
+            plaventi.azurecr.io/staging-plaventi-core-service:latest

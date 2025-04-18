@@ -119,15 +119,6 @@ export class EventsController {
     }
   }
 
-  // @Get()
-  // @HttpCode(HttpStatus.OK)
-  // @UseGuards(JwtAuthGuard)
-  // async findAll(@Req() req: Request): Promise<IResponseWithData> {
-  //   const queryBuilder = await this.eventsService.findAll(req);
-
-  //   return await ResponseSerializer.applyHTEAOS(req, queryBuilder);
-  // }
-
   @Get()
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
@@ -150,7 +141,7 @@ export class EventsController {
       });
 
       event.totalTickets = totalAvailableTickets;
-      // event.totalTicketSold = event.totalTicketSold;
+      event.totalTicketSold = event.totalNumberOfTicketsSold;
       // delete event.tickets;
       delete event.user.password;
       delete event.user.refreshToken;

@@ -249,7 +249,11 @@ export class EventsService {
       .leftJoinAndSelect('members.user', 'memberUser')
       .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.permissions', 'permissions')
-      .where('event.userId = :userId', { userId });
+      .where('event.userId = :userId', { userId })
+      .orWhere('(members.userId = :userId AND members.status = :status)', {
+        userId,
+        status: 'active',
+      });
 
     // Search functionality
     if (search || name || locationName || address) {
@@ -347,7 +351,7 @@ export class EventsService {
       relations: [
         'user',
         'tickets',
-        'eventViews',
+        // 'eventViews',
         'team',
         'team.members',
         'team.members.user',
@@ -417,11 +421,15 @@ export class EventsService {
 
     if (existingView) {
       existingView.updatedAt = new Date();
+      event.views++;
       await this.entityManager.save(EventView, existingView);
+      await this.entityManager.save(Event, event);
       return;
     }
 
     const view = this.entityManager.create(EventView, { event, user });
+    event.views++;
+    await this.entityManager.save(Event, event);
     await this.entityManager.save(EventView, view);
     return;
   }

@@ -1,22 +1,23 @@
 extends ../baseEmail
 
 block content
-  p #{(payload.assignee)? `Hello ${payload.assignee.firstname}  ${payload.assignee.lastname}`: 'Hello'},
-  p You have been assigned a new task within the Quick Test team for the event #{payload.task.event.name}.
+  p #{(payload.assignee)? `Hello ${payload.assignee.firstname} ${payload.assignee.lastname}`: 'Hello'},
+  p You have been assigned a new task within the #{payload.task.event.team.name} team for the event #{payload.task.event.name}.
 
-
-  p Task Title: **#{payload.task.title}**
+  p 
+    b Task Title: 
+    | #{payload.task.title}
   p
-   b Description:
-  p #{payload.task.description}
+    b Description:
+    | #{payload.task.description}
 
-  p Please log  in to your dashboard to view more details and manage your tasks.
+  p Please log in to your dashboard to view more details and manage your tasks.
   p
-    a(href="https://plaventi.dev/login") Click here to sign in
+    a(href=payload.dashboardLink) Click here to sign in
 
-  p If you have any questions, feel free to send an email to #{payload.appInfo.appEmail}. We're here to help!
+  p If you have any questions, feel free to send an email to #{payload.appEmail}. We're here to help!
 
-  p
-    small Thank you!
-    br
-    small The #{payload.companyName} Team
+  small Thank you!
+  br
+  p.signature
+    b The #{payload.appName} Team
