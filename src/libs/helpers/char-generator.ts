@@ -23,13 +23,13 @@ export const generateRandomString = (length: number) => {
   return result;
 };
 
-export function parseTimezoneOffset(offset: string): number {
-  const match = offset.match(/^UTC([+-])(\d{2}):(\d{2})$/);
-  if (!match) throw new NotAcceptableException('Invalid timezone format');
+export function parseTimezoneOffset(timezone: string): number {
+  const match = timezone.match(/^UTC([+-])(\d{2}):(\d{2})$/);
+  if (!match)
+    throw new Error('Invalid timezone format. Expected format: UTC±HH:mm');
 
   const [, sign, hours, minutes] = match;
   const totalMinutes = parseInt(hours, 10) * 60 + parseInt(minutes, 10);
-
   return sign === '+' ? totalMinutes : -totalMinutes;
 }
 

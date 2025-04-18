@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotAcceptableException } from '@nestjs/common';
 import { DateTime, FixedOffsetZone } from 'luxon';
 import { EntityManager } from 'typeorm';
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
@@ -312,112 +312,87 @@ export class EventAnalyticsService {
     range: 'daily' | 'weekly' | 'monthly',
     timezone: string,
   ) {
-    const offsetMinutes = parseTimezoneOffset(timezone); // <- helper function below
+    const offsetMinutes = parseTimezoneOffset(timezone); // Any UTC±HH:mm
     const zone = FixedOffsetZone.instance(offsetMinutes);
 
-    const startOfDay = DateTime.fromISO(dateRangeStart, { zone })
-      .startOf('day')
-      .toUTC()
-      .toJSDate();
+    const start = DateTime.fromISO(dateRangeStart, { zone });
+    const end = DateTime.fromISO(dateRangeEnd, { zone });
 
-    const endOfDay = DateTime.fromISO(dateRangeEnd, { zone })
-      .endOf('day')
-      .toUTC()
-      .toJSDate();
+    if (!start.isValid || !end.isValid) {
+      throw new NotAcceptableException('Invalid date range values');
+    }
 
-    // Map the `range` input to PostgreSQL-compatible units
+    let startOfDay = start.startOf('day');
+    const endOfDay = end.endOf('day');
+
+    if (range === 'weekly') {
+      startOfDay = startOfDay.minus({ days: startOfDay.weekday - 1 }); // Start from Monday
+    } else if (range === 'monthly') {
+      startOfDay = startOfDay.startOf('month');
+    }
+
+    const startUTC = startOfDay.toUTC().toJSDate();
+    const endUTC = endOfDay.toUTC().toJSDate();
+
     const rangeMapping = {
       daily: 'day',
       weekly: 'week',
       monthly: 'month',
     };
 
-    const pgRange = rangeMapping[range]; // Resolve PostgreSQL-compatible unit
-    const pgTimezone = convertOffsetToPostgresTZ(timezone);
+    const pgRange = rangeMapping[range];
 
-    const queryBuilder = this.entityManager
+    const rawResults = await this.entityManager
       .createQueryBuilder(EventView, 'views')
-      .select(
-        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :timezone)`,
-        'timeGroup',
-      )
+      .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
       .addSelect('COUNT(views.id)', 'viewCount')
       .where('views.eventId = :eventId', { eventId })
       .andWhere('views.createdAt BETWEEN :start AND :end', {
-        start: startOfDay,
-        end: endOfDay,
+        start: startUTC,
+        end: endUTC,
       })
-      .setParameter('timezone', pgTimezone)
-      .groupBy(
-        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :timezone)`,
-      )
-      .orderBy(
-        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :timezone)`,
-        'ASC',
-      );
+      .groupBy('timeGroup')
+      .orderBy('timeGroup', 'ASC')
+      .getRawMany();
 
-    const rawResults = await queryBuilder.getRawMany();
-
-    // Generate a full range of periods
     const fullRange: string[] = [];
-    let currentDate = DateTime.fromJSDate(startOfDay, { zone });
+    let current = startOfDay;
 
-    while (currentDate.toJSDate() <= endOfDay) {
-      fullRange.push(
-        currentDate
-          .startOf(pgRange as any)
-          .toUTC()
-          .toISO(),
-      );
+    while (current <= endOfDay) {
+      fullRange.push(current.toUTC().toISO());
 
-      if (range === 'daily') {
-        currentDate = currentDate.plus({ days: 1 });
-      } else if (range === 'weekly') {
-        currentDate = currentDate.plus({ weeks: 1 });
-      } else if (range === 'monthly') {
-        currentDate = currentDate.plus({ months: 1 });
-      }
+      if (range === 'daily') current = current.plus({ days: 1 });
+      else if (range === 'weekly') current = current.plus({ weeks: 1 });
+      else if (range === 'monthly') current = current.plus({ months: 1 });
     }
 
     const resultMap = new Map(
       rawResults.map(({ timeGroup, viewCount }) => [
-        new Date(timeGroup).toISOString(),
+        DateTime.fromJSDate(timeGroup).toUTC().toISO(),
         parseInt(viewCount, 10),
       ]),
     );
 
     const formattedResults: Record<string, number> = {};
 
-    fullRange.forEach((period) => {
-      const date = new Date(period);
+    fullRange.forEach((iso) => {
+      const dt = DateTime.fromISO(iso, { zone });
 
       if (range === 'daily') {
-        const dayLabel = date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
-        formattedResults[dayLabel] = resultMap.get(period) || 0;
+        const label = dt.toFormat('MMM d');
+        formattedResults[label] = resultMap.get(iso) || 0;
       } else if (range === 'weekly') {
-        const weekStart = new Date(date);
-        const weekEnd = new Date(date);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-
-        const weekLabel = `${weekStart.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        })} - ${weekEnd.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        })}`;
-        formattedResults[weekLabel] = resultMap.get(period) || 0;
+        const weekStart = dt;
+        const weekEnd = dt.plus({ days: 6 });
+        const label = `${weekStart.toFormat('MMM d')} - ${weekEnd.toFormat('MMM d')}`;
+        formattedResults[label] = resultMap.get(iso) || 0;
       } else if (range === 'monthly') {
-        const monthLabel = date.toLocaleDateString('en-US', { month: 'short' });
-        formattedResults[monthLabel] = resultMap.get(period) || 0;
+        const label = dt.toFormat('MMM');
+        formattedResults[label] = resultMap.get(iso) || 0;
       }
     });
 
     return formattedResults;
-
     // Adjust start and end dates for weekly and monthly
     // if (range === 'weekly') {
     //   const dayOfWeek = startOfDay.getDay(); // Get the current day of the week (0 = Sunday)
