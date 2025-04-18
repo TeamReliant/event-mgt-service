@@ -320,7 +320,7 @@ export class PaymentService {
     }
 
     const transactionObj = {
-      plan: isFreeTrial ? `${planName} (Free Trial)`: planName,
+      plan: isFreeTrial ? `${planName} (Free Trial)` : planName,
       type: 'subscription',
       userId: user.id,
       amount: isFreeTrial ? 0 : plan.amount / 100,
@@ -360,8 +360,7 @@ export class PaymentService {
         await this.entityManager.save<SystemRegister>(systemRegister);
       }
 
-      if (!isFreeTrial)
-      {
+      if (!isFreeTrial) {
         this.eventEmitter.emit(
           events.PAYMENT_SUCCESS,
           new PaymentEvent(notification),

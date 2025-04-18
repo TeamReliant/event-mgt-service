@@ -62,6 +62,7 @@
     "joi": "^17.13.3",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
+    "luxon": "^3.6.1",
     "multer": "^1.4.5-lts.1",
     "nestjs-form-data": "^1.9.91",
     "nodemailer": "^6.9.14",

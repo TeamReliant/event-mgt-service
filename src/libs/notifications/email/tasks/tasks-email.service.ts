@@ -6,7 +6,8 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TasksEmailService {
-  constructor(private readonly emailEngineService: EmailEngineService,
+  constructor(
+    private readonly emailEngineService: EmailEngineService,
     private readonly configService: ConfigService,
   ) {}
 
