@@ -6,18 +6,21 @@ import { FormattedValidationPipe } from '@libs/pipes/formatted-validation-pipe';
 import { CustomLoggerService } from '@libs/services/logging/custom-logger.service';
 
 async function bootstrap() {
-  const logger = new CustomLoggerService();
-
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
-    logger: new CustomLoggerService(),
+    logger: false,
   });
+
+  const customLogger = app.get(CustomLoggerService);
+
+  app.useLogger(customLogger);
+
   const configService = app.get(ConfigService);
 
   app.useGlobalFilters(new CustomExceptionFilter());
 
   app.enableCors({
-    origin: '*path',
+    origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   });
 
@@ -31,7 +34,7 @@ async function bootstrap() {
 
   // Catch Uncaught Exceptions (Sync Errors)
   process.on('uncaughtException', (error) => {
-    logger.error(
+    customLogger.error(
       `Uncaught Exception: ${error.message} | Stack: ${error.stack}`,
     );
     process.exit(1); // Exit process after logging
@@ -39,8 +42,16 @@ async function bootstrap() {
 
   // Catch Unhandled Promise Rejections (Async Errors)
   process.on('unhandledRejection', (reason: any) => {
-    logger.error(`Unhandled Rejection: ${reason.message || reason}`);
+    customLogger.error(`Unhandled Rejection: ${reason.message || reason}`);
   });
+
+  // process.on('uncaughtException', (err) => {
+  //   customLogger.error('Uncaught Exception', err);
+  // });
+
+  // process.on('unhandledRejection', (reason: any) => {
+  //   customLogger.error('Unhandled Rejection', reason);
+  // });
 
   await app.listen(port);
 }

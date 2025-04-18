@@ -992,12 +992,18 @@ export class PaymentService {
       );
     }
 
-    await this.stripe.refunds.create({
+    const refund = await this.stripe.refunds.create({
       payment_intent: paymentIntentId,
       amount: Math.round(+booking.unitAmount * 100),
       // refund_application_fee: true,
       reverse_transfer: true,
     });
+
+    if (!refund || !['succeeded', 'pending'].includes(refund.status)) {
+      throw new NotAcceptableException(
+        `Refund failed or is in an invalid state: ${refund.status}`,
+      );
+    }
 
     await this.entityManager.transaction(async (manager) => {
       // update system analytics
@@ -1028,14 +1034,16 @@ export class PaymentService {
       booking.event.user.totalPlatformFee -= platformFee;
 
       // update the transaction record
-      booking.transaction.refundedAmount += booking.unitAmount;
-      booking.transaction.refundedFee += platformFee;
+      booking.transaction.refundedAmount =
+        +booking.transaction.refundedAmount + +booking.unitAmount;
+      booking.transaction.refundedFee =
+        +booking.transaction.refundedFee + +platformFee;
 
       await manager.save<User>(booking.event.user);
       await manager.save<Event>(booking.event);
       await manager.save<Booking>(booking);
       await manager.save(Ticket, booking.ticket);
-      await manager.save(Transaction, booking.transaction);
+      await manager.save(BookingsTransaction, booking.transaction);
       await manager.save<SystemRegister>(systemRegister);
     });
 

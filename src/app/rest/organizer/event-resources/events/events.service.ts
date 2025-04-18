@@ -249,7 +249,11 @@ export class EventsService {
       .leftJoinAndSelect('members.user', 'memberUser')
       .leftJoinAndSelect('members.invitation', 'invitation')
       .leftJoinAndSelect('members.permissions', 'permissions')
-      .where('event.userId = :userId', { userId });
+      .where('event.userId = :userId', { userId })
+      .orWhere('(members.userId = :userId AND members.status = :status)', {
+        userId,
+        status: 'active',
+      });
 
     // Search functionality
     if (search || name || locationName || address) {

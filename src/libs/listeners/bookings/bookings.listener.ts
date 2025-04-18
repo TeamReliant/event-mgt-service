@@ -25,6 +25,19 @@ export class BookingsListener {
     );
   }
 
+  @OnEvent(events.BOOKING_RESENT)
+  async dispatchBookingResentNotification(payload: BookingEvent) {
+    const { booking } = payload;
+
+    await this._bookingsEmailService.resendBookingMessage(booking);
+
+    // Remove the event from the queue  when done
+    this._eventEmitter.removeListener(
+      events.BOOKING_RESENT,
+      this.dispatchBookingResentNotification,
+    );
+  }
+
   @OnEvent(events.BOOKING_REFUNDED)
   async dispatchBookingRefundedNotification(payload: BookingEvent) {
     const { booking } = payload;
