@@ -232,6 +232,46 @@ export class BookingsEmailService {
     );
   }
 
+  async resendBookingMessage(booking: Booking) {
+    const { appName, appEmail, companyName } = appInfo;
+    const attachments: any[] = [];
+
+    const { pdfBuffer, jpegBuffer } = await this.generateTicketBuffers(booking);
+
+    attachments.push({
+      filename: `${booking.event.name}_${booking.ticket.name}_ticket.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf',
+    });
+
+    attachments.push({
+      filename: `${booking.event.name}_${booking.ticket.name}_ticket.jpeg`,
+      content: jpegBuffer,
+      contentType: 'image/jpeg',
+    });
+
+    const payload = {
+      customer: {
+        email: booking.email,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+      },
+      booking,
+      appName,
+      appEmail,
+      companyName,
+    };
+
+    const subject: string = `TICKET RECEIVED`;
+    await this.emailEngineService.sendHtmlEmail(
+      [booking.email],
+      subject,
+      `bookings/bookings-completed`,
+      payload,
+      attachments,
+    );
+  }
+
   async sendBookingRefundedMessage(booking: Booking) {
     const { appName, appEmail, companyName } = appInfo;
 
