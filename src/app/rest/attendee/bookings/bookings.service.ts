@@ -30,6 +30,8 @@ import { UserType } from '@app/rest/users/enums/user-type';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 import { UpdateFreeBookingDto } from '@app/rest/attendee/bookings/dto/update-free-booking.dto';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
+import { ResendBookingDto } from '@app/rest/attendee/bookings/dto/resend-booking.dto';
+import { BookingEvent } from '@app/rest/attendee/bookings/events/booking.event';
 
 @Injectable()
 export class BookingsService {
@@ -214,8 +216,6 @@ export class BookingsService {
     // .andWhere('bookings.transferStatus != :transferStatus', {
     //   transferStatus: TicketTransferStatus.TRANSFERRED,
     // });
-
-
 
     const { search, dateRangeStart, dateRangeEnd, status, transferStatus } =
       query;
@@ -808,6 +808,28 @@ export class BookingsService {
       events.BOOKING_RECEIVED,
       new BookingsEvent(newBookings),
     );
+  }
+
+  async resendBooking(body: ResendBookingDto) {
+    const { bookingId } = body;
+    const booking = await this._repo
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.ticket', 'ticket')
+      .leftJoinAndSelect('booking.event', 'event')
+      .andWhere('booking.id = :bookingId', { bookingId })
+      .getOne();
+
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (!booking.processed)
+      throw new NotAcceptableException('Only processed bookings can be sent');
+
+    if (booking.category === TicketCategory.PAID && !booking.paid)
+      throw new NotAcceptableException(
+        `Paid ticket's payment must be processed before it can not be sent`,
+      );
+
+    this._eventEmitter.emit(events.BOOKING_RESENT, new BookingEvent(booking));
   }
 
   /**

@@ -31,6 +31,7 @@ import { FetchBookingsQueriesDto } from '@app/rest/attendee/bookings/dto/fetch-b
 import { SoftJwtAuthGuard } from '@libs/Guards/jwt-auth/soft-jwt-auth.guard';
 import { SendComplimentaryBookingDto } from '@app/rest/attendee/bookings/dto/send-complimentary-booking.dto';
 import { UpdateFreeBookingDto } from '@app/rest/attendee/bookings/dto/update-free-booking.dto';
+import { ResendBookingDto } from '@app/rest/attendee/bookings/dto/resend-booking.dto';
 
 @Controller()
 export class BookingsController {
@@ -146,6 +147,14 @@ export class BookingsController {
   ) {
     await this._bookingsService.sendComplimentaryBooking(body, userId);
     return ResponseSerializer.message('Complimentary ticket sent successfully');
+  }
+
+  @Post('bookings/resend')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard([roles.ORGANIZER]))
+  async resend(@Body() body: ResendBookingDto) {
+    await this._bookingsService.resendBooking(body);
+    return ResponseSerializer.message('Ticket sent successfully');
   }
 
   @Post('bookings/verify')
