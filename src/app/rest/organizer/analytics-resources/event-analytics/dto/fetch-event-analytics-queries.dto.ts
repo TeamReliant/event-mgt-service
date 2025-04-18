@@ -34,7 +34,6 @@ export class FetchEventAnalyticsQueriesDto extends PaginationQueryDto {
   range: string = 'weekly';
 
   @IsOptional()
-  @IsTimeZone()
   @FormatValidationException()
   timezone: string = 'UTC+00:00';
 }
