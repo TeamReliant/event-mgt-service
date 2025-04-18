@@ -114,7 +114,7 @@ export class PaymentsEmailService {
 
   async sendPayoutFailedMessage(payoutNotification: Payment) {
     const subject: string = `${appInfo.appName}: Payout Failed!`;
-    const template = `payments/payout-success`;
+    const template = `payments/payout-failed`;
     const additionalPayload = {
       dashboardLink: `${this.configService.get<string>('FRONTEND_URL')}`,
       payoutAmount: (payoutNotification.payout.amount / 100).toFixed(2),

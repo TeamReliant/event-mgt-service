@@ -2,10 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { EmailEngineService } from '../email-engine/email-engine.service';
 import { appInfo } from '@config/app.config';
 import { Task } from '@app/rest/organizer/event-resources/tasks/entities/task.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TasksEmailService {
-  constructor(private readonly emailEngineService: EmailEngineService) {}
+  constructor(private readonly emailEngineService: EmailEngineService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async sendTaskAssignmentMessage(task: Task) {
     const { email } = task.assignee.user;
@@ -14,7 +17,9 @@ export class TasksEmailService {
     const payload = {
       task: task,
       assignee: task.assignee.user,
-      appInfo,
+      appName: appInfo.appName,
+      appEmail: appInfo.appEmail,
+      dashBoardLink: this.configService.get<string>('FRONTEND_URL'),
     };
 
     const subject: string = `TASK ASSIGNED - ${appName}`;
@@ -33,7 +38,9 @@ export class TasksEmailService {
     const payload = {
       task: task,
       assignee: task.assignee.user,
-      appInfo,
+      appName: appInfo.appName,
+      appEmail: appInfo.appEmail,
+      dashBoardLink: this.configService.get<string>('FRONTEND_URL'),
     };
 
     const subject: string = `TASK REMINDER - ${appName}`;
