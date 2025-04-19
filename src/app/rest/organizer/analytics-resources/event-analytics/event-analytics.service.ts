@@ -64,6 +64,9 @@ export class EventAnalyticsService {
       .andWhere('bookings.category = :category', { category: TicketCategory.COMPLIMENTARY })
       .getCount();
 
+    event.totalNumberOfComplimentaryTickets = bookingCount;
+    await this.entityManager.save(Event, event);
+
 
     const { id, totalNumberOfTicketsSold, totalNumberOfTicketsRsvp, totalNumberOfComplimentaryTickets } = event;
 
