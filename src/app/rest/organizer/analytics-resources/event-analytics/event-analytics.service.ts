@@ -7,10 +7,7 @@ import { Event } from '@app/rest/organizer/event-resources/events/entities/event
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
-import {
-  convertOffsetToPostgresTZ,
-  parseTimezoneOffset,
-} from '@libs/helpers/char-generator';
+import { parseTimezoneOffset } from '@libs/helpers/char-generator';
 
 @Injectable()
 export class EventAnalyticsService {
@@ -58,17 +55,22 @@ export class EventAnalyticsService {
 
   private async _getAttendanceRate(event: Event) {
     // count existing complimentary tickets
-    const bookingCount = await this.entityManager
+    event.totalNumberOfComplimentaryTickets = await this.entityManager
       .createQueryBuilder(Booking, 'bookings')
       .where('bookings.eventId = :eventId', { eventId: event.id })
-      .andWhere('bookings.category = :category', { category: TicketCategory.COMPLIMENTARY })
+      .andWhere('bookings.category = :category', {
+        category: TicketCategory.COMPLIMENTARY,
+      })
       .getCount();
 
-    event.totalNumberOfComplimentaryTickets = bookingCount;
     await this.entityManager.save(Event, event);
 
-
-    const { id, totalNumberOfTicketsSold, totalNumberOfTicketsRsvp, totalNumberOfComplimentaryTickets } = event;
+    const {
+      id,
+      totalNumberOfTicketsSold,
+      totalNumberOfTicketsRsvp,
+      totalNumberOfComplimentaryTickets,
+    } = event;
 
     // fetch ticket scanned
     const ticketsScanned = await this.entityManager
@@ -79,7 +81,10 @@ export class EventAnalyticsService {
 
     // calculate Attendance rate
     const attendanceRate =
-      (ticketsScanned / (totalNumberOfTicketsSold + totalNumberOfTicketsRsvp + totalNumberOfComplimentaryTickets)) *
+      (ticketsScanned /
+        (totalNumberOfTicketsSold +
+          totalNumberOfTicketsRsvp +
+          totalNumberOfComplimentaryTickets)) *
       100;
 
     // calculate percentage change
