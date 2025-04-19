@@ -600,7 +600,11 @@ export class BookingsService {
         bookings.push(booking);
       }
 
-      return await manager.save(Booking, bookings);
+      const savedBookings = await manager.save(Booking, bookings);
+      ticket.event.totalNumberOfComplimentaryTickets += quantity;
+      await manager.save(Event, ticket.event);
+
+      return savedBookings;
     });
 
     this._eventEmitter.emit(

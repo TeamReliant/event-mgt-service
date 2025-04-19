@@ -57,7 +57,15 @@ export class EventAnalyticsService {
   }
 
   private async _getAttendanceRate(event: Event) {
-    const { id, totalNumberOfTicketsSold, totalNumberOfTicketsRsvp } = event;
+    // count existing complimentary tickets
+    const bookingCount = await this.entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .where('bookings.eventId = :eventId', { eventId: event.id })
+      .andWhere('bookings.category = :category', { category: TicketCategory.COMPLIMENTARY })
+      .getCount();
+
+
+    const { id, totalNumberOfTicketsSold, totalNumberOfTicketsRsvp, totalNumberOfComplimentaryTickets } = event;
 
     // fetch ticket scanned
     const ticketsScanned = await this.entityManager
@@ -68,7 +76,7 @@ export class EventAnalyticsService {
 
     // calculate Attendance rate
     const attendanceRate =
-      (ticketsScanned / (totalNumberOfTicketsSold + totalNumberOfTicketsRsvp)) *
+      (ticketsScanned / (totalNumberOfTicketsSold + totalNumberOfTicketsRsvp + totalNumberOfComplimentaryTickets)) *
       100;
 
     // calculate percentage change

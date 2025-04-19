@@ -100,6 +100,14 @@ export class Event extends AbstractEntity<Event> {
   totalNumberOfTicketsRsvp: number;
 
   @Column({
+    name: 'total_number_of_complimentary_tickets',
+    default: 0,
+    nullable: true,
+    type: 'int',
+  })
+  totalNumberOfComplimentaryTickets: number;
+
+  @Column({
     name: 'revenue',
     nullable: true,
     type: 'decimal',
