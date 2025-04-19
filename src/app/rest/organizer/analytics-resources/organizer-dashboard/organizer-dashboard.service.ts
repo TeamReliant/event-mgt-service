@@ -58,27 +58,28 @@ export class OrganizerDashboardService {
   }
 
   private async _getAttendanceRateAnalytics(user: User) {
-    const usedBookingsCount = await this._entityManager
+    const ticketScanned = await this._entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.userId = :userId', { userId: user.id })
       .andWhere('bookings.status = :status', { status: BookingStatus.USED })
       .getCount();
 
-    const allBookingCount = await this._entityManager
+    const totalBookings = await this._entityManager
       .createQueryBuilder(Booking, 'bookings')
       .leftJoinAndSelect('bookings.event', 'event')
       .where('event.userId = :userId', { userId: user.id })
       .andWhere('bookings.processed = :status', { status: true })
       .getCount();
 
-    const percentageChange = (usedBookingsCount / allBookingCount) * 100;
+    const attendanceRate = (ticketScanned / totalBookings) * 100;
 
     return {
-      value: usedBookingsCount,
-      change: Math.ceil(percentageChange * 100) / 100,
+      value: attendanceRate,
+      change: Math.ceil(attendanceRate * 100) / 100,
     };
   }
+
   private async _getPublishedEventsAnalytics(user: User) {
     // get the date of yesterday
     const yesterday = new Date();
