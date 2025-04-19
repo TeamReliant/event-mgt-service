@@ -312,6 +312,8 @@ export class EventAnalyticsService {
     range: 'daily' | 'weekly' | 'monthly',
     timezone: string,
   ) {
+    timezone = timezone.replace(/\s/g, '+');
+
     const offsetMinutes = parseTimezoneOffset(timezone); // Any UTC±HH:mm
     const zone = FixedOffsetZone.instance(offsetMinutes);
 
@@ -319,11 +321,15 @@ export class EventAnalyticsService {
     const end = DateTime.fromISO(dateRangeEnd, { zone });
 
     if (!start.isValid || !end.isValid) {
-      throw new NotAcceptableException(`Invalid date range, start: ${start}, end: ${end}`);
+      throw new NotAcceptableException(
+        `Invalid date range, start: ${dateRangeStart}, end: ${dateRangeEnd}`,
+      );
     }
 
     let startOfDay = start.startOf('day');
     const endOfDay = end.endOf('day');
+
+    console.log(`Invalid date range, start: ${startOfDay}, end: ${endOfDay}`);
 
     if (range === 'weekly') {
       startOfDay = startOfDay.minus({ days: startOfDay.weekday - 1 }); // Start from Monday
@@ -351,8 +357,8 @@ export class EventAnalyticsService {
         start: startUTC,
         end: endUTC,
       })
-      .groupBy('timeGroup')
-      .orderBy('timeGroup', 'ASC')
+      .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt)`)
+      .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'ASC')
       .getRawMany();
 
     const fullRange: string[] = [];
