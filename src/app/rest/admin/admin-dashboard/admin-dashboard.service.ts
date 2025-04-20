@@ -95,117 +95,75 @@ export class AdminDashboardService {
     granularity: 'daily' | 'weekly' | 'monthly',
     timezone: string = 'UTC',
   ): Promise<Record<string, number>> {
-    // Normalize 'UTC+1:00' to 'UTC+1' and map to IANA
-    timezone = timezone.replace(/\s/g, '+').replace(':00', '');
-    const ianaTimezone = mapToIanaTimezone(timezone);
 
-    // Define the SQL interval and date truncation
+    timezone = timezone.replace(/\s/g, '+').replace(':00', '');
+    timezone = mapToIanaTimezone(timezone);
+
+    console.log(`----------------------------Timezone: ${timezone}`);
+
+
     const interval = {
       daily: '1 day',
       weekly: '1 week',
       monthly: '1 month',
     };
 
-    // Map granularity to Luxon-recognized units
-    const luxonGranularityMap = {
-      daily: 'day',
-      weekly: 'week',
-      monthly: 'month',
-    };
-
-    // Convert start and end date to the user's timezone and format accordingly
-    const userStart = DateTime.fromJSDate(dateRangeStart, {
-      zone: ianaTimezone,
-    }).startOf(<DateTimeUnit>luxonGranularityMap[granularity]);
-    const userEnd = DateTime.fromJSDate(dateRangeEnd, { zone: ianaTimezone })
-      .plus({ [luxonGranularityMap[granularity]]: 1 }) // add 1 day/week/month
-      .startOf(
-        <
-          | 'year'
-          | 'quarter'
-          | 'month'
-          | 'week'
-          | 'day'
-          | 'hour'
-          | 'minute'
-          | 'second'
-          | 'millisecond'
-        >luxonGranularityMap[granularity],
-      );
-
-    // Convert to native JavaScript Date objects for query
-    const startUtc = userStart.toUTC().toJSDate();
-    const endUtc = userEnd.toUTC().toJSDate();
-
     const rawResults = await this._entityManager.query(
       `
     WITH date_series AS (
-      SELECT 
-          generate_series(
-              $1::date,
-              $2::date,
-              INTERVAL '${interval[granularity]}'
-          ) AS range_start
+      SELECT generate_series(
+        $1::timestamptz,
+        $2::timestamptz,
+        INTERVAL '${interval[granularity]}'
+      ) AT TIME ZONE $3 AS range_start
     )
-    SELECT 
-        TO_CHAR(date_series.range_start, 
-                 CASE 
-                   WHEN '${granularity}' = 'daily' THEN 'YYYY-MM-DD'
-                   WHEN '${granularity}' = 'weekly' THEN 'YYYY-MM-DD'
-                   WHEN '${granularity}' = 'monthly' THEN 'YYYY-MM'
-                   ELSE 'YYYY-MM-DD' 
-                 END) AS label_date,
-        COALESCE(COUNT(users.id), 0) AS user_count
-    FROM 
-        date_series
-    LEFT JOIN users
-        ON users.last_logged_in >= date_series.range_start
-        AND users.last_logged_in < date_series.range_start + INTERVAL '${interval[granularity]}'
-    GROUP BY 
-        date_series.range_start
-    ORDER BY 
-        date_series.range_start;
+    SELECT
+      TO_CHAR(ds.range_start,
+        CASE
+          WHEN $4 = 'daily' THEN 'YYYY-MM-DD'
+          WHEN $4 = 'weekly' THEN 'YYYY-MM-DD'
+          WHEN $4 = 'monthly' THEN 'YYYY-MM'
+          ELSE 'YYYY-MM-DD'
+        END
+      ) AS label_date,
+      COUNT(u.id) AS user_count
+    FROM date_series ds
+    LEFT JOIN users u
+      ON u.last_logged_in AT TIME ZONE $3 >= ds.range_start
+      AND u.last_logged_in AT TIME ZONE $3 < ds.range_start + INTERVAL '${interval[granularity]}'
+    GROUP BY ds.range_start
+    ORDER BY ds.range_start;
     `,
-      [startUtc, endUtc],
+      [dateRangeStart, dateRangeEnd, timezone, granularity],
     );
 
-    // Process and format results
-    return rawResults.reduce((acc, row) => {
-      const { label_date, user_count } = row;
-      let key = '';
+    return rawResults.reduce(
+      (acc, row) => {
+        const { label_date, user_count } = row;
+        let key = '';
 
-      // Daily granularity
-      if (granularity === 'daily') {
-        const date = DateTime.fromISO(label_date, {
-          zone: ianaTimezone,
-        }).toJSDate();
-        key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`;
-      }
+        if (granularity === 'daily') {
+          const date = new Date(label_date);
+          key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}, ${date.getFullYear()}`;
+        }
 
-      // Weekly granularity
-      if (granularity === 'weekly') {
-        const startOfWeek = DateTime.fromISO(label_date, {
-          zone: ianaTimezone,
-        }).toJSDate();
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        if (granularity === 'weekly') {
+          const startOfWeek = new Date(label_date);
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          key = `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()} - ${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
+        }
 
-        const startStr = `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()}`;
-        const endStr = `${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
-        key = `${startStr} - ${endStr}`;
-      }
+        if (granularity === 'monthly') {
+          const date = new Date(label_date);
+          key = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
+        }
 
-      // Monthly granularity
-      if (granularity === 'monthly') {
-        const date = DateTime.fromISO(label_date, {
-          zone: ianaTimezone,
-        }).toJSDate();
-        key = `${date.toLocaleString('default', { month: 'short' })}`;
-      }
-
-      acc[key] = user_count;
-      return acc;
-    }, {});
+        acc[key] = Number(user_count);
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }
 
   async getAnalytics() {
