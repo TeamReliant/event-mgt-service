@@ -95,12 +95,8 @@ export class AdminDashboardService {
     granularity: 'daily' | 'weekly' | 'monthly',
     timezone: string = 'UTC',
   ): Promise<Record<string, number>> {
-
     timezone = timezone.replace(/\s/g, '+').replace(':00', '');
     timezone = mapToIanaTimezone(timezone);
-
-    console.log(`----------------------------Timezone: ${timezone}`);
-
 
     const interval = {
       daily: '1 day',
