@@ -6,6 +6,7 @@ import { Event } from '@app/rest/organizer/event-resources/events/entities/event
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
+import { DateTime, DateTimeUnit } from 'luxon';
 
 @Injectable()
 export class EventAnalyticsService {
@@ -452,37 +453,142 @@ export class EventAnalyticsService {
   //   return formattedResults;
   // }
 
+  // private async _getEventPageViews(
+  //   eventId: string,
+  //   dateRangeStart: string,
+  //   dateRangeEnd: string,
+  //   range: 'daily' | 'weekly' | 'monthly',
+  //   timezone: string = 'sdsd',
+  // ) {
+  //   const startOfDay = new Date(dateRangeStart);
+  //   startOfDay.setHours(0, 0, 0, 0);
+  //
+  //   const endOfDay = new Date(dateRangeEnd);
+  //   endOfDay.setHours(23, 59, 59, 999);
+  //
+  //   // Map the `range` input to PostgreSQL-compatible units
+  //   const rangeMapping = {
+  //     daily: 'day',
+  //     weekly: 'week',
+  //     monthly: 'month',
+  //   };
+  //
+  //   const pgRange = rangeMapping[range]; // Resolve PostgreSQL-compatible unit
+  //
+  //   // Adjust start and end dates for weekly and monthly
+  //   if (range === 'weekly') {
+  //     const dayOfWeek = startOfDay.getDay(); // Get the current day of the week (0 = Sunday)
+  //     startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Align to the start of the week (Monday)
+  //   } else if (range === 'monthly') {
+  //     startOfDay.setDate(1); // Align to the first day of the month
+  //   }
+  //
+  //   // Generate the query
+  //   const queryBuilder = this.entityManager
+  //     .createQueryBuilder(EventView, 'views')
+  //     .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
+  //     .addSelect('COUNT(views.id)', 'viewCount')
+  //     .where('views.eventId = :eventId', { eventId })
+  //     .andWhere('views.createdAt BETWEEN :start AND :end', {
+  //       start: startOfDay,
+  //       end: endOfDay,
+  //     })
+  //     .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt)`)
+  //     .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'ASC');
+  //
+  //   const rawResults = await queryBuilder.getRawMany();
+  //
+  //   // Generate a full range of periods
+  //   const fullRange: string[] = [];
+  //   const currentDate = new Date(startOfDay);
+  //
+  //   while (currentDate <= endOfDay) {
+  //     fullRange.push(currentDate.toISOString());
+  //
+  //     if (range === 'daily') {
+  //       currentDate.setDate(currentDate.getDate() + 1); // Increment by 1 day
+  //     } else if (range === 'weekly') {
+  //       currentDate.setDate(currentDate.getDate() + 7); // Increment by 7 days
+  //     } else if (range === 'monthly') {
+  //       currentDate.setMonth(currentDate.getMonth() + 1); // Increment by 1 month
+  //     }
+  //   }
+  //
+  //   // Map raw results to a dictionary for quick lookups
+  //   const resultMap = new Map(
+  //     rawResults.map(({ timeGroup, viewCount }) => [
+  //       new Date(timeGroup).toISOString(),
+  //       parseInt(viewCount, 10),
+  //     ]),
+  //   );
+  //
+  //   // Format response based on range
+  //   const formattedResults: Record<string, number> = {};
+  //
+  //   fullRange.forEach((period) => {
+  //     const date = new Date(period);
+  //
+  //     if (range === 'daily') {
+  //       const dayLabel = date.toLocaleDateString('en-US', {
+  //         month: 'short',
+  //         day: 'numeric',
+  //       });
+  //       formattedResults[dayLabel] = resultMap.get(period) || 0;
+  //     } else if (range === 'weekly') {
+  //       const weekStart = new Date(date);
+  //       const weekEnd = new Date(date);
+  //       weekEnd.setDate(weekEnd.getDate() + 6); // Add 6 days for a full week
+  //
+  //       const weekLabel = `${weekStart.toLocaleDateString('en-US', {
+  //         month: 'short',
+  //         day: 'numeric',
+  //       })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  //       formattedResults[weekLabel] = resultMap.get(period) || 0;
+  //     } else if (range === 'monthly') {
+  //       const monthLabel = date.toLocaleDateString('en-US', { month: 'short' });
+  //       formattedResults[monthLabel] = resultMap.get(period) || 0;
+  //     }
+  //   });
+  //
+  //   return formattedResults;
+  // }
+
   private async _getEventPageViews(
     eventId: string,
     dateRangeStart: string,
     dateRangeEnd: string,
     range: 'daily' | 'weekly' | 'monthly',
-    timezone: string = 'sdsd',
+    timezone: string = 'UTC',
   ) {
+    // Normalize 'UTC+1:00' to 'UTC+1' for Luxon compatibility
+    timezone = timezone.replace(/\s/g, '+');
+    const normalizeTimezone = (tz: string): string => tz.replace(':00', '');
+
+    const userTimezone = normalizeTimezone(timezone);
+
     const startOfDay = new Date(dateRangeStart);
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date(dateRangeEnd);
     endOfDay.setHours(23, 59, 59, 999);
 
-    // Map the `range` input to PostgreSQL-compatible units
     const rangeMapping = {
       daily: 'day',
       weekly: 'week',
       monthly: 'month',
     };
 
-    const pgRange = rangeMapping[range]; // Resolve PostgreSQL-compatible unit
+    const pgRange = rangeMapping[range];
 
-    // Adjust start and end dates for weekly and monthly
+    // Align start date for weekly and monthly
     if (range === 'weekly') {
-      const dayOfWeek = startOfDay.getDay(); // Get the current day of the week (0 = Sunday)
-      startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Align to the start of the week (Monday)
+      const dayOfWeek = startOfDay.getDay();
+      startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Monday
     } else if (range === 'monthly') {
-      startOfDay.setDate(1); // Align to the first day of the month
+      startOfDay.setDate(1);
     }
 
-    // Generate the query
+    // Query builder
     const queryBuilder = this.entityManager
       .createQueryBuilder(EventView, 'views')
       .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
@@ -497,58 +603,59 @@ export class EventAnalyticsService {
 
     const rawResults = await queryBuilder.getRawMany();
 
-    // Generate a full range of periods
-    const fullRange: string[] = [];
-    const currentDate = new Date(startOfDay);
+    // Convert timeGroup to user's timezone and map to view count
+    const resultMap = new Map<string, number>();
 
-    while (currentDate <= endOfDay) {
-      fullRange.push(currentDate.toISOString());
+    rawResults.forEach(({ timeGroup, viewCount }) => {
+      const localTime = DateTime.fromJSDate(timeGroup, { zone: 'utc' })
+        .setZone(userTimezone)
+        .startOf(pgRange as 'day' | 'week' | 'month');
+
+      resultMap.set(localTime.toISODate(), parseInt(viewCount, 10));
+    });
+
+    // Generate the full expected range
+    const fullRange: string[] = [];
+    const currentDate = DateTime.fromJSDate(startOfDay, {
+      zone: userTimezone,
+    }).startOf(pgRange as any);
+    const endDate = DateTime.fromJSDate(endOfDay, { zone: userTimezone });
+
+    let cursor = currentDate;
+
+    while (cursor <= endDate) {
+      fullRange.push(cursor.toISODate());
 
       if (range === 'daily') {
-        currentDate.setDate(currentDate.getDate() + 1); // Increment by 1 day
+        cursor = cursor.plus({ days: 1 });
       } else if (range === 'weekly') {
-        currentDate.setDate(currentDate.getDate() + 7); // Increment by 7 days
+        cursor = cursor.plus({ weeks: 1 });
       } else if (range === 'monthly') {
-        currentDate.setMonth(currentDate.getMonth() + 1); // Increment by 1 month
+        cursor = cursor.plus({ months: 1 });
       }
     }
 
-    // Map raw results to a dictionary for quick lookups
-    const resultMap = new Map(
-      rawResults.map(({ timeGroup, viewCount }) => [
-        new Date(timeGroup).toISOString(),
-        parseInt(viewCount, 10),
-      ]),
-    );
-
-    // Format response based on range
+    // Format results
     const formattedResults: Record<string, number> = {};
 
-    fullRange.forEach((period) => {
-      const date = new Date(period);
+    fullRange.forEach((periodISO) => {
+      const date = DateTime.fromISO(periodISO, { zone: userTimezone });
 
       if (range === 'daily') {
-        const dayLabel = date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
-        formattedResults[dayLabel] = resultMap.get(period) || 0;
+        const label = date.toFormat('MMM dd');
+        formattedResults[label] = resultMap.get(periodISO) || 0;
       } else if (range === 'weekly') {
-        const weekStart = new Date(date);
-        const weekEnd = new Date(date);
-        weekEnd.setDate(weekEnd.getDate() + 6); // Add 6 days for a full week
-
-        const weekLabel = `${weekStart.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-        formattedResults[weekLabel] = resultMap.get(period) || 0;
+        const weekStart = date;
+        const weekEnd = date.plus({ days: 6 });
+        const label = `${weekStart.toFormat('MMM dd')} - ${weekEnd.toFormat('MMM dd')}`;
+        formattedResults[label] = resultMap.get(periodISO) || 0;
       } else if (range === 'monthly') {
-        const monthLabel = date.toLocaleDateString('en-US', { month: 'short' });
-        formattedResults[monthLabel] = resultMap.get(period) || 0;
+        const label = date.toFormat('MMM yyyy');
+        formattedResults[label] = resultMap.get(periodISO) || 0;
       }
     });
 
     return formattedResults;
   }
+
 }
