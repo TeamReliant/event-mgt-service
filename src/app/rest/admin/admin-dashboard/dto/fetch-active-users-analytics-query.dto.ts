@@ -31,4 +31,8 @@ export class FetchActiveUsersAnalyticsQueryDto {
   })
   @FormatValidationException()
   range?: 'daily' | 'weekly' | 'monthly';
+
+  @IsOptional()
+  @FormatValidationException()
+  timezone: string = 'UTC+00:00';
 }

@@ -4,105 +4,122 @@ import { User } from '@app/rest/users/entities/user.entity';
 import { BookingsTransaction } from '@app/rest/attendee/bookings-transactions/entities/bookings-transaction.entity';
 import { SystemRegister } from '@app/rest/admin/system-register/entities/system-register.entity';
 import { Transaction } from '@app/rest/organizer/transaction-resources/transactions/entities/transaction.entity';
+import { DateTime, DateTimeUnit } from 'luxon';
+import { mapToIanaTimezone } from '@libs/helpers/char-generator';
 
 @Injectable()
 export class AdminDashboardService {
   constructor(private readonly _entityManager: EntityManager) {}
 
   // async getActiveUsersChart(
-  //   dateRangeStart: string,
-  //   dateRangeEnd: string,
-  //   group: 'daily' | 'weekly' | 'monthly' = 'monthly',
-  // ) {
-  //   // Convert date range to Date objects
-  //   const startDate = new Date(dateRangeStart);
-  //   startDate.setHours(0, 0, 0, 0);
-  //
-  //   const endDate = new Date(dateRangeEnd);
-  //   endDate.setHours(23, 59, 59, 999); // Ensure we include the full end day
-  //
-  //   // Map `range` input to PostgreSQL-compatible units
-  //   const groupMapping = {
-  //     daily: 'day',
-  //     weekly: 'week',
-  //     monthly: 'month',
+  //   dateRangeStart: Date,
+  //   dateRangeEnd: Date,
+  //   granularity: 'daily' | 'weekly' | 'monthly',
+  //   timezone: string = 'UTC',
+  // ): Promise<Record<string, number>> {
+  //   // Define the SQL interval and date truncation
+  //   const interval = {
+  //     daily: '1 day',
+  //     weekly: '1 week',
+  //     monthly: '1 month',
   //   };
   //
-  //   console.log(`------------ dateStart: ${startDate}  -------- dateEnd: ${endDate}`);
+  //   const rawResults = await this._entityManager.query(
+  //     `
+  //   WITH date_series AS (
+  //     SELECT
+  //         generate_series(
+  //             $1::date,
+  //             $2::date,
+  //             INTERVAL '${interval[granularity]}'
+  //         ) AS range_start
+  //   )
+  //   SELECT
+  //       TO_CHAR(date_series.range_start,
+  //                CASE
+  //                  WHEN '${granularity}' = 'daily' THEN 'YYYY-MM-DD'
+  //                  WHEN '${granularity}' = 'weekly' THEN 'YYYY-MM-DD'
+  //                  WHEN '${granularity}' = 'monthly' THEN 'YYYY-MM'
+  //                  ELSE 'YYYY-MM-DD'
+  //                END) AS label_date,
+  //       COALESCE(COUNT(users.id), 0) AS user_count
+  //   FROM
+  //       date_series
+  //   LEFT JOIN users
+  //       ON users.last_logged_in >= date_series.range_start
+  //       AND users.last_logged_in < date_series.range_start + INTERVAL '${interval[granularity]}'
+  //   GROUP BY
+  //       date_series.range_start
+  //   ORDER BY
+  //       date_series.range_start;
+  //   `,
+  //     [dateRangeStart, dateRangeEnd],
+  //   );
   //
-  //   const pgGroup = groupMapping[group]; // PostgreSQL-compatible unit
+  //   // Process and format results
+  //   return rawResults.reduce((acc, row) => {
+  //     const { label_date, user_count } = row;
+  //     let key = '';
   //
-  //   // Fetch active users within the date range
-  //   const queryBuilder = this._entityManager
-  //     .createQueryBuilder(User, 'user')
-  //     .select(`DATE_TRUNC('${pgGroup}', user.last_logged_in)`, 'timeGroup')
-  //     .addSelect('COUNT(user.id)', 'activeCount')
-  //     .where('user.last_logged_in BETWEEN :start AND :end', {
-  //       start: startDate,
-  //       end: endDate,
-  //     })
-  //     .andWhere('user.last_logged_in >= :thirtyDaysAgo', {
-  //       thirtyDaysAgo: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-  //     })
-  //     .groupBy(`DATE_TRUNC('${pgGroup}', user.last_logged_in)`)
-  //     .orderBy(`DATE_TRUNC('${pgGroup}', user.last_logged_in)`, 'ASC');
-  //
-  //   const rawResults = await queryBuilder.getRawMany();
-  //
-  //   // Create a Map to hold the active user counts
-  //   const resultMap = new Map<string, number>();
-  //
-  //   rawResults.forEach(({ timeGroup, activeCount }) => {
-  //     resultMap.set(timeGroup, parseInt(activeCount, 10));
-  //   });
-  //
-  //   // Generate the date labels and populate the results
-  //   const formattedResults: Record<string, number> = {};
-  //
-  //   const currentDate = new Date(startDate);
-  //   while (currentDate <= endDate) {
-  //     let label: string;
-  //     const period = new Date(currentDate).toISOString(); // Used as the Map key
-  //
-  //     if (group === 'daily') {
-  //       label = currentDate.toLocaleDateString('en-US', {
-  //         month: 'short',
-  //         day: 'numeric',
-  //       });
-  //       formattedResults[label] = resultMap.get(period) ?? 0;
-  //
-  //       currentDate.setDate(currentDate.getDate() + 1); // Increment by 1 day
-  //     } else if (group === 'weekly') {
-  //       const weekStart = new Date(currentDate);
-  //       const weekEnd = new Date(currentDate);
-  //       weekEnd.setDate(weekEnd.getDate() + 6); // Add 6 days for the week
-  //
-  //       label = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-  //       formattedResults[label] = resultMap.get(period) ?? 0;
-  //
-  //       currentDate.setDate(currentDate.getDate() + 7); // Increment by 7 days
-  //     } else if (group === 'monthly') {
-  //       label = currentDate.toLocaleDateString('en-US', { month: 'short' });
-  //       formattedResults[label] = resultMap.get(period) ?? 0;
-  //
-  //       currentDate.setMonth(currentDate.getMonth() + 1); // Increment by 1 month
+  //     // Daily granularity
+  //     if (granularity === 'daily') {
+  //       const date = new Date(label_date);
+  //       key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`;
   //     }
-  //   }
   //
-  //   return formattedResults;
+  //     // Weekly granularity
+  //     if (granularity === 'weekly') {
+  //       const startOfWeek = new Date(label_date);
+  //       const endOfWeek = new Date(startOfWeek);
+  //       endOfWeek.setDate(startOfWeek.getDate() + 6);
+  //
+  //       const startStr = `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()}`;
+  //       const endStr = `${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
+  //       key = `${startStr} - ${endStr}`;
+  //     }
+  //
+  //     // Monthly granularity
+  //     if (granularity === 'monthly') {
+  //       const date = new Date(label_date);
+  //       key = `${date.toLocaleString('default', { month: 'short' })}`;
+  //     }
+  //
+  //     acc[key] = user_count;
+  //     return acc;
+  //   }, {});
   // }
 
   async getActiveUsersChart(
     dateRangeStart: Date,
     dateRangeEnd: Date,
     granularity: 'daily' | 'weekly' | 'monthly',
+    timezone: string = 'UTC',
   ): Promise<Record<string, number>> {
+    // Normalize 'UTC+1:00' to 'UTC+1' and map to IANA
+    timezone = timezone.replace(/\s/g, '+').replace(':00', '');
+    const ianaTimezone = mapToIanaTimezone(timezone);
+
     // Define the SQL interval and date truncation
     const interval = {
       daily: '1 day',
       weekly: '1 week',
       monthly: '1 month',
     };
+
+    // Map granularity to Luxon-recognized units
+    const luxonGranularityMap = {
+      daily: 'day',
+      weekly: 'week',
+      monthly: 'month',
+    };
+
+    // Convert start and end date to the user's timezone and format accordingly
+    const userStart = DateTime.fromJSDate(dateRangeStart, { zone: ianaTimezone }).startOf(<DateTimeUnit>luxonGranularityMap[granularity]);
+    const userEnd = DateTime.fromJSDate(dateRangeEnd, { zone: ianaTimezone }).endOf(<"year" | "quarter" | "month" | "week" | "day" | "hour" | "minute" | "second" | "millisecond">luxonGranularityMap[granularity]);
+
+    // Convert to native JavaScript Date objects for query
+    const startUtc = userStart.toUTC().toJSDate();
+    const endUtc = userEnd.toUTC().toJSDate();
 
     const rawResults = await this._entityManager.query(
       `
@@ -133,7 +150,7 @@ export class AdminDashboardService {
     ORDER BY 
         date_series.range_start;
     `,
-      [dateRangeStart, dateRangeEnd],
+      [startUtc, endUtc],
     );
 
     // Process and format results
@@ -143,13 +160,13 @@ export class AdminDashboardService {
 
       // Daily granularity
       if (granularity === 'daily') {
-        const date = new Date(label_date);
+        const date = DateTime.fromISO(label_date, { zone: ianaTimezone }).toJSDate();
         key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`;
       }
 
       // Weekly granularity
       if (granularity === 'weekly') {
-        const startOfWeek = new Date(label_date);
+        const startOfWeek = DateTime.fromISO(label_date, { zone: ianaTimezone }).toJSDate();
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
 
@@ -160,7 +177,7 @@ export class AdminDashboardService {
 
       // Monthly granularity
       if (granularity === 'monthly') {
-        const date = new Date(label_date);
+        const date = DateTime.fromISO(label_date, { zone: ianaTimezone }).toJSDate();
         key = `${date.toLocaleString('default', { month: 'short' })}`;
       }
 

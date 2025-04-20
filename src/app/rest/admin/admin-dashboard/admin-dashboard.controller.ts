@@ -26,12 +26,18 @@ export class AdminDashboardController {
   @UseGuards(JwtAuthGuard, RolesGuard([UserType.ADMIN]))
   async activeUsersChart(
     @Query()
-    { dateRangeStart, dateRangeEnd, range }: FetchActiveUsersAnalyticsQueryDto,
+    {
+      dateRangeStart,
+      dateRangeEnd,
+      range,
+      timezone,
+    }: FetchActiveUsersAnalyticsQueryDto,
   ): Promise<IResponseWithData> {
     const data = await this._adminDashboardService.getActiveUsersChart(
       dateRangeStart,
       dateRangeEnd,
       range,
+      timezone,
     );
     return ResponseSerializer.data(data);
   }
