@@ -410,22 +410,22 @@ export class EventsService {
       if (!user) throw new NotFoundException('User not found');
     }
 
-    let existingView: EventView;
+    // let existingView: EventView;
+    //
+    // if (user) {
+    //   // check if the view already exist
+    //   existingView = await this.entityManager.findOne(EventView, {
+    //     where: { event: { id: event.id }, user: { id: user.id } },
+    //   });
+    // }
 
-    if (user) {
-      // check if the view already exist
-      existingView = await this.entityManager.findOne(EventView, {
-        where: { event: { id: event.id }, user: { id: user.id } },
-      });
-    }
-
-    if (existingView) {
-      existingView.updatedAt = new Date();
-      event.views++;
-      await this.entityManager.save(EventView, existingView);
-      await this.entityManager.save(Event, event);
-      return;
-    }
+    // if (existingView) {
+    //   existingView.updatedAt = new Date();
+    //   event.views++;
+    //   await this.entityManager.save(EventView, existingView);
+    //   await this.entityManager.save(Event, event);
+    //   return;
+    // }
 
     const view = this.entityManager.create(EventView, { event, user });
     event.views++;
