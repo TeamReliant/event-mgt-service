@@ -1,5 +1,4 @@
-import { Injectable, NotAcceptableException } from '@nestjs/common';
-import { DateTime, FixedOffsetZone } from 'luxon';
+import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
@@ -7,8 +6,6 @@ import { Event } from '@app/rest/organizer/event-resources/events/entities/event
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
-import { parseTimezoneOffset } from '@libs/helpers/char-generator';
-import * as moment from 'moment-timezone';
 
 @Injectable()
 export class EventAnalyticsService {
@@ -100,6 +97,22 @@ export class EventAnalyticsService {
   }
 
   private async _getTicketsAnalytics(event: Event, category: TicketCategory) {
+    if (category === TicketCategory.FREE) {
+      // count all free booking
+      event.totalNumberOfTicketsRsvp = await this.entityManager
+        .createQueryBuilder(Booking, 'bookings')
+        .leftJoinAndSelect('bookings.event', 'event')
+        .where('event.id = :eventId', { eventId: event.id })
+        .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+        .andWhere('bookings.category = :category', { category })
+        .andWhere('bookings.reaction != :reaction', {
+          reaction: FreeTicketReaction.NOT_GOING,
+        })
+        .getCount();
+
+      await this.entityManager.save(Event, event);
+    }
+
     // get the date of yesterday
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
