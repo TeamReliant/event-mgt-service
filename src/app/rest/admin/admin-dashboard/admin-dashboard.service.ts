@@ -93,7 +93,7 @@ export class AdminDashboardService {
     dateRangeStart: Date,
     dateRangeEnd: Date,
     granularity: 'daily' | 'weekly' | 'monthly',
-    timezone: string = 'UTC',
+    timezone: string = 'UTC+01:00',
   ): Promise<Record<string, number>> {
     timezone = timezone.replace(/\s/g, '+').replace(':00', '');
     timezone = mapToIanaTimezone(timezone);
@@ -104,32 +104,61 @@ export class AdminDashboardService {
       monthly: '1 month',
     };
 
+    // const rawResults = await this._entityManager.query(
+    //   `
+    // WITH date_series AS (
+    //   SELECT generate_series(
+    //     $1::timestamptz,
+    //     $2::timestamptz,
+    //     INTERVAL '${interval[granularity]}'
+    //   ) AT TIME ZONE $3 AS range_start
+    // )
+    // SELECT
+    //   TO_CHAR(ds.range_start,
+    //     CASE
+    //       WHEN $4 = 'daily' THEN 'YYYY-MM-DD'
+    //       WHEN $4 = 'weekly' THEN 'YYYY-MM-DD'
+    //       WHEN $4 = 'monthly' THEN 'YYYY-MM'
+    //       ELSE 'YYYY-MM-DD'
+    //     END
+    //   ) AS label_date,
+    //   COUNT(u.id) AS user_count
+    // FROM date_series ds
+    // LEFT JOIN users u
+    //   ON u.last_logged_in AT TIME ZONE $3 >= ds.range_start
+    //   AND u.last_logged_in AT TIME ZONE $3 < ds.range_start + INTERVAL '${interval[granularity]}'
+    // GROUP BY ds.range_start
+    // ORDER BY ds.range_start;
+    // `,
+    //   [dateRangeStart, dateRangeEnd, timezone, granularity],
+    // );
+
     const rawResults = await this._entityManager.query(
       `
-    WITH date_series AS (
-      SELECT generate_series(
-        $1::timestamptz,
-        $2::timestamptz,
-        INTERVAL '${interval[granularity]}'
-      ) AT TIME ZONE $3 AS range_start
-    )
-    SELECT
-      TO_CHAR(ds.range_start,
-        CASE
-          WHEN $4 = 'daily' THEN 'YYYY-MM-DD'
-          WHEN $4 = 'weekly' THEN 'YYYY-MM-DD'
-          WHEN $4 = 'monthly' THEN 'YYYY-MM'
-          ELSE 'YYYY-MM-DD'
-        END
-      ) AS label_date,
-      COUNT(u.id) AS user_count
-    FROM date_series ds
-    LEFT JOIN users u
-      ON u.last_logged_in AT TIME ZONE $3 >= ds.range_start
-      AND u.last_logged_in AT TIME ZONE $3 < ds.range_start + INTERVAL '${interval[granularity]}'
-    GROUP BY ds.range_start
-    ORDER BY ds.range_start;
-    `,
+  WITH date_series AS (
+    SELECT generate_series(
+      $1::timestamptz,
+      $2::timestamptz,
+      INTERVAL '${interval[granularity]}'
+    ) AS range_start
+  )
+  SELECT
+    TO_CHAR(ds.range_start AT TIME ZONE $3,
+      CASE
+        WHEN $4 = 'daily' THEN 'YYYY-MM-DD'
+        WHEN $4 = 'weekly' THEN 'YYYY-MM-DD'
+        WHEN $4 = 'monthly' THEN 'YYYY-MM'
+        ELSE 'YYYY-MM-DD'
+      END
+    ) AS label_date,
+    COUNT(u.id) AS user_count
+  FROM date_series ds
+  LEFT JOIN users u
+    ON u.last_logged_in AT TIME ZONE $3 >= ds.range_start AT TIME ZONE $3
+    AND u.last_logged_in AT TIME ZONE $3 < (ds.range_start + INTERVAL '${interval[granularity]}') AT TIME ZONE $3
+  GROUP BY ds.range_start
+  ORDER BY ds.range_start;
+  `,
       [dateRangeStart, dateRangeEnd, timezone, granularity],
     );
 
