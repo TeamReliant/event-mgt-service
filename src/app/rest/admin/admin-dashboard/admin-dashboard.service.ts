@@ -14,263 +14,85 @@ import {
 export class AdminDashboardService {
   constructor(private readonly _entityManager: EntityManager) {}
 
-  // async getActiveUsersChart(
-  //   dateRangeStart: Date,
-  //   dateRangeEnd: Date,
-  //   granularity: 'daily' | 'weekly' | 'monthly',
-  //   timezone: string = 'UTC',
-  // ): Promise<Record<string, number>> {
-  //   // Define the SQL interval and date truncation
-  //   const interval = {
-  //     daily: '1 day',
-  //     weekly: '1 week',
-  //     monthly: '1 month',
-  //   };
-  //
-  //   const rawResults = await this._entityManager.query(
-  //     `
-  //   WITH date_series AS (
-  //     SELECT
-  //         generate_series(
-  //             $1::date,
-  //             $2::date,
-  //             INTERVAL '${interval[granularity]}'
-  //         ) AS range_start
-  //   )
-  //   SELECT
-  //       TO_CHAR(date_series.range_start,
-  //                CASE
-  //                  WHEN '${granularity}' = 'daily' THEN 'YYYY-MM-DD'
-  //                  WHEN '${granularity}' = 'weekly' THEN 'YYYY-MM-DD'
-  //                  WHEN '${granularity}' = 'monthly' THEN 'YYYY-MM'
-  //                  ELSE 'YYYY-MM-DD'
-  //                END) AS label_date,
-  //       COALESCE(COUNT(users.id), 0) AS user_count
-  //   FROM
-  //       date_series
-  //   LEFT JOIN users
-  //       ON users.last_logged_in >= date_series.range_start
-  //       AND users.last_logged_in < date_series.range_start + INTERVAL '${interval[granularity]}'
-  //   GROUP BY
-  //       date_series.range_start
-  //   ORDER BY
-  //       date_series.range_start;
-  //   `,
-  //     [dateRangeStart, dateRangeEnd],
-  //   );
-  //
-  //   // Process and format results
-  //   return rawResults.reduce((acc, row) => {
-  //     const { label_date, user_count } = row;
-  //     let key = '';
-  //
-  //     // Daily granularity
-  //     if (granularity === 'daily') {
-  //       const date = new Date(label_date);
-  //       key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`;
-  //     }
-  //
-  //     // Weekly granularity
-  //     if (granularity === 'weekly') {
-  //       const startOfWeek = new Date(label_date);
-  //       const endOfWeek = new Date(startOfWeek);
-  //       endOfWeek.setDate(startOfWeek.getDate() + 6);
-  //
-  //       const startStr = `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()}`;
-  //       const endStr = `${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
-  //       key = `${startStr} - ${endStr}`;
-  //     }
-  //
-  //     // Monthly granularity
-  //     if (granularity === 'monthly') {
-  //       const date = new Date(label_date);
-  //       key = `${date.toLocaleString('default', { month: 'short' })}`;
-  //     }
-  //
-  //     acc[key] = user_count;
-  //     return acc;
-  //   }, {});
-  // }
-
-  // async getActiveUsersChart(
-  //   dateRangeStart: Date,
-  //   dateRangeEnd: Date,
-  //   granularity: 'daily' | 'weekly' | 'monthly',
-  //   timezone: string = 'UTC+01:00',
-  // ): Promise<Record<string, number>> {
-  //   timezone = timezone.replace(/\s/g, '+').replace(':00', '');
-  //   timezone = mapToIanaTimezone(timezone);
-  //
-  //   const interval = {
-  //     daily: '1 day',
-  //     weekly: '1 week',
-  //     monthly: '1 month',
-  //   };
-  //
-  //   // const rawResults = await this._entityManager.query(
-  //   //   `
-  //   // WITH date_series AS (
-  //   //   SELECT generate_series(
-  //   //     $1::timestamptz,
-  //   //     $2::timestamptz,
-  //   //     INTERVAL '${interval[granularity]}'
-  //   //   ) AT TIME ZONE $3 AS range_start
-  //   // )
-  //   // SELECT
-  //   //   TO_CHAR(ds.range_start,
-  //   //     CASE
-  //   //       WHEN $4 = 'daily' THEN 'YYYY-MM-DD'
-  //   //       WHEN $4 = 'weekly' THEN 'YYYY-MM-DD'
-  //   //       WHEN $4 = 'monthly' THEN 'YYYY-MM'
-  //   //       ELSE 'YYYY-MM-DD'
-  //   //     END
-  //   //   ) AS label_date,
-  //   //   COUNT(u.id) AS user_count
-  //   // FROM date_series ds
-  //   // LEFT JOIN users u
-  //   //   ON u.last_logged_in AT TIME ZONE $3 >= ds.range_start
-  //   //   AND u.last_logged_in AT TIME ZONE $3 < ds.range_start + INTERVAL '${interval[granularity]}'
-  //   // GROUP BY ds.range_start
-  //   // ORDER BY ds.range_start;
-  //   // `,
-  //   //   [dateRangeStart, dateRangeEnd, timezone, granularity],
-  //   // );
-  //
-  //   const rawResults = await this._entityManager.query(
-  //     `
-  // WITH date_series AS (
-  //   SELECT generate_series(
-  //     $1::timestamptz,
-  //     $2::timestamptz,
-  //     INTERVAL '${interval[granularity]}'
-  //   ) AS range_start
-  // )
-  // SELECT
-  //   TO_CHAR(ds.range_start AT TIME ZONE $3,
-  //     CASE
-  //       WHEN $4 = 'daily' THEN 'YYYY-MM-DD'
-  //       WHEN $4 = 'weekly' THEN 'YYYY-MM-DD'
-  //       WHEN $4 = 'monthly' THEN 'YYYY-MM'
-  //       ELSE 'YYYY-MM-DD'
-  //     END
-  //   ) AS label_date,
-  //   COUNT(u.id) AS user_count
-  // FROM date_series ds
-  // LEFT JOIN users u
-  //   ON u.last_logged_in AT TIME ZONE $3 >= ds.range_start AT TIME ZONE $3
-  //   AND u.last_logged_in AT TIME ZONE $3 < (ds.range_start + INTERVAL '${interval[granularity]}') AT TIME ZONE $3
-  // GROUP BY ds.range_start
-  // ORDER BY ds.range_start;
-  // `,
-  //     [dateRangeStart, dateRangeEnd, timezone, granularity],
-  //   );
-  //
-  //   return rawResults.reduce(
-  //     (acc, row) => {
-  //       const { label_date, user_count } = row;
-  //       let key = '';
-  //
-  //       if (granularity === 'daily') {
-  //         const date = new Date(label_date);
-  //         key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}, ${date.getFullYear()}`;
-  //       }
-  //
-  //       if (granularity === 'weekly') {
-  //         const startOfWeek = new Date(label_date);
-  //         const endOfWeek = new Date(startOfWeek);
-  //         endOfWeek.setDate(startOfWeek.getDate() + 6);
-  //         key = `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()} - ${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
-  //       }
-  //
-  //       if (granularity === 'monthly') {
-  //         const date = new Date(label_date);
-  //         key = `${date.toLocaleString('default', { month: 'short' })} ${date.getFullYear()}`;
-  //       }
-  //
-  //       acc[key] = Number(user_count);
-  //       return acc;
-  //     },
-  //     {} as Record<string, number>,
-  //   );
-  // }
-
   async getActiveUsersChart(
     dateRangeStart: Date,
     dateRangeEnd: Date,
     granularity: 'daily' | 'weekly' | 'monthly',
     timezone: string = 'UTC',
   ): Promise<Record<string, number>> {
-    const intervalMap = {
+    // Define the SQL interval and date truncation
+    const interval = {
       daily: '1 day',
       weekly: '1 week',
       monthly: '1 month',
     };
 
-    const formatMap = {
-      daily: 'YYYY-MM-DD',
-      weekly: 'YYYY-MM-DD',
-      monthly: 'YYYY-MM',
-    };
-
     const rawResults = await this._entityManager.query(
       `
     WITH date_series AS (
-      SELECT generate_series(
-        $1::timestamptz,
-        $2::timestamptz,
-        INTERVAL '${intervalMap[granularity]}'
-      ) AS range_start_utc
+      SELECT
+          generate_series(
+              $1::date,
+              $2::date,
+              INTERVAL '${interval[granularity]}'
+          ) AS range_start
     )
     SELECT
-      TO_CHAR(
-        (ds.range_start_utc AT TIME ZONE 'UTC') AT TIME ZONE $3,
-        $4
-      ) AS label_date,
-      COUNT(u.id) AS user_count
-    FROM date_series ds
-    LEFT JOIN users u
-      ON (u.last_logged_in AT TIME ZONE 'UTC') AT TIME ZONE $3 >= (ds.range_start_utc AT TIME ZONE 'UTC') AT TIME ZONE $3
-     AND (u.last_logged_in AT TIME ZONE 'UTC') AT TIME ZONE $3 < ((ds.range_start_utc + INTERVAL '${intervalMap[granularity]}') AT TIME ZONE 'UTC') AT TIME ZONE $3
-    GROUP BY label_date
-    ORDER BY label_date;
+        TO_CHAR(date_series.range_start,
+                 CASE
+                   WHEN '${granularity}' = 'daily' THEN 'YYYY-MM-DD'
+                   WHEN '${granularity}' = 'weekly' THEN 'YYYY-MM-DD'
+                   WHEN '${granularity}' = 'monthly' THEN 'YYYY-MM'
+                   ELSE 'YYYY-MM-DD'
+                 END) AS label_date,
+        COALESCE(COUNT(users.id), 0) AS user_count
+    FROM
+        date_series
+    LEFT JOIN users
+        ON users.last_logged_in >= date_series.range_start
+        AND users.last_logged_in < date_series.range_start + INTERVAL '${interval[granularity]}'
+    GROUP BY
+        date_series.range_start
+    ORDER BY
+        date_series.range_start;
     `,
-      [
-        dateRangeStart.toISOString(),
-        dateRangeEnd.toISOString(),
-        timezone,
-        formatMap[granularity],
-      ],
+      [dateRangeStart, dateRangeEnd],
     );
 
-    // Convert label_date (e.g. '2025-04-20') to user-friendly formats
-    return rawResults.reduce(
-      (acc, row) => {
-        const { label_date, user_count } = row;
-        let key = '';
-        const parsedDate = new Date(
-          `${label_date}T00:00:00${getOffsetSuffix(timezone)}`,
-        );
+    // Process and format results
+    return rawResults.reduce((acc, row) => {
+      const { label_date, user_count } = row;
+      let key = '';
 
-        if (granularity === 'daily') {
-          key = `${parsedDate.toLocaleString('default', { month: 'short' })} ${parsedDate.getDate()}, ${parsedDate.getFullYear()}`;
-        }
+      // Daily granularity
+      if (granularity === 'daily') {
+        const date = new Date(label_date);
+        key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`;
+      }
 
-        if (granularity === 'weekly') {
-          const endOfWeek = new Date(parsedDate);
-          endOfWeek.setDate(parsedDate.getDate() + 6);
-          key = `${parsedDate.toLocaleString('default', { month: 'short' })} ${parsedDate.getDate()} - ${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
-        }
+      // Weekly granularity
+      if (granularity === 'weekly') {
+        const startOfWeek = new Date(label_date);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-        if (granularity === 'monthly') {
-          key = `${parsedDate.toLocaleString('default', { month: 'short' })} ${parsedDate.getFullYear()}`;
-        }
+        const startStr = `${startOfWeek.toLocaleString('default', { month: 'short' })} ${startOfWeek.getDate()}`;
+        const endStr = `${endOfWeek.toLocaleString('default', { month: 'short' })} ${endOfWeek.getDate()}`;
+        key = `${startStr} - ${endStr}`;
+      }
 
-        acc[key] = Number(user_count);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
+      // Monthly granularity
+      if (granularity === 'monthly') {
+        const date = new Date(label_date);
+        key = `${date.toLocaleString('default', { month: 'short' })}`;
+      }
+
+      acc[key] = user_count;
+      return acc;
+    }, {});
   }
+
+
 
   async getAnalytics() {
     // fetch the system register
