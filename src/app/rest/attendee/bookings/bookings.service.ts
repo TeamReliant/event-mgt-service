@@ -527,7 +527,6 @@ export class BookingsService {
         await manager.save<Event>(event);
       }
 
-
       // save the newly generated bookings
       await manager.save(Booking, newBookings);
       await manager.save(Ticket, ticket);
