@@ -679,8 +679,12 @@ export class EventAnalyticsService {
     const pgRange = rangeMapping[range];
 
     // Build start and end of day in user's timezone
-    const userStart = DateTime.fromISO(dateRangeStart, { zone: ianaTimezone }).startOf(pgRange as any);
-    const userEnd = DateTime.fromISO(dateRangeEnd, { zone: ianaTimezone }).endOf(pgRange as any);
+    const userStart = DateTime.fromISO(dateRangeStart, {
+      zone: ianaTimezone,
+    }).startOf(pgRange as any);
+    const userEnd = DateTime.fromISO(dateRangeEnd, {
+      zone: ianaTimezone,
+    }).endOf(pgRange as any);
 
     // Convert to UTC for querying
     const startUtc = userStart.toUTC().toJSDate();
@@ -698,15 +702,22 @@ export class EventAnalyticsService {
         start: startUtc,
         end: endUtc,
       })
-      .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`)
-      .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`, 'ASC')
+      .groupBy(
+        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+      )
+      .orderBy(
+        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+        'ASC',
+      )
       .setParameter('userTz', ianaTimezone);
 
     const rawResults = await queryBuilder.getRawMany();
 
     const resultMap = new Map<string, number>();
     rawResults.forEach(({ timeGroup, viewCount }) => {
-      const time = DateTime.fromJSDate(timeGroup, { zone: ianaTimezone }).startOf(pgRange as any);
+      const time = DateTime.fromJSDate(timeGroup, {
+        zone: ianaTimezone,
+      }).startOf(pgRange as any);
       resultMap.set(time.toISODate(), parseInt(viewCount, 10));
     });
 
@@ -742,6 +753,4 @@ export class EventAnalyticsService {
 
     return formattedResults;
   }
-
-
 }
