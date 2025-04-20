@@ -114,8 +114,24 @@ export class AdminDashboardService {
     };
 
     // Convert start and end date to the user's timezone and format accordingly
-    const userStart = DateTime.fromJSDate(dateRangeStart, { zone: ianaTimezone }).startOf(<DateTimeUnit>luxonGranularityMap[granularity]);
-    const userEnd = DateTime.fromJSDate(dateRangeEnd, { zone: ianaTimezone }).endOf(<"year" | "quarter" | "month" | "week" | "day" | "hour" | "minute" | "second" | "millisecond">luxonGranularityMap[granularity]);
+    const userStart = DateTime.fromJSDate(dateRangeStart, {
+      zone: ianaTimezone,
+    }).startOf(<DateTimeUnit>luxonGranularityMap[granularity]);
+    const userEnd = DateTime.fromJSDate(dateRangeEnd, { zone: ianaTimezone })
+      .plus({ [luxonGranularityMap[granularity]]: 1 }) // add 1 day/week/month
+      .startOf(
+        <
+          | 'year'
+          | 'quarter'
+          | 'month'
+          | 'week'
+          | 'day'
+          | 'hour'
+          | 'minute'
+          | 'second'
+          | 'millisecond'
+        >luxonGranularityMap[granularity],
+      );
 
     // Convert to native JavaScript Date objects for query
     const startUtc = userStart.toUTC().toJSDate();
@@ -160,13 +176,17 @@ export class AdminDashboardService {
 
       // Daily granularity
       if (granularity === 'daily') {
-        const date = DateTime.fromISO(label_date, { zone: ianaTimezone }).toJSDate();
+        const date = DateTime.fromISO(label_date, {
+          zone: ianaTimezone,
+        }).toJSDate();
         key = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate()}`;
       }
 
       // Weekly granularity
       if (granularity === 'weekly') {
-        const startOfWeek = DateTime.fromISO(label_date, { zone: ianaTimezone }).toJSDate();
+        const startOfWeek = DateTime.fromISO(label_date, {
+          zone: ianaTimezone,
+        }).toJSDate();
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
 
@@ -177,7 +197,9 @@ export class AdminDashboardService {
 
       // Monthly granularity
       if (granularity === 'monthly') {
-        const date = DateTime.fromISO(label_date, { zone: ianaTimezone }).toJSDate();
+        const date = DateTime.fromISO(label_date, {
+          zone: ianaTimezone,
+        }).toJSDate();
         key = `${date.toLocaleString('default', { month: 'short' })}`;
       }
 
