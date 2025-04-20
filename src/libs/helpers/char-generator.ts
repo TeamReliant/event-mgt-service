@@ -50,3 +50,18 @@ function parseOffsetToMinutes(offsetStr: string): number {
   const hours = parseInt(match[2], 10);
   return sign * hours * 60;
 }
+
+export function getOffsetSuffix(timezone: string): string {
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'shortOffset',
+    });
+    const parts = formatter.formatToParts(now);
+    const offset = parts.find((p) => p.type === 'timeZoneName')?.value;
+    return offset?.replace('GMT', '') || '+00:00';
+  } catch {
+    return '+00:00';
+  }
+}
