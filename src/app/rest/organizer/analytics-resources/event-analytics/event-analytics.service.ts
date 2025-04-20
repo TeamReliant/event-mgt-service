@@ -7,6 +7,7 @@ import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.enti
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 import { DateTime, DateTimeUnit } from 'luxon';
+import { mapToIanaTimezone } from '@libs/helpers/char-generator';
 
 @Injectable()
 export class EventAnalyticsService {
@@ -553,6 +554,112 @@ export class EventAnalyticsService {
   //   return formattedResults;
   // }
 
+  // private async _getEventPageViews(
+  //   eventId: string,
+  //   dateRangeStart: string,
+  //   dateRangeEnd: string,
+  //   range: 'daily' | 'weekly' | 'monthly',
+  //   timezone: string = 'UTC',
+  // ) {
+  //   // Normalize 'UTC+1:00' to 'UTC+1' for Luxon compatibility
+  //   timezone = timezone.replace(/\s/g, '+');
+  //   const normalizeTimezone = (tz: string): string => tz.replace(':00', '');
+  //
+  //
+  //   const userTimezone = normalizeTimezone(timezone);
+  //
+  //   const startOfDay = new Date(dateRangeStart);
+  //   startOfDay.setHours(0, 0, 0, 0);
+  //
+  //   const endOfDay = new Date(dateRangeEnd);
+  //   endOfDay.setHours(23, 59, 59, 999);
+  //
+  //   const rangeMapping = {
+  //     daily: 'day',
+  //     weekly: 'week',
+  //     monthly: 'month',
+  //   };
+  //
+  //   const pgRange = rangeMapping[range];
+  //
+  //   // Align start date for weekly and monthly
+  //   if (range === 'weekly') {
+  //     const dayOfWeek = startOfDay.getDay();
+  //     startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Monday
+  //   } else if (range === 'monthly') {
+  //     startOfDay.setDate(1);
+  //   }
+  //
+  //   // Query builder
+  //   const queryBuilder = this.entityManager
+  //     .createQueryBuilder(EventView, 'views')
+  //     .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
+  //     .addSelect('COUNT(views.id)', 'viewCount')
+  //     .where('views.eventId = :eventId', { eventId })
+  //     .andWhere('views.createdAt BETWEEN :start AND :end', {
+  //       start: startOfDay,
+  //       end: endOfDay,
+  //     })
+  //     .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt)`)
+  //     .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'ASC');
+  //
+  //   const rawResults = await queryBuilder.getRawMany();
+  //
+  //   // Convert timeGroup to user's timezone and map to view count
+  //   const resultMap = new Map<string, number>();
+  //
+  //   rawResults.forEach(({ timeGroup, viewCount }) => {
+  //     const localTime = DateTime.fromJSDate(timeGroup, { zone: 'utc' })
+  //       .setZone(userTimezone)
+  //       .startOf(pgRange as 'day' | 'week' | 'month');
+  //
+  //     resultMap.set(localTime.toISODate(), parseInt(viewCount, 10));
+  //   });
+  //
+  //   // Generate the full expected range
+  //   const fullRange: string[] = [];
+  //   const currentDate = DateTime.fromJSDate(startOfDay, {
+  //     zone: userTimezone,
+  //   }).startOf(pgRange as any);
+  //   const endDate = DateTime.fromJSDate(endOfDay, { zone: userTimezone });
+  //
+  //   let cursor = currentDate;
+  //
+  //   while (cursor <= endDate) {
+  //     fullRange.push(cursor.toISODate());
+  //
+  //     if (range === 'daily') {
+  //       cursor = cursor.plus({ days: 1 });
+  //     } else if (range === 'weekly') {
+  //       cursor = cursor.plus({ weeks: 1 });
+  //     } else if (range === 'monthly') {
+  //       cursor = cursor.plus({ months: 1 });
+  //     }
+  //   }
+  //
+  //   // Format results
+  //   const formattedResults: Record<string, number> = {};
+  //
+  //   fullRange.forEach((periodISO) => {
+  //     const date = DateTime.fromISO(periodISO, { zone: userTimezone });
+  //
+  //     if (range === 'daily') {
+  //       const label = date.toFormat('MMM dd');
+  //       formattedResults[label] = resultMap.get(periodISO) || 0;
+  //     } else if (range === 'weekly') {
+  //       const weekStart = date;
+  //       const weekEnd = date.plus({ days: 6 });
+  //       const label = `${weekStart.toFormat('MMM dd')} - ${weekEnd.toFormat('MMM dd')}`;
+  //       formattedResults[label] = resultMap.get(periodISO) || 0;
+  //     } else if (range === 'monthly') {
+  //       const label = date.toFormat('MMM yyyy');
+  //       formattedResults[label] = resultMap.get(periodISO) || 0;
+  //     }
+  //   });
+  //
+  //   return formattedResults;
+  // }
+
   private async _getEventPageViews(
     eventId: string,
     dateRangeStart: string,
@@ -560,86 +667,64 @@ export class EventAnalyticsService {
     range: 'daily' | 'weekly' | 'monthly',
     timezone: string = 'UTC',
   ) {
-    // Normalize 'UTC+1:00' to 'UTC+1' for Luxon compatibility
-    timezone = timezone.replace(/\s/g, '+');
-    const normalizeTimezone = (tz: string): string => tz.replace(':00', '');
-
-    const userTimezone = normalizeTimezone(timezone);
-
-    const startOfDay = new Date(dateRangeStart);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(dateRangeEnd);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Normalize 'UTC+1:00' to 'UTC+1' and map to IANA
+    timezone = timezone.replace(/\s/g, '+').replace(':00', '');
+    const ianaTimezone = mapToIanaTimezone(timezone);
 
     const rangeMapping = {
       daily: 'day',
       weekly: 'week',
       monthly: 'month',
     };
-
     const pgRange = rangeMapping[range];
 
-    // Align start date for weekly and monthly
-    if (range === 'weekly') {
-      const dayOfWeek = startOfDay.getDay();
-      startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Monday
-    } else if (range === 'monthly') {
-      startOfDay.setDate(1);
-    }
+    // Build start and end of day in user's timezone
+    const userStart = DateTime.fromISO(dateRangeStart, { zone: ianaTimezone }).startOf(pgRange as any);
+    const userEnd = DateTime.fromISO(dateRangeEnd, { zone: ianaTimezone }).endOf(pgRange as any);
 
-    // Query builder
+    // Convert to UTC for querying
+    const startUtc = userStart.toUTC().toJSDate();
+    const endUtc = userEnd.toUTC().toJSDate();
+
     const queryBuilder = this.entityManager
       .createQueryBuilder(EventView, 'views')
-      .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
+      .select(
+        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+        'timeGroup',
+      )
       .addSelect('COUNT(views.id)', 'viewCount')
       .where('views.eventId = :eventId', { eventId })
       .andWhere('views.createdAt BETWEEN :start AND :end', {
-        start: startOfDay,
-        end: endOfDay,
+        start: startUtc,
+        end: endUtc,
       })
-      .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt)`)
-      .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'ASC');
+      .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`)
+      .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`, 'ASC')
+      .setParameter('userTz', ianaTimezone);
 
     const rawResults = await queryBuilder.getRawMany();
 
-    // Convert timeGroup to user's timezone and map to view count
     const resultMap = new Map<string, number>();
-
     rawResults.forEach(({ timeGroup, viewCount }) => {
-      const localTime = DateTime.fromJSDate(timeGroup, { zone: 'utc' })
-        .setZone(userTimezone)
-        .startOf(pgRange as 'day' | 'week' | 'month');
-
-      resultMap.set(localTime.toISODate(), parseInt(viewCount, 10));
+      const time = DateTime.fromJSDate(timeGroup, { zone: ianaTimezone }).startOf(pgRange as any);
+      resultMap.set(time.toISODate(), parseInt(viewCount, 10));
     });
 
-    // Generate the full expected range
+    // Generate full range
     const fullRange: string[] = [];
-    const currentDate = DateTime.fromJSDate(startOfDay, {
-      zone: userTimezone,
-    }).startOf(pgRange as any);
-    const endDate = DateTime.fromJSDate(endOfDay, { zone: userTimezone });
-
-    let cursor = currentDate;
-
-    while (cursor <= endDate) {
+    let cursor = userStart.startOf(pgRange as any);
+    while (cursor <= userEnd) {
       fullRange.push(cursor.toISODate());
 
-      if (range === 'daily') {
-        cursor = cursor.plus({ days: 1 });
-      } else if (range === 'weekly') {
-        cursor = cursor.plus({ weeks: 1 });
-      } else if (range === 'monthly') {
-        cursor = cursor.plus({ months: 1 });
-      }
+      if (range === 'daily') cursor = cursor.plus({ days: 1 });
+      else if (range === 'weekly') cursor = cursor.plus({ weeks: 1 });
+      else if (range === 'monthly') cursor = cursor.plus({ months: 1 });
     }
 
     // Format results
     const formattedResults: Record<string, number> = {};
-
     fullRange.forEach((periodISO) => {
-      const date = DateTime.fromISO(periodISO, { zone: userTimezone });
+      const date = DateTime.fromISO(periodISO, { zone: ianaTimezone });
 
       if (range === 'daily') {
         const label = date.toFormat('MMM dd');
@@ -657,5 +742,6 @@ export class EventAnalyticsService {
 
     return formattedResults;
   }
+
 
 }

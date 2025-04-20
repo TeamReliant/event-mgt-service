@@ -1,4 +1,5 @@
 import { randomInt } from 'crypto';
+import * as moment from 'moment-timezone';
 import { NotAcceptableException } from '@nestjs/common';
 
 export const generateSixDigitToken = () => {
@@ -23,19 +24,29 @@ export const generateRandomString = (length: number) => {
   return result;
 };
 
-export function parseTimezoneOffset(timezone: string): number {
-  const match = timezone.match(/^UTC([+-])(\d{2}):(\d{2})$/);
-  if (!match)
-    throw new Error('Invalid timezone format. Expected format: UTC±HH:mm');
+export function mapToIanaTimezone(offset: string): string {
+  const now = new Date();
 
-  const [, sign, hours, minutes] = match;
-  const totalMinutes = parseInt(hours, 10) * 60 + parseInt(minutes, 10);
-  return sign === '+' ? totalMinutes : -totalMinutes;
+  // Convert offset like "UTC+1" to number of minutes
+  const offsetMinutes = parseOffsetToMinutes(offset);
+
+  // Get list of all timezones
+  const timezones = moment.tz.names();
+
+  // Filter timezones that match the offset *right now* (considering DST)
+  const matching = timezones.filter((tz) => {
+    const tzOffset = moment.tz(now, tz).utcOffset(); // in minutes
+    return tzOffset === offsetMinutes;
+  });
+
+  // Return the first match, or fallback
+  return matching.length > 0 ? matching[0] : 'Etc/UTC';
 }
 
-export function convertOffsetToPostgresTZ(offset: string): string {
-  const match = offset.match(/^UTC([+-]\d{2}):(\d{2})$/);
-  if (!match) throw new NotAcceptableException('Invalid timezone format');
-
-  return `${match[1]}:${match[2]}`;
+function parseOffsetToMinutes(offsetStr: string): number {
+  const match = offsetStr.match(/^UTC([+-])(\d{1,2})$/);
+  if (!match) throw new Error(`Invalid offset format: ${offsetStr}`);
+  const sign = match[1] === '+' ? 1 : -1;
+  const hours = parseInt(match[2], 10);
+  return sign * hours * 60;
 }
