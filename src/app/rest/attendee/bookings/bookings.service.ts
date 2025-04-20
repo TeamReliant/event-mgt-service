@@ -512,19 +512,21 @@ export class BookingsService {
         // update the system register
         systemRegister.totalTicketsProcessed += totalTicketsProcessed;
         systemRegister.ticketsRsvp += totalTicketsProcessed;
+
         const event = await manager
           .createQueryBuilder(Event, 'event')
           .leftJoinAndSelect('event.user', 'user')
           .where('event.id = :id', { id: bookings[0].event.id })
           .getOne();
+
         event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
         event.user.ticketsRsvp += totalTicketsProcessed;
 
         await manager.save<SystemRegister>(systemRegister);
         await manager.save<User>(event.user);
+        await manager.save<Event>(event);
       }
 
-      await manager.save<Event>(bookings[0].event);
 
       // save the newly generated bookings
       await manager.save(Booking, newBookings);
