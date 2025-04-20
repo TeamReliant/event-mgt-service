@@ -39,25 +39,30 @@ export class AttendeeDashboardService {
       .setParameters(subQuery.getParameters())
       .getMany();
 
-    // const recentlyViewedEvents = await this._entityManager
-    //   .createQueryBuilder(EventView, 'view')
-    //   .leftJoinAndSelect('view.event', 'event')
-    //   .innerJoinAndSelect('event.user', 'user')
-    //   .where('view.userId = :userId', { userId })
-    //   .orderBy('view.updatedAt', 'DESC')
-    //   .limit(10)
-    //   .getMany();
-
     const recentlyViewedEvents = await this._entityManager
       .createQueryBuilder(EventView, 'view')
       .leftJoinAndSelect('view.event', 'event')
       .innerJoinAndSelect('event.user', 'user')
       .where('view.userId = :userId', { userId })
-      .orderBy('view.eventId', 'ASC')  // Ensure we get one view per eventId
-      .addOrderBy('view.updatedAt', 'DESC')  // Order by updatedAt to get the most recent view
-      .distinctOn(['view.eventId'])  // This ensures only one entry per eventId
+      .orderBy('view.updatedAt', 'DESC')
       .limit(10)
       .getMany();
+
+    const uniqueEvents = recentlyViewedEvents
+      .filter((view, index, self) =>
+        index === self.findIndex((v) => v.event.id === view.event.id)
+      )
+
+    // const recentlyViewedEvents = await this._entityManager
+    //   .createQueryBuilder(EventView, 'view')
+    //   .leftJoinAndSelect('view.event', 'event')
+    //   .innerJoinAndSelect('event.user', 'user')
+    //   .where('view.userId = :userId', { userId })
+    //   .orderBy('view.eventId', 'ASC') // Ensure we get one view per eventId
+    //   .addOrderBy('view.updatedAt', 'DESC') // Order by updatedAt to get the most recent view
+    //   .distinctOn(['view.eventId']) // This ensures only one entry per eventId
+    //   .limit(10)
+    //   .getMany();
 
     let recommendedEvents: Event[];
     if (latitude && longitude) {
@@ -86,7 +91,7 @@ export class AttendeeDashboardService {
 
     return {
       upcomingEvents: this.sortUpcomingEvents(upcomingEventBookings),
-      recentlyViewedEvents: recentlyViewedEvents.map((view) => view.event),
+      recentlyViewedEvents: uniqueEvents.map((view) => view.event),
       recommendedEvents,
     };
   }
