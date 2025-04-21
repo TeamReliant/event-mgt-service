@@ -8,12 +8,12 @@ import { CustomLoggerService } from '@libs/services/logging/custom-logger.servic
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
-    logger: false,
+    // logger: true,
   });
 
-  const customLogger = app.get(CustomLoggerService);
-
-  app.useLogger(customLogger);
+  // const customLogger = app.get(CustomLoggerService);
+  //
+  // app.useLogger(customLogger);
 
   const configService = app.get(ConfigService);
 
@@ -33,17 +33,17 @@ async function bootstrap() {
   const port = configService.get<number>('PORT');
 
   // Catch Uncaught Exceptions (Sync Errors)
-  process.on('uncaughtException', (error) => {
-    customLogger.error(
-      `Uncaught Exception: ${error.message} | Stack: ${error.stack}`,
-    );
-    process.exit(1); // Exit process after logging
-  });
-
-  // Catch Unhandled Promise Rejections (Async Errors)
-  process.on('unhandledRejection', (reason: any) => {
-    customLogger.error(`Unhandled Rejection: ${reason.message || reason}`);
-  });
+  // process.on('uncaughtException', (error) => {
+  //   customLogger.error(
+  //     `Uncaught Exception: ${error.message} | Stack: ${error.stack}`,
+  //   );
+  //   process.exit(1); // Exit process after logging
+  // });
+  //
+  // // Catch Unhandled Promise Rejections (Async Errors)
+  // process.on('unhandledRejection', (reason: any) => {
+  //   customLogger.error(`Unhandled Rejection: ${reason.message || reason}`);
+  // });
 
   // process.on('uncaughtException', (err) => {
   //   customLogger.error('Uncaught Exception', err);

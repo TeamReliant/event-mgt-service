@@ -9,6 +9,7 @@ import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
+import { ActiveUsersService } from '@app/rest/active-users/active-users.service';
 
 @Injectable()
 export class UsersService {
@@ -16,6 +17,7 @@ export class UsersService {
     @InjectRepository(User) private readonly repo: Repository<User>,
     private readonly dataSource: DataSource,
     private readonly eventEmitter: EventEmitter2,
+    private readonly activeUsersService: ActiveUsersService,
   ) {}
 
   async seedUser(): Promise<void> {
@@ -176,5 +178,9 @@ export class UsersService {
         `Failed to get location data for IP: ${ip}`,
       );
     }
+  }
+
+  async recordUserActivity(userId: string) {
+    return this.activeUsersService.record(userId);
   }
 }
