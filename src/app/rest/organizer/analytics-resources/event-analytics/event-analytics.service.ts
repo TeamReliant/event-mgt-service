@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { Between, EntityManager, IsNull } from 'typeorm';
 import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
@@ -8,10 +8,12 @@ import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enu
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
 import { DateTime, DateTimeUnit } from 'luxon';
 import { mapToIanaTimezone } from '@libs/helpers/char-generator';
+import * as moment from 'moment-timezone';
 
 @Injectable()
 export class EventAnalyticsService {
-  constructor(private readonly entityManager: EntityManager) {}
+  constructor(private readonly entityManager: EntityManager) {
+  }
 
   async getAnalytics(eventId: string, { ...query }) {
     // get the date of yesterday
@@ -342,92 +344,165 @@ export class EventAnalyticsService {
     dateRangeStart: string,
     dateRangeEnd: string,
     range: 'daily' | 'weekly' | 'monthly',
-    timezone: string = 'UTC',
+    timezone: string = 'UTC+00:00',
   ) {
-    // Normalize 'UTC+1:00' to 'UTC+1' and map to IANA
+    // Normalize and convert to IANA format
     timezone = timezone.replace(/\s/g, '+').replace(':00', '');
     const ianaTimezone = mapToIanaTimezone(timezone);
 
-    const rangeMapping = {
-      daily: 'day',
-      weekly: 'week',
-      monthly: 'month',
-    };
-    const pgRange = rangeMapping[range];
-
-    // Build start and end of day in user's timezone
-    const userStart = DateTime.fromISO(dateRangeStart, {
-      zone: ianaTimezone,
-    }).startOf(pgRange as any);
-    const userEnd = DateTime.fromISO(dateRangeEnd, {
-      zone: ianaTimezone,
-    }).endOf(pgRange as any);
-
-    // Convert to UTC for querying
-    const startUtc = userStart.toUTC().toJSDate();
-    const endUtc = userEnd.toUTC().toJSDate();
-
-    const queryBuilder = this.entityManager
-      .createQueryBuilder(EventView, 'views')
-      .select(
-        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
-        'timeGroup',
-      )
-      .addSelect('COUNT(views.id)', 'viewCount')
-      .where('views.eventId = :eventId', { eventId })
-      .andWhere('views.createdAt BETWEEN :start AND :end', {
-        start: startUtc,
-        end: endUtc,
-      })
-      .groupBy(
-        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
-      )
-      .orderBy(
-        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
-        'ASC',
-      )
-      .setParameter('userTz', ianaTimezone);
-
-    const rawResults = await queryBuilder.getRawMany();
-
-    const resultMap = new Map<string, number>();
-    rawResults.forEach(({ timeGroup, viewCount }) => {
-      const time = DateTime.fromJSDate(timeGroup, {
-        zone: ianaTimezone,
-      }).startOf(pgRange as any);
-      resultMap.set(time.toISODate(), parseInt(viewCount, 10));
+    // Fetch event views
+    const eventViews = await this.entityManager.find(EventView, {
+      where: {
+        event: { id: eventId },
+        createdAt: Between(new Date(dateRangeStart), new Date(dateRangeEnd)),
+        deletedAt: IsNull(), // Exclude soft-deleted
+      },
+      relations: ['event', 'user'],
     });
 
-    // Generate full range
-    const fullRange: string[] = [];
-    let cursor = userStart.startOf(pgRange as any);
-    while (cursor <= userEnd) {
-      fullRange.push(cursor.toISODate());
+    // Set up time buckets
+    const groupedData: Record<string, number> = {};
+    const start = moment.tz(dateRangeStart, ianaTimezone);
+    const end = moment.tz(dateRangeEnd, ianaTimezone);
 
-      if (range === 'daily') cursor = cursor.plus({ days: 1 });
-      else if (range === 'weekly') cursor = cursor.plus({ weeks: 1 });
-      else if (range === 'monthly') cursor = cursor.plus({ months: 1 });
-    }
+    let cursor = start.clone();
 
-    // Format results
-    const formattedResults: Record<string, number> = {};
-    fullRange.forEach((periodISO) => {
-      const date = DateTime.fromISO(periodISO, { zone: ianaTimezone });
+    while (cursor.isSameOrBefore(end, 'day')) {
+      let label: string;
 
       if (range === 'daily') {
-        const label = date.toFormat('MMM dd');
-        formattedResults[label] = resultMap.get(periodISO) || 0;
+        label = cursor.format('MMM D');
+        cursor.add(1, 'day');
       } else if (range === 'weekly') {
-        const weekStart = date;
-        const weekEnd = date.plus({ days: 6 });
-        const label = `${weekStart.toFormat('MMM dd')} - ${weekEnd.toFormat('MMM dd')}`;
-        formattedResults[label] = resultMap.get(periodISO) || 0;
+        const weekStart = cursor.clone().startOf('isoWeek');
+        const weekEnd = cursor.clone().endOf('isoWeek');
+        label = `${weekStart.format('MMM D')} - ${weekEnd.format('MMM D')}`;
+        cursor = weekEnd.add(1, 'day');
       } else if (range === 'monthly') {
-        const label = date.toFormat('MMM yyyy');
-        formattedResults[label] = resultMap.get(periodISO) || 0;
+        label = cursor.format('MMM');
+        cursor.add(1, 'month');
       }
-    });
 
-    return formattedResults;
+      if (label) groupedData[label] = 0;
+    }
+
+    // Populate counts
+    for (const view of eventViews) {
+      const created = moment.tz(view.createdAt, ianaTimezone);
+
+      let label: string;
+
+      if (range === 'daily') {
+        label = created.format('MMM D');
+      } else if (range === 'weekly') {
+        const weekStart = created.clone().startOf('isoWeek');
+        const weekEnd = created.clone().endOf('isoWeek');
+        label = `${weekStart.format('MMM D')} - ${weekEnd.format('MMM D')}`;
+      } else if (range === 'monthly') {
+        label = created.format('MMM');
+      }
+
+      if (groupedData[label] !== undefined) {
+        groupedData[label]++;
+      }
+    }
+
+    return groupedData;
   }
+
+  // private async _getEventPageViews(
+  //   eventId: string,
+  //   dateRangeStart: string,
+  //   dateRangeEnd: string,
+  //   range: 'daily' | 'weekly' | 'monthly',
+  //   timezone: string = 'UTC+00:00',
+  // ) {
+  //   // Normalize 'UTC+1:00' to 'UTC+1' and map to IANA
+  //   timezone = timezone.replace(/\s/g, '+').replace(':00', '');
+  //   const ianaTimezone = mapToIanaTimezone(timezone);
+  //
+  //   const rangeMapping = {
+  //     daily: 'day',
+  //     weekly: 'week',
+  //     monthly: 'month',
+  //   };
+  //   const pgRange = rangeMapping[range];
+  //
+  //   // Build start and end of day in user's timezone
+  //   const userStart = DateTime.fromISO(dateRangeStart, {
+  //     zone: ianaTimezone,
+  //   }).startOf(pgRange as any);
+  //   const userEnd = DateTime.fromISO(dateRangeEnd, {
+  //     zone: ianaTimezone,
+  //   }).endOf(pgRange as any);
+  //
+  //   // Convert to UTC for querying
+  //   const startUtc = userStart.toUTC().toJSDate();
+  //   const endUtc = userEnd.toUTC().toJSDate();
+  //
+  //   const queryBuilder = this.entityManager
+  //     .createQueryBuilder(EventView, 'views')
+  //     .select(
+  //       `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+  //       'timeGroup',
+  //     )
+  //     .addSelect('COUNT(views.id)', 'viewCount')
+  //     .where('views.eventId = :eventId', { eventId })
+  //     .andWhere('views.createdAt BETWEEN :start AND :end', {
+  //       start: startUtc,
+  //       end: endUtc,
+  //     })
+  //     .groupBy(
+  //       `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+  //     )
+  //     .orderBy(
+  //       `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+  //       'ASC',
+  //     )
+  //     .setParameter('userTz', ianaTimezone);
+  //
+  //   const rawResults = await queryBuilder.getRawMany();
+  //
+  //   const resultMap = new Map<string, number>();
+  //   rawResults.forEach(({ timeGroup, viewCount }) => {
+  //     const time = DateTime.fromJSDate(timeGroup, {
+  //       zone: ianaTimezone,
+  //     }).startOf(pgRange as any);
+  //     resultMap.set(time.toISODate(), parseInt(viewCount, 10));
+  //   });
+  //
+  //   // Generate full range
+  //   const fullRange: string[] = [];
+  //   let cursor = userStart.startOf(pgRange as any);
+  //   while (cursor <= userEnd) {
+  //     fullRange.push(cursor.toISODate());
+  //
+  //     if (range === 'daily') cursor = cursor.plus({ days: 1 });
+  //     else if (range === 'weekly') cursor = cursor.plus({ weeks: 1 });
+  //     else if (range === 'monthly') cursor = cursor.plus({ months: 1 });
+  //   }
+  //
+  //   // Format results
+  //   const formattedResults: Record<string, number> = {};
+  //   fullRange.forEach((periodISO) => {
+  //     const date = DateTime.fromISO(periodISO, { zone: ianaTimezone });
+  //
+  //     if (range === 'daily') {
+  //       const label = date.toFormat('MMM dd');
+  //       formattedResults[label] = resultMap.get(periodISO) || 0;
+  //     } else if (range === 'weekly') {
+  //       const weekStart = date;
+  //       const weekEnd = date.plus({ days: 6 });
+  //       const label = `${weekStart.toFormat('MMM dd')} - ${weekEnd.toFormat('MMM dd')}`;
+  //       formattedResults[label] = resultMap.get(periodISO) || 0;
+  //     } else if (range === 'monthly') {
+  //       const label = date.toFormat('MMM yyyy');
+  //       formattedResults[label] = resultMap.get(periodISO) || 0;
+  //     }
+  //   });
+  //
+  //   return formattedResults;
+  // }
+
+
 }
