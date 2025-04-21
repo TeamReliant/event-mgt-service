@@ -48,6 +48,11 @@ export class AttendeeDashboardService {
       .limit(10)
       .getMany();
 
+    const uniqueEvents = recentlyViewedEvents.filter(
+      (view, index, self) =>
+        index === self.findIndex((v) => v.event.id === view.event.id),
+    );
+
     let recommendedEvents: Event[];
     if (latitude && longitude) {
       recommendedEvents = await this.getLatLongRecommendedEvents({
@@ -75,7 +80,7 @@ export class AttendeeDashboardService {
 
     return {
       upcomingEvents: this.sortUpcomingEvents(upcomingEventBookings),
-      recentlyViewedEvents: recentlyViewedEvents.map((view) => view.event),
+      recentlyViewedEvents: uniqueEvents.map((view) => view.event),
       recommendedEvents,
     };
   }

@@ -10,7 +10,7 @@ block content
   p
     a(href=payload.dashboardLink, class='btn btn-primary') View Payout Details
 
-  small Thank you for being a valued member of #{payload.appInfo.appName}!
+  small Thank you for being a valued member of #{payload.appName}!
   br
-  small
-    b - #{payload.appInfo.appEmail}, #{payload.appInfo.appName}
+  p.signature
+    b The #{payload.appName} Team

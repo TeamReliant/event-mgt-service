@@ -40,6 +40,7 @@ import { EmailEngineService } from '@libs/notifications/email/email-engine/email
 import { TasksSchedulersService } from '@libs/schedulers/tasks-schedulers.service';
 import { CustomLoggerService } from '@libs/services/logging/custom-logger.service';
 import { LoggingMiddleware } from '@libs/middlewares/logging.middleware';
+import { ActiveUsersModule } from './app/rest/active-users/active-users.module';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { LoggingMiddleware } from '@libs/middlewares/logging.middleware';
     AdminManagementModule,
     EventManagementModule,
     SubscribersManagementModule,
+    ActiveUsersModule,
   ],
   providers: [
     JwtStrategy,

@@ -10,6 +10,7 @@ import { UserType } from '@app/rest/users/enums/user-type';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { UsersPublicProfile } from './users-public-profile.entity';
 import { Transaction } from '@app/rest/organizer/transaction-resources/transactions/entities/transaction.entity';
+import { ActiveUser } from '@app/rest/active-users/entities/active-user.entity';
 
 @Entity({ name: 'users' })
 export class User extends AbstractEntity<User> {
@@ -209,6 +210,11 @@ export class User extends AbstractEntity<User> {
     cascade: true,
   })
   eventViews?: EventView[];
+
+  @OneToMany(() => ActiveUser, (view) => view.user, {
+    cascade: true,
+  })
+  activities?: ActiveUser[];
 
   @OneToMany(() => Transaction, (subscription) => subscription.user, {
     cascade: true,

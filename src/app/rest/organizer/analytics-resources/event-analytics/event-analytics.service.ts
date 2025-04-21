@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
-import {
-  BookingStatus,
-  TicketTransferStatus,
-} from '@app/rest/attendee/bookings/enums/booking-status';
+import { BookingStatus } from '@app/rest/attendee/bookings/enums/booking-status';
 import { Booking } from '@app/rest/attendee/bookings/entities/booking.entity';
 import { Event } from '@app/rest/organizer/event-resources/events/entities/event.entity';
 import { EventView } from '@app/rest/attendee/dashboard/entities/event-view.entity';
 import { TicketCategory } from '@app/rest/organizer/ticket-resources/tickets/enums';
 import { FreeTicketReaction } from '@app/rest/attendee/bookings/enums/free-ticket-reaction';
+import { DateTime, DateTimeUnit } from 'luxon';
+import { mapToIanaTimezone } from '@libs/helpers/char-generator';
 
 @Injectable()
 export class EventAnalyticsService {
@@ -31,7 +30,7 @@ export class EventAnalyticsService {
       .getOne();
 
     // check if the neccessary queries for page views are supplied
-    const { dateRangeStart, dateRangeEnd, range } = query;
+    const { dateRangeStart, dateRangeEnd, range, timezone } = query;
     let pageViews = {};
     if (dateRangeStart && dateRangeEnd && range) {
       pageViews = await this._getEventPageViews(
@@ -39,6 +38,7 @@ export class EventAnalyticsService {
         dateRangeStart,
         dateRangeEnd,
         range,
+        timezone,
       );
     }
 
@@ -54,7 +54,23 @@ export class EventAnalyticsService {
   }
 
   private async _getAttendanceRate(event: Event) {
-    const { id, totalNumberOfTicketsSold, totalNumberOfTicketsRsvp } = event;
+    // count existing complimentary tickets
+    event.totalNumberOfComplimentaryTickets = await this.entityManager
+      .createQueryBuilder(Booking, 'bookings')
+      .where('bookings.eventId = :eventId', { eventId: event.id })
+      .andWhere('bookings.category = :category', {
+        category: TicketCategory.COMPLIMENTARY,
+      })
+      .getCount();
+
+    await this.entityManager.save(Event, event);
+
+    const {
+      id,
+      totalNumberOfTicketsSold,
+      totalNumberOfTicketsRsvp,
+      totalNumberOfComplimentaryTickets,
+    } = event;
 
     // fetch ticket scanned
     const ticketsScanned = await this.entityManager
@@ -65,7 +81,10 @@ export class EventAnalyticsService {
 
     // calculate Attendance rate
     const attendanceRate =
-      (ticketsScanned / (totalNumberOfTicketsSold + totalNumberOfTicketsRsvp)) *
+      (ticketsScanned /
+        (totalNumberOfTicketsSold +
+          totalNumberOfTicketsRsvp +
+          totalNumberOfComplimentaryTickets)) *
       100;
 
     // calculate percentage change
@@ -80,6 +99,22 @@ export class EventAnalyticsService {
   }
 
   private async _getTicketsAnalytics(event: Event, category: TicketCategory) {
+    if (category === TicketCategory.FREE) {
+      // count all free booking
+      event.totalNumberOfTicketsRsvp = await this.entityManager
+        .createQueryBuilder(Booking, 'bookings')
+        .leftJoinAndSelect('bookings.event', 'event')
+        .where('event.id = :eventId', { eventId: event.id })
+        .andWhere('bookings.status = :status', { status: BookingStatus.VALID })
+        .andWhere('bookings.category = :category', { category })
+        .andWhere('bookings.reaction != :reaction', {
+          reaction: FreeTicketReaction.NOT_GOING,
+        })
+        .getCount();
+
+      await this.entityManager.save(Event, event);
+    }
+
     // get the date of yesterday
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -307,94 +342,89 @@ export class EventAnalyticsService {
     dateRangeStart: string,
     dateRangeEnd: string,
     range: 'daily' | 'weekly' | 'monthly',
+    timezone: string = 'UTC',
   ) {
-    const startOfDay = new Date(dateRangeStart);
-    startOfDay.setHours(0, 0, 0, 0);
+    // Normalize 'UTC+1:00' to 'UTC+1' and map to IANA
+    timezone = timezone.replace(/\s/g, '+').replace(':00', '');
+    const ianaTimezone = mapToIanaTimezone(timezone);
 
-    const endOfDay = new Date(dateRangeEnd);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Map the `range` input to PostgreSQL-compatible units
     const rangeMapping = {
       daily: 'day',
       weekly: 'week',
       monthly: 'month',
     };
+    const pgRange = rangeMapping[range];
 
-    const pgRange = rangeMapping[range]; // Resolve PostgreSQL-compatible unit
+    // Build start and end of day in user's timezone
+    const userStart = DateTime.fromISO(dateRangeStart, {
+      zone: ianaTimezone,
+    }).startOf(pgRange as any);
+    const userEnd = DateTime.fromISO(dateRangeEnd, {
+      zone: ianaTimezone,
+    }).endOf(pgRange as any);
 
-    // Adjust start and end dates for weekly and monthly
-    if (range === 'weekly') {
-      const dayOfWeek = startOfDay.getDay(); // Get the current day of the week (0 = Sunday)
-      startOfDay.setDate(startOfDay.getDate() - dayOfWeek + 1); // Align to the start of the week (Monday)
-    } else if (range === 'monthly') {
-      startOfDay.setDate(1); // Align to the first day of the month
-    }
+    // Convert to UTC for querying
+    const startUtc = userStart.toUTC().toJSDate();
+    const endUtc = userEnd.toUTC().toJSDate();
 
-    // Generate the query
     const queryBuilder = this.entityManager
       .createQueryBuilder(EventView, 'views')
-      .select(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'timeGroup')
+      .select(
+        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+        'timeGroup',
+      )
       .addSelect('COUNT(views.id)', 'viewCount')
       .where('views.eventId = :eventId', { eventId })
       .andWhere('views.createdAt BETWEEN :start AND :end', {
-        start: startOfDay,
-        end: endOfDay,
+        start: startUtc,
+        end: endUtc,
       })
-      .groupBy(`DATE_TRUNC('${pgRange}', views.createdAt)`)
-      .orderBy(`DATE_TRUNC('${pgRange}', views.createdAt)`, 'ASC');
+      .groupBy(
+        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+      )
+      .orderBy(
+        `DATE_TRUNC('${pgRange}', views.createdAt AT TIME ZONE 'UTC' AT TIME ZONE :userTz)`,
+        'ASC',
+      )
+      .setParameter('userTz', ianaTimezone);
 
     const rawResults = await queryBuilder.getRawMany();
 
-    // Generate a full range of periods
+    const resultMap = new Map<string, number>();
+    rawResults.forEach(({ timeGroup, viewCount }) => {
+      const time = DateTime.fromJSDate(timeGroup, {
+        zone: ianaTimezone,
+      }).startOf(pgRange as any);
+      resultMap.set(time.toISODate(), parseInt(viewCount, 10));
+    });
+
+    // Generate full range
     const fullRange: string[] = [];
-    const currentDate = new Date(startOfDay);
+    let cursor = userStart.startOf(pgRange as any);
+    while (cursor <= userEnd) {
+      fullRange.push(cursor.toISODate());
 
-    while (currentDate <= endOfDay) {
-      fullRange.push(currentDate.toISOString());
-
-      if (range === 'daily') {
-        currentDate.setDate(currentDate.getDate() + 1); // Increment by 1 day
-      } else if (range === 'weekly') {
-        currentDate.setDate(currentDate.getDate() + 7); // Increment by 7 days
-      } else if (range === 'monthly') {
-        currentDate.setMonth(currentDate.getMonth() + 1); // Increment by 1 month
-      }
+      if (range === 'daily') cursor = cursor.plus({ days: 1 });
+      else if (range === 'weekly') cursor = cursor.plus({ weeks: 1 });
+      else if (range === 'monthly') cursor = cursor.plus({ months: 1 });
     }
 
-    // Map raw results to a dictionary for quick lookups
-    const resultMap = new Map(
-      rawResults.map(({ timeGroup, viewCount }) => [
-        new Date(timeGroup).toISOString(),
-        parseInt(viewCount, 10),
-      ]),
-    );
-
-    // Format response based on range
+    // Format results
     const formattedResults: Record<string, number> = {};
-
-    fullRange.forEach((period) => {
-      const date = new Date(period);
+    fullRange.forEach((periodISO) => {
+      const date = DateTime.fromISO(periodISO, { zone: ianaTimezone });
 
       if (range === 'daily') {
-        const dayLabel = date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
-        formattedResults[dayLabel] = resultMap.get(period) || 0;
+        const label = date.toFormat('MMM dd');
+        formattedResults[label] = resultMap.get(periodISO) || 0;
       } else if (range === 'weekly') {
-        const weekStart = new Date(date);
-        const weekEnd = new Date(date);
-        weekEnd.setDate(weekEnd.getDate() + 6); // Add 6 days for a full week
-
-        const weekLabel = `${weekStart.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-        formattedResults[weekLabel] = resultMap.get(period) || 0;
+        const weekStart = date;
+        const weekEnd = date.plus({ days: 6 });
+        const label = `${weekStart.toFormat('MMM dd')} - ${weekEnd.toFormat('MMM dd')}`;
+        formattedResults[label] = resultMap.get(periodISO) || 0;
       } else if (range === 'monthly') {
-        const monthLabel = date.toLocaleDateString('en-US', { month: 'short' });
-        formattedResults[monthLabel] = resultMap.get(period) || 0;
+        const label = date.toFormat('MMM yyyy');
+        formattedResults[label] = resultMap.get(periodISO) || 0;
       }
     });
 

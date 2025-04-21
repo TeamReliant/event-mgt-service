@@ -11,7 +11,7 @@ import { UsersService } from '@app/rest/users/users.service';
 export default class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(
     private reflector: Reflector,
-    private usersService: UsersService, // Inject your AuthService or UserService
+    private usersService: UsersService,
   ) {
     super();
   }
@@ -46,6 +46,8 @@ export default class JwtAuthGuard extends AuthGuard('jwt') {
     await this.usersService.findOneByIdAndUpdate(user.userId, {
       lastLoggedIn: new Date(),
     });
+
+    await this.usersService.recordUserActivity(user.userId);
 
     return true;
   }

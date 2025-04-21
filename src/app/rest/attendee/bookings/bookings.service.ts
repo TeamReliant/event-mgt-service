@@ -512,19 +512,20 @@ export class BookingsService {
         // update the system register
         systemRegister.totalTicketsProcessed += totalTicketsProcessed;
         systemRegister.ticketsRsvp += totalTicketsProcessed;
+
         const event = await manager
           .createQueryBuilder(Event, 'event')
           .leftJoinAndSelect('event.user', 'user')
           .where('event.id = :id', { id: bookings[0].event.id })
           .getOne();
+
         event.totalNumberOfTicketsRsvp += totalTicketsProcessed;
         event.user.ticketsRsvp += totalTicketsProcessed;
 
         await manager.save<SystemRegister>(systemRegister);
         await manager.save<User>(event.user);
+        await manager.save<Event>(event);
       }
-
-      await manager.save<Event>(bookings[0].event);
 
       // save the newly generated bookings
       await manager.save(Booking, newBookings);
@@ -557,7 +558,7 @@ export class BookingsService {
 
     // unsure the event is not over yet
     const now = new Date();
-    const eventDate = new Date(ticket.event.eventStartDateAndTime);
+    const eventDate = new Date(ticket.event.eventEndDateAndTime);
     if (now > eventDate)
       throw new NotAcceptableException('Event has already ended');
 
@@ -600,7 +601,11 @@ export class BookingsService {
         bookings.push(booking);
       }
 
-      return await manager.save(Booking, bookings);
+      const savedBookings = await manager.save(Booking, bookings);
+      ticket.event.totalNumberOfComplimentaryTickets += quantity;
+      await manager.save(Event, ticket.event);
+
+      return savedBookings;
     });
 
     this._eventEmitter.emit(

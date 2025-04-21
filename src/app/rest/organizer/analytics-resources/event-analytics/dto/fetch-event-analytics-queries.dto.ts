@@ -1,4 +1,4 @@
-import { IsDate, IsEnum, IsOptional } from 'class-validator';
+import { IsDate, IsDateString, IsEnum, IsOptional } from 'class-validator';
 import { FormatValidationException } from '@libs/decorators/format-validation-exception.decorator';
 import { PaginationQueryDto } from '@libs/helpers/pagination/dto/pagination.query.dto';
 import { Transform } from 'class-transformer';
@@ -10,10 +10,10 @@ export class FetchEventAnalyticsQueriesDto extends PaginationQueryDto {
     if (isNaN(date.getTime())) {
       throw new Error('Invalid date format');
     }
-    return date;
+    return date.toISOString();
   })
-  @IsDate()
-  dateRangeStart: Date;
+  @IsDateString()
+  dateRangeStart: string;
 
   @IsOptional()
   @Transform(({ value }) => {
@@ -21,10 +21,10 @@ export class FetchEventAnalyticsQueriesDto extends PaginationQueryDto {
     if (isNaN(date.getTime())) {
       throw new Error('Invalid date format');
     }
-    return date;
+    return date.toISOString();
   })
-  @IsDate()
-  dateRangeEnd: Date;
+  @IsDateString()
+  dateRangeEnd: string;
 
   @IsOptional()
   @IsEnum(['daily', 'weekly', 'monthly'], {
@@ -32,4 +32,8 @@ export class FetchEventAnalyticsQueriesDto extends PaginationQueryDto {
   })
   @FormatValidationException()
   range: string = 'weekly';
+
+  @IsOptional()
+  @FormatValidationException()
+  timezone: string = 'UTC+00:00';
 }
