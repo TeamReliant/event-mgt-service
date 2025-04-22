@@ -753,6 +753,9 @@ export class BookingsService {
     if (booking.status === BookingStatus.USED)
       throw new NotAcceptableException('Used ticket cannot be transferred');
 
+    if(booking.status !== BookingStatus.VALID)
+      throw new NotAcceptableException('Only valid ticket can be transferred');
+
     // check if the destination user is a registered attendee
     const user = await this._entityManager.findOneBy(User, { email });
 
@@ -791,10 +794,11 @@ export class BookingsService {
       const savedBooking = await manager.save<Booking>(bookingEntity);
       newBookings.push(savedBooking);
 
-      booking.status = BookingStatus.USED;
+      booking.status = BookingStatus.INVALID;
       booking.transferStatus = TicketTransferStatus.TRANSFERRED;
       booking.transferredTo = savedBooking;
       await manager.save(Booking, booking);
+      // await manager.remove(Booking, booking);
 
       // fetch the system register
       const systemRegister = await manager

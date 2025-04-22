@@ -68,10 +68,11 @@ export class GuestsService {
       });
     } else {
       queryBuilder.andWhere(
-        '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
+        '((bookings.status = :validStatus OR bookings.status = :usedStatus) && (bookings.transferStatus != :transferStatus))',
         {
           validStatus: BookingStatus.VALID,
           usedStatus: BookingStatus.USED,
+          transferStatus: TicketTransferStatus.TRANSFERRED,
         },
       );
     }
@@ -319,6 +320,9 @@ export class GuestsService {
 
     if (booking.refunded)
       throw new NotAcceptableException('Ticket has been refunded');
+
+    if (booking.status === BookingStatus.INVALID)
+      throw new NotAcceptableException('Ticket has been invalidated');
 
     // check if the booking has been transferred
     if (booking.transferStatus === TicketTransferStatus.TRANSFERRED)
