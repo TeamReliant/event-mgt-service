@@ -68,7 +68,7 @@ export class GuestsService {
       });
     } else {
       queryBuilder.andWhere(
-        '((bookings.status = :validStatus OR bookings.status = :usedStatus) AND (bookings.transferStatus != :transferStatus))',
+        '(bookings.status = :validStatus OR bookings.status = :usedStatus AND bookings.transferStatus != :transferStatus)',
         {
           validStatus: BookingStatus.VALID,
           usedStatus: BookingStatus.USED,
