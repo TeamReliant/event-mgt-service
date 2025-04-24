@@ -12,8 +12,7 @@ import * as moment from 'moment-timezone';
 
 @Injectable()
 export class EventAnalyticsService {
-  constructor(private readonly entityManager: EntityManager) {
-  }
+  constructor(private readonly entityManager: EntityManager) {}
 
   async getAnalytics(eventId: string, { ...query }) {
     // get the date of yesterday
@@ -503,6 +502,4 @@ export class EventAnalyticsService {
   //
   //   return formattedResults;
   // }
-
-
 }

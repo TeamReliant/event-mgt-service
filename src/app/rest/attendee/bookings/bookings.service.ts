@@ -42,6 +42,7 @@ export class BookingsService {
     private readonly _paymentService: PaymentService,
     private readonly _configService: ConfigService,
     private readonly _eventEmitter: EventEmitter2,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(
@@ -424,12 +425,12 @@ export class BookingsService {
         return currentAmount + booking.ticket.price * booking.quantity;
       }, 0);
 
-      const stripeFee = +this._configService.get<number>('STRIPE_FEE');
-      const percentageCut = +this._configService.get<number>(
-        'TICKET_PERCENTAGE_CUT',
-      );
+      // const stripeFee = +this._configService.get<number>('STRIPE_FEE');
+      // const percentageCut = +this._configService.get<number>(
+      //   'TICKET_PERCENTAGE_CUT',
+      // );
       // calculate the percentage cut of the totalAmount
-      const percentageCutAmount = (totalAmount * percentageCut) / 100;
+      const { platformFee, stripeFee } = await this.getFees(totalAmount);
 
       // Save the transaction details
       const transaction = manager.create(BookingsTransaction, {
@@ -437,7 +438,7 @@ export class BookingsService {
         stripeCheckoutUrl: response?.url,
         totalAmount,
         stripeFee,
-        fee: percentageCutAmount,
+        fee: platformFee,
         currency: response?.currency,
         user,
         bookings,
@@ -447,6 +448,27 @@ export class BookingsService {
       // Return the checkout URL for payment.
       if (response?.url) return { checkoutUrl: response.url };
     });
+  }
+
+  async getFees(amount: number) {
+    const stripeFee = +this.configService.get<number>('STRIPE_FEE');
+
+    const percentageCut = +this.configService.get<number>(
+      'TICKET_PERCENTAGE_CUT',
+    );
+
+    // calculate the percentage cut of the totalAmount
+    const percentageCutAmount = (percentageCut * amount) / 100 + 0.5;
+    const stripeFeeAmount = (stripeFee * amount) / 100 + 0.3;
+
+    return {
+      platformFee: this._roundToTwo(percentageCutAmount),
+      stripeFee: this._roundToTwo(stripeFeeAmount),
+      total: this._roundToTwo(percentageCutAmount + stripeFeeAmount + amount),
+    };
+  }
+  private _roundToTwo(digits: number) {
+    return Math.ceil(digits * 100) / 100;
   }
 
   private async processFreeBookings(bookings: Booking[]): Promise<any> {
@@ -753,7 +775,7 @@ export class BookingsService {
     if (booking.status === BookingStatus.USED)
       throw new NotAcceptableException('Used ticket cannot be transferred');
 
-    if(booking.status !== BookingStatus.VALID)
+    if (booking.status !== BookingStatus.VALID)
       throw new NotAcceptableException('Only valid ticket can be transferred');
 
     // check if the destination user is a registered attendee
