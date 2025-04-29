@@ -49,10 +49,10 @@ export class GuestsService {
       .leftJoinAndSelect('members.user', 'membersUser')
       .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
-      .where('bookings.eventId = :eventId', { eventId })
-      .andWhere('bookings.transferStatus != :transferStatus', {
-        transferStatus: TicketTransferStatus.TRANSFERRED,
-      });
+      .where(
+        '(bookings.eventId = :eventId AND bookings.transferStatus != :transferStatus)',
+        { eventId, transferStatus: TicketTransferStatus.TRANSFERRED },
+      );
     // .andWhere(
     //   '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
     //   {
