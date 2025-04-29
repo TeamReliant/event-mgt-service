@@ -49,7 +49,14 @@ export class GuestsService {
       .leftJoinAndSelect('members.user', 'membersUser')
       .leftJoinAndSelect('members.permissions', 'permissions')
       .leftJoinAndSelect('bookings.ticket', 'ticket')
-      .where('bookings.eventId = :eventId', { eventId });
+      .where('bookings.eventId = :eventId', { eventId })
+      .andWhere(
+        '(bookings.transferStatus = :receivedStatus OR bookings.transferStatus = :nullStatus)',
+        {
+          receivedStatus: TicketTransferStatus.RECEIVED,
+          nullStatus: null,
+        },
+      );
     // .andWhere(
     //   '(bookings.status = :validStatus OR bookings.status = :usedStatus)',
     //   {
@@ -319,6 +326,9 @@ export class GuestsService {
 
     if (booking.refunded)
       throw new NotAcceptableException('Ticket has been refunded');
+
+    if (booking.status === BookingStatus.INVALID)
+      throw new NotAcceptableException('Ticket has been invalidated');
 
     // check if the booking has been transferred
     if (booking.transferStatus === TicketTransferStatus.TRANSFERRED)
