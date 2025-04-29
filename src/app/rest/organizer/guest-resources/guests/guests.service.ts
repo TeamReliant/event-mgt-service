@@ -51,7 +51,7 @@ export class GuestsService {
       .leftJoinAndSelect('bookings.ticket', 'ticket')
       .where('bookings.eventId = :eventId', { eventId })
       .andWhere(
-        'bookings.transferStatus == :receivedStatus OR bookings.transferStatus == :nullStatus',
+        'bookings.transferStatus = :receivedStatus OR bookings.transferStatus = :nullStatus',
         {
           receivedStatus: TicketTransferStatus.RECEIVED,
           nullStatus: null,
