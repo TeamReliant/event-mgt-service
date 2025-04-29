@@ -467,6 +467,7 @@ export class BookingsService {
       total: this._roundToTwo(percentageCutAmount + stripeFeeAmount + amount),
     };
   }
+
   private _roundToTwo(digits: number) {
     return Math.ceil(digits * 100) / 100;
   }
